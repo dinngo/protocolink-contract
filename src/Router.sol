@@ -6,6 +6,8 @@ import "./Spender.sol";
 import "./interfaces/IRouter.sol";
 import "./libraries/ApproveHelper.sol";
 
+import "forge-std/Test.sol";
+
 contract Router is IRouter {
     using SafeERC20 for IERC20;
 
@@ -16,28 +18,58 @@ contract Router is IRouter {
     }
 
     /// @notice Router calls Spender to pull user's token
-    function execute(address tokenIn, uint256 amountIn, address tokenOut, address to, bytes calldata data) external {
-        require(to != address(spender), "SPENDER");
+    function execute(
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 amountOutMin,
+        IRouter.Logic[] calldata logics
+    ) external {
+        // Read spender into memory to save gas
+        Spender _spender = spender;
 
         // Pull tokenIn
-        spender.transferFromERC20(msg.sender, tokenIn, amountIn);
+        _spender.transferFromERC20(msg.sender, tokenIn, amountIn);
 
-        // Approve tokenIn
-        ApproveHelper._tokenApprove(tokenIn, to, type(uint256).max);
+        for (uint256 i = 0; i < logics.length; i++) {
+            // Assignments
+            address to = logics[i].to;
+            address token = logics[i].token;
+            uint256 amountOffset = logics[i].amountOffset;
+            bytes memory data = logics[i].data;
 
-        // Execute
-        (bool success,) = to.call(data);
-        require(success, "FAIL");
+            // Replace amount with current balance
+            uint256 amount = IERC20(token).balanceOf(address(this));
+            assembly {
+                let loc := add(add(data, 0x24), amountOffset) // 0x24 = 0x20(length) + 0x4(sig)
+                mstore(loc, amount)
+            }
 
-        // Approve zero
-        ApproveHelper._tokenApproveZero(tokenIn, to);
+            // Approve tokenIn
+            ApproveHelper._tokenApprove(token, to, type(uint256).max);
 
-        // Push tokenIn and tokenOut
-        if (IERC20(tokenIn).balanceOf(address(this)) > 0) {
-            IERC20(tokenIn).safeTransfer(msg.sender, IERC20(tokenIn).balanceOf(address(this)));
+            // Execute
+            require(to != address(_spender), "SPENDER");
+            (bool success,) = to.call(data);
+            require(success, "FAIL");
+
+            // Approve zero
+            ApproveHelper._tokenApproveZero(token, to);
         }
-        if (IERC20(tokenOut).balanceOf(address(this)) > 0) {
-            IERC20(tokenOut).safeTransfer(msg.sender, IERC20(tokenOut).balanceOf(address(this)));
+
+        // Read amounts
+        uint256 amountInAfter = IERC20(tokenIn).balanceOf(address(this));
+        uint256 amountOutAfter = IERC20(tokenOut).balanceOf(address(this));
+
+        // Check minimal amount
+        require(amountOutAfter >= amountOutMin, "AMOUNT_OUT");
+
+        // Push tokenIn and tokenOut if any balance
+        if (amountInAfter > 0) {
+            IERC20(tokenIn).safeTransfer(msg.sender, amountInAfter);
+        }
+        if (amountOutAfter > 0) {
+            IERC20(tokenOut).safeTransfer(msg.sender, amountOutAfter);
         }
     }
 }

@@ -15,7 +15,7 @@ contract Spender {
     }
 
     /// @notice Router asks to transfer tokens from user to router
-    /// @dev Router must guarantee that from is the user
+    /// @dev Router must guarantee that from is the user (msg.sender)
     function transferFromERC20(address from, address token, uint256 amount) external {
         require(msg.sender == router, "!ROUTER");
 

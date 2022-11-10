@@ -29,11 +29,11 @@ contract RouterTest is Test {
     IUniswapV2Router02 public constant uniswapRouter02 = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     IYVault public constant yVault = IYVault(0x2f08119C6f07c006695E079AAFc638b8789FAf18); // yUSDT
 
-    Router public router;
-    Spender public spender;
     address public user;
     address public hacker;
     address public hackerWallet;
+    Router public router;
+    Spender public spender;
 
     function setUp() external {
         user = makeAddr("user");
@@ -43,49 +43,72 @@ contract RouterTest is Test {
         router = new Router();
         spender = Spender(router.spender());
 
-        // User approved router
+        // User approved spender
         vm.startPrank(user);
         TOKEN.safeApprove(address(router.spender()), type(uint256).max);
         vm.stopPrank();
     }
 
-    // Ensure to allow interacting with `to` which is not ERC20-compliant.
+    // Test `to` is not ERC20-compliant.
     function testExecuteUniswapV2(uint256 amount) external {
         IERC20 tokenIn = TOKEN;
         IERC20 tokenOut = WETH;
         amount = bound(amount, 1, tokenIn.totalSupply());
         deal(address(tokenIn), user, amount);
 
-        // Prepare calldata
+        // Prepare logic
         address[] memory path = new address[](2);
         path[0] = address(tokenIn);
         path[1] = address(tokenOut);
         bytes memory dataUniswap = abi.encodeWithSelector(
             uniswapRouter02.swapExactTokensForTokens.selector,
-            amount, // amountIn
+            0, // amountIn -> will be replaced with balanceOf(token)
             1, // amountOutMin
             path, // path
             address(router), // to
             block.timestamp // deadline
         );
 
-        // Set uniswapRouter02 to `to`
+        IRouter.Logic memory logicUniswap = IRouter.Logic(
+            address(uniswapRouter02), // to
+            address(tokenIn), // token
+            0, // amountOffset
+            dataUniswap
+        );
+
+        // Prepare logics
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = logicUniswap;
+
+        // Execute
         vm.prank(user);
         router.execute(
             address(tokenIn), // tokenIn
             amount, // amountIn
             address(tokenOut), // tokenOut
-            address(uniswapRouter02), // to
-            dataUniswap
+            1, // amountOutMin
+            logics
         );
         assertGt(tokenOut.balanceOf(address(user)), 0);
     }
 
-    // Ensure to allow interacting with `to` which is ERC20-compliant token.
+    // Test `to` is ERC20-compliant token.
     function testExecuteYearn(uint128 amount) external {
-        vm.assume(amount > 1);
+        vm.assume(amount > 1e6);
         IERC20 tokenIn = TOKEN;
         deal(address(tokenIn), user, amount);
+
+        // Prepare logic
+        IRouter.Logic memory logicYearn = IRouter.Logic(
+            address(yVault), // to
+            address(tokenIn), // token
+            1, // amountOffset
+            abi.encodeWithSelector(yVault.deposit.selector, 0) // amount will be replaced with balanceOf(token)
+        );
+
+        // Prepare logics
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = logicYearn;
 
         // Yearn deposit
         vm.prank(user);
@@ -93,21 +116,10 @@ contract RouterTest is Test {
             address(tokenIn), // tokenIn
             amount, // amountIn
             address(yVault), // tokenOut
-            address(yVault), // to
-            abi.encodeWithSelector(yVault.deposit.selector, amount)
+            1, // amountOutMin
+            logics
         );
+
         assertGt(yVault.balanceOf(address(user)), 0);
-    }
-
-    // Ensure hacker cannot exploit spender
-    function testCannotExploit(uint128 amount) external {
-        vm.assume(amount > 0);
-        IERC20 tokenIn = TOKEN;
-        deal(address(tokenIn), user, amount);
-
-        vm.startPrank(hacker);
-        vm.expectRevert(bytes("!ROUTER"));
-        spender.transferFromERC20(user, address(tokenIn), amount);
-        vm.stopPrank();
     }
 }
