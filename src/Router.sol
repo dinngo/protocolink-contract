@@ -17,59 +17,75 @@ contract Router is IRouter {
         spender = new Spender(address(this));
     }
 
-    /// @notice Router calls Spender to pull user's token
+    /// @notice Router calls spender to pull user's tokens
     function execute(
-        address tokenIn,
-        uint256 amountIn,
-        address tokenOut,
-        uint256 amountOutMin,
-        IRouter.Logic[] calldata logics
+        uint256[] calldata amountsIn,
+        address[] calldata tokensOut,
+        uint256[] calldata amountsOutMin,
+        Logic[] calldata logics
     ) external {
+        require(tokensOut.length == amountsOutMin.length, "UNEQUAL_LENGTH_0");
+
         // Read spender into memory to save gas
         Spender _spender = spender;
 
-        // Pull tokenIn
-        _spender.transferFromERC20(msg.sender, tokenIn, amountIn);
+        // Pull tokensIn which is defined in the first logic
+        require(logics.length > 0, "LOGICS_LENGTH");
+        address[] memory tokensIn = logics[0].tokensIn;
+        require(tokensIn.length == amountsIn.length, "UNEQUAL_LENGTH_1");
+        for (uint256 i = 0; i < tokensIn.length; i++) {
+            _spender.transferFromERC20(msg.sender, tokensIn[i], amountsIn[i]);
+        }
 
+        // Execute each logic
         for (uint256 i = 0; i < logics.length; i++) {
-            // Assignments
             address to = logics[i].to;
-            address token = logics[i].token;
-            uint256 amountOffset = logics[i].amountOffset;
             bytes memory data = logics[i].data;
 
-            // Replace amount with current balance
-            uint256 amount = IERC20(token).balanceOf(address(this));
-            assembly {
-                let loc := add(add(data, 0x24), amountOffset) // 0x24 = 0x20(length) + 0x4(sig)
-                mstore(loc, amount)
-            }
+            // Replace token amount in data with current token balance
+            for (uint256 j = 0; j < logics[i].tokensIn.length; j++) {
+                require(logics[i].tokensIn.length == logics[i].amountsInOffset.length, "UNEQUAL_LENGTH_2");
 
-            // Approve tokenIn
-            ApproveHelper._tokenApprove(token, to, type(uint256).max);
+                address token = logics[i].tokensIn[j];
+                uint256 offset = logics[i].amountsInOffset[j];
+                uint256 amount = IERC20(token).balanceOf(address(this));
+                assembly {
+                    let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(length) + 0x4(sig)
+                    mstore(loc, amount)
+                }
+
+                // Approve token
+                ApproveHelper._tokenApprove(token, to, type(uint256).max);
+            }
 
             // Execute
             require(to != address(_spender), "SPENDER");
             (bool success,) = to.call(data);
             require(success, "FAIL");
 
-            // Approve zero
-            ApproveHelper._tokenApproveZero(token, to);
+            // Reset approval
+            for (uint256 j = 0; j < logics[i].tokensIn.length; j++) {
+                address token = logics[i].tokensIn[j];
+                ApproveHelper._tokenApproveZero(token, to);
+            }
         }
 
-        // Read amounts
-        uint256 amountInAfter = IERC20(tokenIn).balanceOf(address(this));
-        uint256 amountOutAfter = IERC20(tokenOut).balanceOf(address(this));
+        // Push tokensOut if any balance and check minimal amount
+        for (uint256 i = 0; i < tokensOut.length; i++) {
+            uint256 balance = IERC20(tokensOut[i]).balanceOf(address(this));
+            require(balance >= amountsOutMin[i], "AMOUNT_OUT");
 
-        // Check minimal amount
-        require(amountOutAfter >= amountOutMin, "AMOUNT_OUT");
-
-        // Push tokenIn and tokenOut if any balance
-        if (amountInAfter > 0) {
-            IERC20(tokenIn).safeTransfer(msg.sender, amountInAfter);
+            if (balance > 0) {
+                IERC20(tokensOut[i]).safeTransfer(msg.sender, balance);
+            }
         }
-        if (amountOutAfter > 0) {
-            IERC20(tokenOut).safeTransfer(msg.sender, amountOutAfter);
+
+        // Push tokensIn if any balance
+        for (uint256 i = 0; i < tokensIn.length; i++) {
+            uint256 balance = IERC20(tokensIn[i]).balanceOf(address(this));
+            if (balance > 0) {
+                IERC20(tokensIn[i]).safeTransfer(msg.sender, balance);
+            }
         }
     }
 }
