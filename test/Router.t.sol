@@ -211,4 +211,60 @@ contract RouterTest is Test {
 
         assertGt(IERC20(tokenOut).balanceOf(address(user)), 0);
     }
+
+    // Test multiple tokensOut
+    function testExecuteUniswapV2RemoveLiquidity(uint256 amount) external {
+        IERC20 tokenOut0 = USDT;
+        IERC20 tokenOut1 = USDC;
+        address tokenIn = IUniswapV2Factory(uniswapRouter02.factory()).getPair(address(tokenOut0), address(tokenOut1));
+        amount = bound(amount, 1e6, IERC20(tokenIn).totalSupply());
+        deal(address(tokenIn), user, amount);
+
+        vm.startPrank(user);
+        IERC20(tokenIn).safeApprove(address(router.spender()), type(uint256).max);
+        vm.stopPrank();
+
+        // Prepare logic
+        bytes memory dataUniswap = abi.encodeWithSelector(
+            uniswapRouter02.removeLiquidity.selector,
+            tokenOut0, // tokenA
+            tokenOut1, // tokenB,
+            0, // liquidity -> will be replaced with balance
+            1, //  amountAMin
+            1, //  amountBMin
+            address(router), // to
+            block.timestamp // deadline
+        );
+
+        address[] memory tokensIn = new address[](1);
+        uint256[] memory amountsInOffset = new uint256[](1);
+        tokensIn[0] = address(tokenIn);
+        amountsInOffset[0] = 0x40;
+        IRouter.Logic memory logicUniswap = IRouter.Logic(
+            address(uniswapRouter02), // to
+            tokensIn,
+            amountsInOffset,
+            dataUniswap
+        );
+
+        // Prepare logics
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = logicUniswap;
+
+        // Execute
+        uint256[] memory amountsIn = new uint256[](1);
+        address[] memory tokensOut = new address[](2);
+        uint256[] memory amountsOutMin = new uint256[](2);
+        amountsIn[0] = amount;
+        tokensOut[0] = address(tokenOut0);
+        tokensOut[1] = address(tokenOut1);
+        amountsOutMin[0] = 1;
+        amountsOutMin[1] = 1;
+        vm.prank(user);
+        router.execute(amountsIn, tokensOut, amountsOutMin, logics);
+
+        assertEq(IERC20(tokenIn).balanceOf(address(user)), 0);
+        assertGt(IERC20(tokenOut0).balanceOf(address(user)), 0);
+        assertGt(IERC20(tokenOut1).balanceOf(address(user)), 0);
+    }
 }
