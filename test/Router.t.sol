@@ -75,75 +75,15 @@ contract RouterTest is Test {
         vm.stopPrank();
     }
 
-    // Test `to` is not ERC20-compliant.
-    function testExecuteUniswapV2Swap(uint256 amountIn) external {
-        IERC20 tokenIn = USDT;
-        IERC20 tokenOut = USDC;
-        amountIn = bound(amountIn, 2, tokenIn.totalSupply());
-        deal(address(tokenIn), user, amountIn);
-
-        // Prepare logic
-        address[] memory path = new address[](2);
-        path[0] = address(tokenIn);
-        path[1] = address(tokenOut);
-        bytes memory dataUniswap = abi.encodeWithSelector(
-            uniswapRouter02.swapExactTokensForTokens.selector,
-            0, // amountIn -> will be replaced with balance
-            1, // amountOutMin
-            path, // path
-            address(router), // to
-            block.timestamp // deadline
-        );
-
-        address[] memory tokensIn = new address[](1);
-        uint256[] memory amountsInOffset = new uint256[](1);
-        tokensIn[0] = address(tokenIn);
-        amountsInOffset[0] = 0;
-        IRouter.Logic memory logicUniswap = IRouter.Logic(
-            address(uniswapRouter02), // to
-            tokensIn,
-            amountsInOffset,
-            dataUniswap
-        );
-
-        // Prepare logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = logicUniswap;
-
-        // Execute
-        uint256[] memory amountsIn = new uint256[](1);
-        address[] memory tokensOut = new address[](1);
-        uint256[] memory amountsOutMin = new uint256[](1);
-        amountsIn[0] = amountIn;
-        tokensOut[0] = address(tokenOut);
-        amountsOutMin[0] = 1;
-        vm.prank(user);
-        router.execute(amountsIn, tokensOut, amountsOutMin, logics);
-
-        assertGt(tokenOut.balanceOf(address(user)), 0);
-    }
-
-    // Test `to` is ERC20-compliant token.
+    // Test Logic.to is ERC20-compliant token.
     function testExecuteYearn(uint128 amountIn) external {
         vm.assume(amountIn > 1);
         IERC20 tokenIn = USDT;
         deal(address(tokenIn), user, amountIn);
 
-        // Prepare logic
-        address[] memory tokensIn = new address[](1);
-        uint256[] memory amountsInOffset = new uint256[](1);
-        tokensIn[0] = address(tokenIn);
-        amountsInOffset[0] = 0;
-        IRouter.Logic memory logicYearn = IRouter.Logic(
-            address(yVault), // to
-            tokensIn,
-            amountsInOffset,
-            abi.encodeWithSelector(yVault.deposit.selector, 0) // amount will be replaced with balance
-        );
-
-        // Prepare logics
+        // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = logicYearn;
+        logics[0] = _logicYearn(tokenIn);
 
         // Yearn deposit
         uint256[] memory amountsIn = new uint256[](1);
@@ -155,21 +95,123 @@ contract RouterTest is Test {
         vm.prank(user);
         router.execute(amountsIn, tokensOut, amountsOutMin, logics);
 
+        assertEq(tokenIn.balanceOf(address(router)), 0);
+        assertEq(yVault.balanceOf(address(router)), 0);
         assertGt(yVault.balanceOf(address(user)), 0);
     }
 
-    // Test multiple tokensIn
-    function testExecuteUniswapV2AddLiquidity(uint256 amount0, uint256 amount1) external {
+    // Test Logic.to is not ERC20-compliant.
+    function testExecuteUniswapV2Swap(uint256 amountIn) external {
+        IERC20 tokenIn = USDT;
+        IERC20 tokenOut = USDC;
+        amountIn = bound(amountIn, 2, tokenIn.totalSupply());
+        deal(address(tokenIn), user, amountIn);
+
+        // Encode logics
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = _logicUniswapV2Swap(tokenIn, 1e18, tokenOut);
+
+        // Execute
+        uint256[] memory amountsIn = new uint256[](1);
+        address[] memory tokensOut = new address[](1);
+        uint256[] memory amountsOutMin = new uint256[](1);
+        amountsIn[0] = amountIn;
+        tokensOut[0] = address(tokenOut);
+        amountsOutMin[0] = 1;
+        vm.prank(user);
+        router.execute(amountsIn, tokensOut, amountsOutMin, logics);
+
+        assertEq(tokenIn.balanceOf(address(router)), 0);
+        assertEq(tokenOut.balanceOf(address(router)), 0);
+        assertGt(tokenOut.balanceOf(address(user)), 0);
+    }
+
+    // 1. Swap 50% token0 to token1
+    // 2. Add liquidity token0/token1
+    // 3. Remove liquidity token0/token1
+    // 4. Swap token1 to token0
+    function testExecuteUniswapV2SwapAddRemoveSwap(uint256 amount0) external {
         IERC20 tokenIn0 = USDT;
         IERC20 tokenIn1 = USDC;
-        address tokenOut = IUniswapV2Factory(uniswapRouter02.factory()).getPair(address(tokenIn0), address(tokenIn1));
-        amount0 = bound(amount0, 1e6, tokenIn0.balanceOf(tokenOut));
-        amount1 = bound(amount1, 1e6, tokenIn1.balanceOf(tokenOut));
+        IERC20 tokenOut =
+            IERC20(IUniswapV2Factory(uniswapRouter02.factory()).getPair(address(tokenIn0), address(tokenIn1)));
+        amount0 = bound(amount0, 1e6, tokenIn0.balanceOf(address(tokenOut)));
         deal(address(tokenIn0), user, amount0);
-        deal(address(tokenIn1), user, amount1);
 
-        // Prepare logic
-        bytes memory dataUniswap = abi.encodeWithSelector(
+        // Encode logics
+        IRouter.Logic[] memory logics = new IRouter.Logic[](4);
+        logics[0] = _logicUniswapV2Swap(tokenIn0, 0.5 * 1e18, tokenIn1); // 50% balance of tokenIn
+        logics[1] = _logicUniswapV2AddLiquidity(tokenIn0, tokenIn1);
+        logics[2] = _logicUniswapV2RemoveLiquidity(tokenOut, tokenIn0, tokenIn1);
+        logics[3] = _logicUniswapV2Swap(tokenIn1, 1e18, tokenIn0); // 100% balance of tokenIn
+
+        // Execute
+        uint256[] memory amountsIn = new uint256[](1);
+        address[] memory tokensOut = new address[](3);
+        uint256[] memory amountsOutMin = new uint256[](3);
+        amountsIn[0] = amount0;
+        tokensOut[0] = address(tokenIn0); // Push intermediate token to ensure clean up router
+        tokensOut[1] = address(tokenIn1);
+        tokensOut[2] = address(tokenOut);
+        amountsOutMin[0] = amount0 * 99 / 100;
+        amountsOutMin[1] = 0;
+        amountsOutMin[2] = 0;
+        vm.prank(user);
+        router.execute(amountsIn, tokensOut, amountsOutMin, logics);
+
+        assertEq(tokenIn0.balanceOf(address(router)), 0);
+        assertEq(tokenIn1.balanceOf(address(router)), 0);
+        assertEq(tokenOut.balanceOf(address(router)), 0);
+        assertApproxEqRel(tokenIn0.balanceOf(address(user)), amount0, 0.01 * 1e18);
+    }
+
+    function _logicYearn(IERC20 tokenIn) public pure returns (IRouter.Logic memory) {
+        // Encode logic
+        IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](1);
+        configs[0].tokenIn = address(tokenIn);
+        configs[0].tokenInBalanceRatio = 1e18;
+        configs[0].amountInOffset = 0;
+
+        return IRouter.Logic(
+            address(yVault), // to
+            configs,
+            abi.encodeWithSelector(yVault.deposit.selector, 0) // amount will be replaced with balance
+        );
+    }
+
+    function _logicUniswapV2Swap(IERC20 tokenIn, uint256 tokenInBalanceRatio, IERC20 tokenOut)
+        public
+        view
+        returns (IRouter.Logic memory)
+    {
+        // Encode logic
+        address[] memory path = new address[](2);
+        path[0] = address(tokenIn);
+        path[1] = address(tokenOut);
+        bytes memory data = abi.encodeWithSelector(
+            uniswapRouter02.swapExactTokensForTokens.selector,
+            0, // amountIn -> will be replaced with balance
+            1, // amountOutMin
+            path, // path
+            address(router), // to
+            block.timestamp // deadline
+        );
+
+        IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](1);
+        configs[0].tokenIn = address(tokenIn);
+        configs[0].tokenInBalanceRatio = tokenInBalanceRatio;
+        configs[0].amountInOffset = 0;
+
+        return IRouter.Logic(
+            address(uniswapRouter02), // to
+            configs,
+            data
+        );
+    }
+
+    function _logicUniswapV2AddLiquidity(IERC20 tokenIn0, IERC20 tokenIn1) public view returns (IRouter.Logic memory) {
+        // Encode logic
+        bytes memory data = abi.encodeWithSelector(
             uniswapRouter02.addLiquidity.selector,
             tokenIn0, // tokenA
             tokenIn1, // tokenB,
@@ -181,51 +223,28 @@ contract RouterTest is Test {
             block.timestamp // deadline
         );
 
-        address[] memory tokensIn = new address[](2);
-        uint256[] memory amountsInOffset = new uint256[](2);
-        tokensIn[0] = address(tokenIn0);
-        tokensIn[1] = address(tokenIn1);
-        amountsInOffset[0] = 0x40;
-        amountsInOffset[1] = 0x60;
-        IRouter.Logic memory logicUniswap = IRouter.Logic(
+        IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](2);
+        configs[0].tokenIn = address(tokenIn0);
+        configs[1].tokenIn = address(tokenIn1);
+        configs[0].tokenInBalanceRatio = 1e18;
+        configs[1].tokenInBalanceRatio = 1e18;
+        configs[0].amountInOffset = 0x40;
+        configs[1].amountInOffset = 0x60;
+
+        return IRouter.Logic(
             address(uniswapRouter02), // to
-            tokensIn,
-            amountsInOffset,
-            dataUniswap
+            configs,
+            data
         );
-
-        // Prepare logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = logicUniswap;
-
-        // Execute
-        uint256[] memory amountsIn = new uint256[](2);
-        address[] memory tokensOut = new address[](1);
-        uint256[] memory amountsOutMin = new uint256[](1);
-        amountsIn[0] = amount0;
-        amountsIn[1] = amount1;
-        tokensOut[0] = address(tokenOut);
-        amountsOutMin[0] = 1;
-        vm.prank(user);
-        router.execute(amountsIn, tokensOut, amountsOutMin, logics);
-
-        assertGt(IERC20(tokenOut).balanceOf(address(user)), 0);
     }
 
-    // Test multiple tokensOut
-    function testExecuteUniswapV2RemoveLiquidity(uint256 amount) external {
-        IERC20 tokenOut0 = USDT;
-        IERC20 tokenOut1 = USDC;
-        address tokenIn = IUniswapV2Factory(uniswapRouter02.factory()).getPair(address(tokenOut0), address(tokenOut1));
-        amount = bound(amount, 1e6, IERC20(tokenIn).totalSupply());
-        deal(address(tokenIn), user, amount);
-
-        vm.startPrank(user);
-        IERC20(tokenIn).safeApprove(address(router.spender()), type(uint256).max);
-        vm.stopPrank();
-
-        // Prepare logic
-        bytes memory dataUniswap = abi.encodeWithSelector(
+    function _logicUniswapV2RemoveLiquidity(IERC20 tokenIn, IERC20 tokenOut0, IERC20 tokenOut1)
+        public
+        view
+        returns (IRouter.Logic memory)
+    {
+        // Encode logic
+        bytes memory data = abi.encodeWithSelector(
             uniswapRouter02.removeLiquidity.selector,
             tokenOut0, // tokenA
             tokenOut1, // tokenB,
@@ -236,35 +255,15 @@ contract RouterTest is Test {
             block.timestamp // deadline
         );
 
-        address[] memory tokensIn = new address[](1);
-        uint256[] memory amountsInOffset = new uint256[](1);
-        tokensIn[0] = address(tokenIn);
-        amountsInOffset[0] = 0x40;
-        IRouter.Logic memory logicUniswap = IRouter.Logic(
+        IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](1);
+        configs[0].tokenIn = address(tokenIn);
+        configs[0].tokenInBalanceRatio = 1e18;
+        configs[0].amountInOffset = 0x40;
+
+        return IRouter.Logic(
             address(uniswapRouter02), // to
-            tokensIn,
-            amountsInOffset,
-            dataUniswap
+            configs,
+            data
         );
-
-        // Prepare logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = logicUniswap;
-
-        // Execute
-        uint256[] memory amountsIn = new uint256[](1);
-        address[] memory tokensOut = new address[](2);
-        uint256[] memory amountsOutMin = new uint256[](2);
-        amountsIn[0] = amount;
-        tokensOut[0] = address(tokenOut0);
-        tokensOut[1] = address(tokenOut1);
-        amountsOutMin[0] = 1;
-        amountsOutMin[1] = 1;
-        vm.prank(user);
-        router.execute(amountsIn, tokensOut, amountsOutMin, logics);
-
-        assertEq(IERC20(tokenIn).balanceOf(address(user)), 0);
-        assertGt(IERC20(tokenOut0).balanceOf(address(user)), 0);
-        assertGt(IERC20(tokenOut1).balanceOf(address(user)), 0);
     }
 }
