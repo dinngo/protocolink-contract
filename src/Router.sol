@@ -2,42 +2,28 @@
 pragma solidity ^0.8.0;
 
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./Spender.sol";
 import "./interfaces/IRouter.sol";
 import "./libraries/ApproveHelper.sol";
 
-import "forge-std/Test.sol";
-
 contract Router is IRouter {
     using SafeERC20 for IERC20;
+    using Address for address;
 
     uint256 public constant BASE = 1e18;
 
-    Spender public immutable spender;
+    address public msgSender;
 
-    constructor() {
-        spender = new Spender(address(this));
-    }
+    /// @notice Router calls Spenders to consume user's approval, e.g. erc20, debt tokens.
+    function execute(address[] calldata tokensOut, uint256[] calldata amountsOutMin, Logic[] calldata logics)
+        external
+    {
+        // Setup user and prevent reentrancy
+        require(msgSender == address(0), "INVALID_STATE");
+        address user = msg.sender;
+        msgSender = user;
 
-    /// @notice Router calls spender to pull user's tokens
-    function execute(
-        uint256[] calldata amountsIn,
-        address[] calldata tokensOut,
-        uint256[] calldata amountsOutMin,
-        Logic[] calldata logics
-    ) external {
-        require(tokensOut.length == amountsOutMin.length, "UNEQUAL_LENGTH_0");
-
-        // Read spender into memory to save gas
-        Spender _spender = spender;
-
-        // Pull tokensIn which is defined in the first logic
-        require(logics.length > 0, "LOGICS_LENGTH");
-        AmountInConfig[] memory configFirst = logics[0].configs;
-        require(configFirst.length == amountsIn.length, "UNEQUAL_LENGTH_1");
-        for (uint256 i = 0; i < configFirst.length; i++) {
-            _spender.transferFromERC20(msg.sender, configFirst[i].tokenIn, amountsIn[i]);
-        }
+        // Check parameters
+        require(tokensOut.length == amountsOutMin.length, "UNEQUAL_LENGTH");
 
         // Execute each logic
         for (uint256 i = 0; i < logics.length; i++) {
@@ -58,36 +44,24 @@ contract Router is IRouter {
                 }
 
                 // Approve tokenIn
-                ApproveHelper._tokenApprove(tokenIn, to, type(uint256).max);
+                ApproveHelper._tokenApprove(tokenIn, to, amount);
             }
 
             // Execute
-            require(to != address(_spender), "SPENDER");
-            (bool success,) = to.call(data);
-            require(success, "FAIL");
-
-            // Reset approval
-            for (uint256 j = 0; j < configs.length; j++) {
-                ApproveHelper._tokenApproveZero(configs[j].tokenIn, to);
-            }
+            to.functionCall(data, "ROUTER_EXECUTE");
         }
 
         // Push tokensOut if any balance and check minimal amount
         for (uint256 i = 0; i < tokensOut.length; i++) {
             uint256 balance = IERC20(tokensOut[i]).balanceOf(address(this));
-            require(balance >= amountsOutMin[i], "AMOUNT_OUT");
+            require(balance >= amountsOutMin[i], "INSUFFICIENT_AMOUNT_OUT");
 
             if (balance > 0) {
-                IERC20(tokensOut[i]).safeTransfer(msg.sender, balance);
+                IERC20(tokensOut[i]).safeTransfer(user, balance);
             }
         }
 
-        // Push tokensIn if any balance
-        for (uint256 i = 0; i < configFirst.length; i++) {
-            uint256 balance = IERC20(configFirst[i].tokenIn).balanceOf(address(this));
-            if (balance > 0) {
-                IERC20(configFirst[i].tokenIn).safeTransfer(msg.sender, balance);
-            }
-        }
+        // Reset user
+        msgSender = address(0);
     }
 }

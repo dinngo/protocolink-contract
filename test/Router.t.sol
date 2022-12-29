@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../src/Router.sol";
 import "../src/Spender.sol";
+import "../src/interfaces/ISpender.sol";
 
 interface IYVault {
     function deposit(uint256) external;
@@ -57,22 +58,27 @@ contract RouterTest is Test {
     IYVault public constant yVault = IYVault(0x2f08119C6f07c006695E079AAFc638b8789FAf18); // yUSDT
 
     address public user;
-    address public hacker;
-    Router public router;
-    Spender public spender;
+    IRouter public router;
+    ISpender public spender;
 
     function setUp() external {
         user = makeAddr("user");
-        hacker = makeAddr("hacker");
 
         router = new Router();
-        spender = Spender(router.spender());
+        spender = new Spender(address(router));
 
         // User approved spender
         vm.startPrank(user);
-        USDT.safeApprove(address(router.spender()), type(uint256).max);
-        USDC.safeApprove(address(router.spender()), type(uint256).max);
+        USDT.safeApprove(address(spender), type(uint256).max);
+        USDC.safeApprove(address(spender), type(uint256).max);
         vm.stopPrank();
+
+        vm.label(address(router), "Router");
+        vm.label(address(spender), "Spender");
+        vm.label(address(USDT), "USDT");
+        vm.label(address(USDC), "USDC");
+        vm.label(address(uniswapRouter02), "uniswapRouter02");
+        vm.label(address(yVault), "yVault");
     }
 
     // Test Logic.to is ERC20-compliant token.
@@ -82,18 +88,17 @@ contract RouterTest is Test {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicYearn(tokenIn);
+        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
+        logics[0] = _logicSpenderTransfer(tokenIn, amountIn);
+        logics[1] = _logicYearn(tokenIn);
 
-        // Yearn deposit
-        uint256[] memory amountsIn = new uint256[](1);
+        // Execute
         address[] memory tokensOut = new address[](1);
         uint256[] memory amountsOutMin = new uint256[](1);
-        amountsIn[0] = amountIn;
         tokensOut[0] = address(yVault);
         amountsOutMin[0] = 1;
         vm.prank(user);
-        router.execute(amountsIn, tokensOut, amountsOutMin, logics);
+        router.execute(tokensOut, amountsOutMin, logics);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(yVault.balanceOf(address(router)), 0);
@@ -108,18 +113,17 @@ contract RouterTest is Test {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicUniswapV2Swap(tokenIn, 1e18, tokenOut);
+        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
+        logics[0] = _logicSpenderTransfer(tokenIn, amountIn);
+        logics[1] = _logicUniswapV2Swap(tokenIn, 1e18, tokenOut);
 
-        // Execute
-        uint256[] memory amountsIn = new uint256[](1);
+        // Encode execute
         address[] memory tokensOut = new address[](1);
         uint256[] memory amountsOutMin = new uint256[](1);
-        amountsIn[0] = amountIn;
         tokensOut[0] = address(tokenOut);
         amountsOutMin[0] = 1;
         vm.prank(user);
-        router.execute(amountsIn, tokensOut, amountsOutMin, logics);
+        router.execute(tokensOut, amountsOutMin, logics);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
@@ -139,30 +143,42 @@ contract RouterTest is Test {
         deal(address(tokenIn0), user, amount0);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](4);
-        logics[0] = _logicUniswapV2Swap(tokenIn0, 0.5 * 1e18, tokenIn1); // 50% balance of tokenIn
-        logics[1] = _logicUniswapV2AddLiquidity(tokenIn0, tokenIn1);
-        logics[2] = _logicUniswapV2RemoveLiquidity(tokenOut, tokenIn0, tokenIn1);
-        logics[3] = _logicUniswapV2Swap(tokenIn1, 1e18, tokenIn0); // 100% balance of tokenIn
+        IRouter.Logic[] memory logics = new IRouter.Logic[](5);
+        logics[0] = _logicSpenderTransfer(tokenIn0, amount0);
+        logics[1] = _logicUniswapV2Swap(tokenIn0, 0.5 * 1e18, tokenIn1); // 50% balance of tokenIn
+        logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, tokenIn1);
+        logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, tokenIn0, tokenIn1);
+        logics[4] = _logicUniswapV2Swap(tokenIn1, 1e18, tokenIn0); // 100% balance of tokenIn
 
-        // Execute
+        // Encode execute
         uint256[] memory amountsIn = new uint256[](1);
         address[] memory tokensOut = new address[](3);
         uint256[] memory amountsOutMin = new uint256[](3);
         amountsIn[0] = amount0;
-        tokensOut[0] = address(tokenIn0); // Push intermediate token to ensure clean up router
-        tokensOut[1] = address(tokenIn1);
-        tokensOut[2] = address(tokenOut);
+        tokensOut[0] = address(tokenIn0);
+        tokensOut[1] = address(tokenIn1); // Push intermediate token to ensure clean up Router
+        tokensOut[2] = address(tokenOut); // Push intermediate token to ensure clean up Router
         amountsOutMin[0] = amount0 * 99 / 100;
         amountsOutMin[1] = 0;
         amountsOutMin[2] = 0;
         vm.prank(user);
-        router.execute(amountsIn, tokensOut, amountsOutMin, logics);
+        router.execute(tokensOut, amountsOutMin, logics);
 
         assertEq(tokenIn0.balanceOf(address(router)), 0);
         assertEq(tokenIn1.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertApproxEqRel(tokenIn0.balanceOf(address(user)), amount0, 0.01 * 1e18);
+    }
+
+    function _logicSpenderTransfer(IERC20 tokenIn, uint256 amountIn) public view returns (IRouter.Logic memory) {
+        // Encode logic
+        IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](0);
+
+        return IRouter.Logic(
+            address(spender), // to
+            configs,
+            abi.encodeWithSelector(spender.pull.selector, address(tokenIn), amountIn)
+        );
     }
 
     function _logicYearn(IERC20 tokenIn) public pure returns (IRouter.Logic memory) {

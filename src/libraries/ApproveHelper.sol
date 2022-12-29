@@ -13,19 +13,12 @@ interface IERC20Usdt {
 library ApproveHelper {
     using SafeERC20 for IERC20;
 
-    function _tokenApprove(address token, address spender, uint256 amount) internal {
-        try IERC20Usdt(token).approve(spender, amount) {}
-        catch {
-            IERC20(token).safeApprove(spender, 0);
-            IERC20(token).safeApprove(spender, amount);
-        }
-    }
-
-    function _tokenApproveZero(address token, address spender) internal {
-        if (IERC20Usdt(token).allowance(address(this), spender) > 0) {
-            try IERC20Usdt(token).approve(spender, 0) {}
+    function _tokenApprove(address token, address to, uint256 amount) internal {
+        if (IERC20Usdt(token).allowance(address(this), to) < amount) {
+            try IERC20Usdt(token).approve(to, type(uint256).max) {}
             catch {
-                IERC20Usdt(token).approve(spender, 1);
+                IERC20(token).safeApprove(to, 0);
+                IERC20(token).safeApprove(to, type(uint256).max);
             }
         }
     }

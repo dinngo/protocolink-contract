@@ -2,10 +2,11 @@
 pragma solidity ^0.8.0;
 
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "openzeppelin-contracts/contracts/utils/Address.sol";
+import "./interfaces/IRouter.sol";
+import "./interfaces/ISpender.sol";
 
-/// @notice Users can approve maximal amount to spender
-contract Spender {
+/// @notice Users can approve maximal amount to this
+contract Spender is ISpender {
     using SafeERC20 for IERC20;
 
     address public immutable router;
@@ -14,11 +15,13 @@ contract Spender {
         router = router_;
     }
 
-    /// @notice Router asks to transfer tokens from user to router
-    /// @dev Router must guarantee that from is the user (msg.sender)
-    function transferFromERC20(address from, address token, uint256 amount) external {
-        require(msg.sender == router, "!ROUTER");
+    /// @notice Router asks to transfer tokens from user
+    /// @dev Router must guarantee that only consumes the approval from a correct user.
+    function pull(address token, uint256 amount) external {
+        address _router = router;
+        address user = IRouter(_router).msgSender();
+        require(user != address(0), "INVALID_USER");
 
-        IERC20(token).safeTransferFrom(from, router, amount);
+        IERC20(token).safeTransferFrom(user, _router, amount);
     }
 }

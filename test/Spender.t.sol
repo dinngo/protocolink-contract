@@ -28,19 +28,19 @@ contract SpenderTest is Test {
 
     address public user;
     address public hacker;
-    Router public router;
-    Spender public spender;
+    IRouter public router;
+    ISpender public spender;
 
     function setUp() external {
         user = makeAddr("user");
         hacker = makeAddr("hacker");
 
         router = new Router();
-        spender = Spender(router.spender());
+        spender = new Spender(address(router));
 
         // User approved spender
         vm.startPrank(user);
-        TOKEN.safeApprove(address(router.spender()), type(uint256).max);
+        TOKEN.safeApprove(address(spender), type(uint256).max);
         vm.stopPrank();
     }
 
@@ -51,8 +51,8 @@ contract SpenderTest is Test {
         deal(address(tokenIn), user, amount);
 
         vm.startPrank(hacker);
-        vm.expectRevert(bytes("!ROUTER"));
-        spender.transferFromERC20(user, address(tokenIn), amount);
+        vm.expectRevert(bytes("INVALID_USER"));
+        spender.pull(address(tokenIn), amount);
         vm.stopPrank();
     }
 }

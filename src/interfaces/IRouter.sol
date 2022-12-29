@@ -14,10 +14,8 @@ interface IRouter {
         uint256 amountInOffset; // The byte offset of amount in Logic.data that will be replaced with balance.
     }
 
-    function execute(
-        uint256[] calldata amountsIn,
-        address[] calldata tokensOut,
-        uint256[] calldata amountsOutMin,
-        Logic[] calldata logics
-    ) external;
+    function msgSender() external returns (address);
+
+    function execute(address[] calldata tokensOut, uint256[] calldata amountsOutMin, Logic[] calldata logics)
+        external;
 }
