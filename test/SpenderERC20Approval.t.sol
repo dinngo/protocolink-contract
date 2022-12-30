@@ -4,7 +4,8 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../src/Router.sol";
-import "../src/Spender.sol";
+import "../src/SpenderERC20Approval.sol";
+import "./mocks/MockERC20.sol";
 
 interface IYVault {
     function deposit(uint256) external;
@@ -21,38 +22,39 @@ interface IUniswapV2Router02 {
     ) external returns (uint256[] memory amounts);
 }
 
-contract SpenderTest is Test {
+contract SpenderERC20ApprovalTest is Test {
     using SafeERC20 for IERC20;
 
-    IERC20 public constant TOKEN = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7); // USDT
-
     address public user;
-    address public hacker;
     IRouter public router;
-    ISpender public spender;
+    ISpenderERC20Approval public spender;
+    IERC20 public mockERC20;
 
     function setUp() external {
         user = makeAddr("user");
-        hacker = makeAddr("hacker");
 
         router = new Router();
-        spender = new Spender(address(router));
+        spender = new SpenderERC20Approval(address(router));
+        mockERC20 = new MockERC20("Mock ERC20", "mERC20");
 
         // User approved spender
         vm.startPrank(user);
-        TOKEN.safeApprove(address(spender), type(uint256).max);
+        mockERC20.safeApprove(address(spender), type(uint256).max);
         vm.stopPrank();
+
+        vm.label(address(router), "Router");
+        vm.label(address(spender), "SpenderERC20Approval");
+        vm.label(address(mockERC20), "mERC20");
     }
 
-    // Ensure hacker cannot exploit spender
+    // Cannot call spender directly
     function testCannotExploit(uint128 amount) external {
         vm.assume(amount > 0);
-        IERC20 tokenIn = TOKEN;
-        deal(address(tokenIn), user, amount);
+        deal(address(mockERC20), user, amount);
 
-        vm.startPrank(hacker);
+        vm.startPrank(user);
         vm.expectRevert(bytes("INVALID_USER"));
-        spender.pull(address(tokenIn), amount);
+        spender.pull(address(mockERC20), amount);
         vm.stopPrank();
     }
 }

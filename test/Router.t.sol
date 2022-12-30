@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../src/Router.sol";
-import "../src/Spender.sol";
-import "../src/interfaces/ISpender.sol";
+import "../src/SpenderERC20Approval.sol";
+import "../src/interfaces/ISpenderERC20Approval.sol";
 
 interface IYVault {
     function deposit(uint256) external;
@@ -59,13 +59,13 @@ contract RouterTest is Test {
 
     address public user;
     IRouter public router;
-    ISpender public spender;
+    ISpenderERC20Approval public spender;
 
     function setUp() external {
         user = makeAddr("user");
 
         router = new Router();
-        spender = new Spender(address(router));
+        spender = new SpenderERC20Approval(address(router));
 
         // User approved spender
         vm.startPrank(user);
@@ -74,7 +74,7 @@ contract RouterTest is Test {
         vm.stopPrank();
 
         vm.label(address(router), "Router");
-        vm.label(address(spender), "Spender");
+        vm.label(address(spender), "SpenderERC20Approval");
         vm.label(address(USDT), "USDT");
         vm.label(address(USDC), "USDC");
         vm.label(address(uniswapRouter02), "uniswapRouter02");
@@ -89,7 +89,7 @@ contract RouterTest is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = _logicSpenderTransfer(tokenIn, amountIn);
+        logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
         logics[1] = _logicYearn(tokenIn);
 
         // Execute
@@ -114,7 +114,7 @@ contract RouterTest is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = _logicSpenderTransfer(tokenIn, amountIn);
+        logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
         logics[1] = _logicUniswapV2Swap(tokenIn, 1e18, tokenOut);
 
         // Encode execute
@@ -144,7 +144,7 @@ contract RouterTest is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](5);
-        logics[0] = _logicSpenderTransfer(tokenIn0, amount0);
+        logics[0] = _logicSpenderERC20Approval(tokenIn0, amount0);
         logics[1] = _logicUniswapV2Swap(tokenIn0, 0.5 * 1e18, tokenIn1); // 50% balance of tokenIn
         logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, tokenIn1);
         logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, tokenIn0, tokenIn1);
@@ -170,7 +170,7 @@ contract RouterTest is Test {
         assertApproxEqRel(tokenIn0.balanceOf(address(user)), amount0, 0.01 * 1e18);
     }
 
-    function _logicSpenderTransfer(IERC20 tokenIn, uint256 amountIn) public view returns (IRouter.Logic memory) {
+    function _logicSpenderERC20Approval(IERC20 tokenIn, uint256 amountIn) public view returns (IRouter.Logic memory) {
         // Encode logic
         IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](0);
 

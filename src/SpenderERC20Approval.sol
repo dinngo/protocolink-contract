@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IRouter.sol";
-import "./interfaces/ISpender.sol";
+import "./interfaces/ISpenderERC20Approval.sol";
 
 /// @notice Users can approve maximal amount to this
-contract Spender is ISpender {
+contract SpenderERC20Approval is ISpenderERC20Approval {
     using SafeERC20 for IERC20;
 
     address public immutable router;
