@@ -2,26 +2,47 @@
 pragma solidity ^0.8.0;
 
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IRouter.sol";
 import "./libraries/ApproveHelper.sol";
 
-contract Router is IRouter {
+contract Router is IRouter, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Address for address;
 
     uint256 public constant BASE = 1e18;
 
-    address public msgSender;
+    address public user;
 
-    /// @notice Router calls Spenders to consume user's approval, e.g. erc20, debt tokens.
+    /// @notice Execute logics given expected output tokens and min output amounts
     function execute(address[] calldata tokensOut, uint256[] calldata amountsOutMin, Logic[] calldata logics)
         external
     {
         // Setup user and prevent reentrancy
-        require(msgSender == address(0), "INVALID_STATE");
-        address user = msg.sender;
-        msgSender = user;
+        require(user == address(0), "SHOULD_EMPTY_USER");
+        user = msg.sender;
 
+        _execute(tokensOut, amountsOutMin, logics);
+
+        // Reset user
+        user = address(0);
+    }
+
+    /// @notice Execute when user is set called by flashloan callback
+    function executeUserSet(address[] calldata tokensOut, uint256[] calldata amountsOutMin, Logic[] calldata logics)
+        public
+        nonReentrant
+    {
+        // Check user is set.
+        require(user != address(0), "EMPTY_USER");
+
+        _execute(tokensOut, amountsOutMin, logics);
+    }
+
+    /// @notice Router executes logics and calls Spenders to consume user's approval, e.g. erc20 and debt tokens
+    function _execute(address[] calldata tokensOut, uint256[] calldata amountsOutMin, Logic[] calldata logics)
+        private
+    {
         // Check parameters
         require(tokensOut.length == amountsOutMin.length, "UNEQUAL_LENGTH");
 
@@ -43,12 +64,12 @@ contract Router is IRouter {
                     mstore(loc, amount)
                 }
 
-                // Approve tokenIn
-                ApproveHelper._tokenApprove(tokenIn, to, amount);
+                // Approve max tokenIn
+                ApproveHelper._tokenApproveMax(tokenIn, to, amount);
             }
 
             // Execute
-            to.functionCall(data, "ROUTER_EXECUTE");
+            to.functionCall(data, "ERROR_ROUTER_EXECUTE");
         }
 
         // Push tokensOut if any balance and check minimal amount
@@ -60,8 +81,5 @@ contract Router is IRouter {
                 IERC20(tokensOut[i]).safeTransfer(user, balance);
             }
         }
-
-        // Reset user
-        msgSender = address(0);
     }
 }

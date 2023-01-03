@@ -106,11 +106,11 @@ contract SpenderAaveV2DelegationTest is Test {
         returns (IRouter.Logic memory)
     {
         // Encode logic
-        IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](0);
+        IRouter.AmountInConfig[] memory configsEmpty = new IRouter.AmountInConfig[](0);
 
         return IRouter.Logic(
             address(spender), // to
-            configs,
+            configsEmpty,
             abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, asset, amount, interestRateMode)
         );
     }

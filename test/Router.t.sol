@@ -172,11 +172,11 @@ contract RouterTest is Test {
 
     function _logicSpenderERC20Approval(IERC20 tokenIn, uint256 amountIn) public view returns (IRouter.Logic memory) {
         // Encode logic
-        IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](0);
+        IRouter.AmountInConfig[] memory configsEmpty = new IRouter.AmountInConfig[](0);
 
         return IRouter.Logic(
             address(spender), // to
-            configs,
+            configsEmpty,
             abi.encodeWithSelector(spender.pull.selector, address(tokenIn), amountIn)
         );
     }

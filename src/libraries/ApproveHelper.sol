@@ -13,7 +13,7 @@ interface IERC20Usdt {
 library ApproveHelper {
     using SafeERC20 for IERC20;
 
-    function _tokenApprove(address token, address to, uint256 amount) internal {
+    function _tokenApproveMax(address token, address to, uint256 amount) internal {
         if (IERC20Usdt(token).allowance(address(this), to) < amount) {
             try IERC20Usdt(token).approve(to, type(uint256).max) {}
             catch {

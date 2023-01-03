@@ -7,7 +7,7 @@ import "./interfaces/ISpenderAaveV2Delegation.sol";
 import "./interfaces/aaveV2/ILendingPoolAddressesProviderV2.sol";
 import "./interfaces/aaveV2/ILendingPoolV2.sol";
 
-/// @notice Users can approve maximal amount to this
+/// @notice Users can approve max delegation here
 contract SpenderAaveV2Delegation is ISpenderAaveV2Delegation {
     using SafeERC20 for IERC20;
 
@@ -21,11 +21,11 @@ contract SpenderAaveV2Delegation is ISpenderAaveV2Delegation {
         aaveV2Provider = aaveV2Provider_;
     }
 
-    /// @notice Router asks to transfer tokens from user
-    /// @dev Router must guarantee that only consumes the approval of a correct user.
+    /// @notice Router asks to borrow tokens using the user's delegation
+    /// @dev Router must guarantee that the public user is msg.sender who called Router.
     function borrow(address asset, uint256 amount, uint256 interestRateMode) external {
         address _router = router;
-        address user = IRouter(_router).msgSender();
+        address user = IRouter(_router).user();
         require(user != address(0), "INVALID_USER");
 
         address pool = ILendingPoolAddressesProviderV2(aaveV2Provider).getLendingPool();
