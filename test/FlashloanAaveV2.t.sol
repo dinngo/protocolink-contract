@@ -108,7 +108,7 @@ contract FlashloanAaveV2Test is Test {
             uint256 fee = amounts[i] * 9 / 10000;
             deal(address(assets[i]), address(router), fee);
 
-            // Transfer amount + fee to flashloan
+            // Encode transfering token + fee to flashloan callback
             logics[i] = IRouter.Logic(
                 address(assets[i]), // to
                 configsEmpty,

@@ -43,6 +43,7 @@ contract FlashloanAaveV2 is IFlashloanAaveV2 {
 
         for (uint256 i = 0; i < assets.length; i++) {
             uint256 amountOwing = amounts[i] + premiums[i];
+            // TODO: is max approval safe?
             ApproveHelper._tokenApproveMax(assets[i], pool, amountOwing);
         }
 

@@ -64,6 +64,7 @@ contract Router is IRouter, ReentrancyGuard {
                     mstore(loc, amount)
                 }
 
+                // TODO: is max approval safe?
                 // Approve max tokenIn
                 ApproveHelper._tokenApproveMax(tokenIn, to, amount);
             }
