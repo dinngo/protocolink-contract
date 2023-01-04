@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface IFlashloanBalancerV2 {
+interface IFlashLoanCallbackBalancerV2 {
+    error InvalidCaller();
+
     function receiveFlashLoan(
         address[] memory tokens,
         uint256[] memory amounts,

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
-import "./interfaces/IRouter.sol";
-import "./libraries/ApproveHelper.sol";
+import {SafeERC20, IERC20, Address} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {IRouter} from "./interfaces/IRouter.sol";
+import {ApproveHelper} from "./libraries/ApproveHelper.sol";
 
+/// @title Router executes arbitrary logics
 contract Router is IRouter, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Address for address;
@@ -19,7 +20,7 @@ contract Router is IRouter, ReentrancyGuard {
         external
     {
         // Setup user and prevent reentrancy
-        require(user == address(0), "SHOULD_EMPTY_USER");
+        if (user != address(0)) revert NotEmptyUser();
         user = msg.sender;
 
         _execute(tokensOut, amountsOutMin, logics);
@@ -28,13 +29,13 @@ contract Router is IRouter, ReentrancyGuard {
         user = address(0);
     }
 
-    /// @notice Execute when user is set called by flashloan callback
+    /// @notice Execute when user is set and called from a flash loan callback
     function executeUserSet(address[] calldata tokensOut, uint256[] calldata amountsOutMin, Logic[] calldata logics)
         public
         nonReentrant
     {
         // Check user is set.
-        require(user != address(0), "EMPTY_USER");
+        if (user == address(0)) revert EmptyUser();
 
         _execute(tokensOut, amountsOutMin, logics);
     }
@@ -44,7 +45,7 @@ contract Router is IRouter, ReentrancyGuard {
         private
     {
         // Check parameters
-        require(tokensOut.length == amountsOutMin.length, "UNEQUAL_LENGTH");
+        if (tokensOut.length != amountsOutMin.length) revert UnequalArrayLength();
 
         // Execute each logic
         for (uint256 i = 0; i < logics.length; i++) {
@@ -73,13 +74,15 @@ contract Router is IRouter, ReentrancyGuard {
             to.functionCall(data, "ERROR_ROUTER_EXECUTE");
         }
 
-        // Push tokensOut if any balance and check minimal amount
+        // Push tokensOut if any balance and check min amount
         for (uint256 i = 0; i < tokensOut.length; i++) {
-            uint256 balance = IERC20(tokensOut[i]).balanceOf(address(this));
-            require(balance >= amountsOutMin[i], "INSUFFICIENT_AMOUNT_OUT");
+            IERC20 tokenOut = IERC20(tokensOut[i]);
+            uint256 amountOutMin = amountsOutMin[i];
+            uint256 balance = tokenOut.balanceOf(address(this));
 
+            if (balance < amountOutMin) revert InsufficientBalance(address(tokenOut), amountOutMin, balance);
             if (balance > 0) {
-                IERC20(tokensOut[i]).safeTransfer(user, balance);
+                tokenOut.safeTransfer(user, balance);
             }
         }
     }

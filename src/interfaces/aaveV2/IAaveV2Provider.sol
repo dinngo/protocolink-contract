@@ -2,6 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-interface ILendingPoolAddressesProviderV2 {
+interface IAaveV2Provider {
     function getLendingPool() external view returns (address);
 }

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "forge-std/Test.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../src/Router.sol";
-import "../src/SpenderAaveV2Delegation.sol";
-import "../src/interfaces/aaveV2/ILendingPoolAddressesProviderV2.sol";
-import "./mocks/MockERC20.sol";
+import {Test} from "forge-std/Test.sol";
+import {SafeERC20, IERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Router, IRouter} from "../src/Router.sol";
+import {SpenderAaveV2Delegation, ISpenderAaveV2Delegation, IAaveV2Provider} from "../src/SpenderAaveV2Delegation.sol";
+import {IAaveV2Pool} from "../src/interfaces/aaveV2/IAaveV2Pool.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
 
 interface IDebtToken {
     function UNDERLYING_ASSET_ADDRESS() external view returns (address);
@@ -25,8 +25,7 @@ contract SpenderAaveV2DelegationTest is Test {
         VARIABLE
     }
 
-    ILendingPoolAddressesProviderV2 public constant aaveV2Provider =
-        ILendingPoolAddressesProviderV2(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
+    IAaveV2Provider public constant aaveV2Provider = IAaveV2Provider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
     address public constant AUSDC_V2 = 0xBcca60bB61934080951369a648Fb03DF4F96263C;
     IDebtToken public constant AUSDC_V2_DEBT_VARIABLE = IDebtToken(0x619beb58998eD2278e08620f97007e1116D5D25b);
 
@@ -34,7 +33,7 @@ contract SpenderAaveV2DelegationTest is Test {
     IRouter public router;
     ISpenderAaveV2Delegation public spender;
     IERC20 public mockERC20;
-    ILendingPoolV2 pool = ILendingPoolV2(ILendingPoolAddressesProviderV2(aaveV2Provider).getLendingPool());
+    IAaveV2Pool pool = IAaveV2Pool(IAaveV2Provider(aaveV2Provider).getLendingPool());
 
     function setUp() external {
         user = makeAddr("user");
@@ -63,7 +62,7 @@ contract SpenderAaveV2DelegationTest is Test {
         deal(address(mockERC20), user, amount);
 
         vm.startPrank(user);
-        vm.expectRevert(bytes("INVALID_USER"));
+        vm.expectRevert(ISpenderAaveV2Delegation.RouterEmptyUser.selector);
         spender.borrow(address(mockERC20), amount, uint256(InterestRateMode.VARIABLE));
         vm.stopPrank();
     }
@@ -73,7 +72,7 @@ contract SpenderAaveV2DelegationTest is Test {
         IDebtToken tokenIn = AUSDC_V2_DEBT_VARIABLE;
         IERC20 tokenOut = IERC20(tokenIn.UNDERLYING_ASSET_ADDRESS());
         amountIn = bound(amountIn, 1, tokenIn.totalSupply());
-        vm.label(address(tokenOut), "Asset");
+        vm.label(address(tokenOut), "Token");
 
         // Setup collateral
         vm.startPrank(user);
@@ -100,7 +99,7 @@ contract SpenderAaveV2DelegationTest is Test {
         assertEq(tokenOut.balanceOf(address(user)), amountIn);
     }
 
-    function _logicSpenderAaveV2Delegation(address asset, uint256 amount, uint256 interestRateMode)
+    function _logicSpenderAaveV2Delegation(address token, uint256 amount, uint256 interestRateMode)
         public
         view
         returns (IRouter.Logic memory)
@@ -111,7 +110,7 @@ contract SpenderAaveV2DelegationTest is Test {
         return IRouter.Logic(
             address(spender), // to
             configsEmpty,
-            abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, asset, amount, interestRateMode)
+            abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode)
         );
     }
 }

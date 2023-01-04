@@ -2,6 +2,14 @@
 pragma solidity ^0.8.0;
 
 interface IRouter {
+    error NotEmptyUser();
+
+    error EmptyUser();
+
+    error UnequalArrayLength();
+
+    error InsufficientBalance(address tokenOut, uint256 amountOutMin, uint256 balance);
+
     struct Logic {
         address to;
         AmountInConfig[] configs;

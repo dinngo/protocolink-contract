@@ -8,7 +8,7 @@ interface IERC20Usdt {
     function approve(address spender, uint256 amount) external;
 }
 
-/// @title ApproveHelper
+/// @title Approve helper
 /// @notice Contains helper methods for interacting with ERC20 tokens that have inconsistent implementation
 library ApproveHelper {
     using SafeERC20 for IERC20;

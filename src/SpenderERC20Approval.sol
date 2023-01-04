@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/IRouter.sol";
-import "./interfaces/ISpenderERC20Approval.sol";
+import {SafeERC20, IERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IRouter} from "./interfaces/IRouter.sol";
+import {ISpenderERC20Approval} from "./interfaces/ISpenderERC20Approval.sol";
 
-/// @notice Users can approve max amount here
+/// @title Spender for ERC20 token approval where users can approve max amount
 contract SpenderERC20Approval is ISpenderERC20Approval {
     using SafeERC20 for IERC20;
 
@@ -20,7 +20,7 @@ contract SpenderERC20Approval is ISpenderERC20Approval {
     function pull(address token, uint256 amount) external {
         address _router = router;
         address user = IRouter(_router).user();
-        require(user != address(0), "INVALID_USER");
+        if (user == address(0)) revert RouterEmptyUser();
 
         IERC20(token).safeTransferFrom(user, _router, amount);
     }

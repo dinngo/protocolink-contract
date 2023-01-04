@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/IRouter.sol";
-import "./interfaces/IFlashloanAaveV2.sol";
-import "./interfaces/aaveV2/ILendingPoolAddressesProviderV2.sol";
-import "./libraries/ApproveHelper.sol";
+import {SafeERC20, IERC20, Address} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IRouter} from "./interfaces/IRouter.sol";
+import {IFlashLoanCallbackAaveV2} from "./interfaces/IFlashLoanCallbackAaveV2.sol";
+import {IAaveV2Provider} from "./interfaces/aaveV2/IAaveV2Provider.sol";
+import {ApproveHelper} from "./libraries/ApproveHelper.sol";
 
-/// @notice Flashloan callback
-contract FlashloanAaveV2 is IFlashloanAaveV2 {
+/// @title Aave V2 flash loan callback
+contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
     using SafeERC20 for IERC20;
     using Address for address;
 
@@ -27,20 +27,22 @@ contract FlashloanAaveV2 is IFlashloanAaveV2 {
         address initiator,
         bytes memory params
     ) external returns (bool) {
-        address pool = ILendingPoolAddressesProviderV2(aaveV2Provider).getLendingPool();
+        address pool = IAaveV2Provider(aaveV2Provider).getLendingPool();
 
         // TODO: are these checks redundant?
-        require(msg.sender == pool, "INVALID_CALLER");
-        require(initiator == router, "INVALID_INITIATOR");
+        if (msg.sender != pool) revert InvalidCaller();
+        if (initiator != router) revert InvalidInitiator();
 
-        // Transfer flashloaned assets to Router
+        // Transfer assets to Router
         for (uint256 i = 0; i < assets.length; i++) {
             IERC20(assets[i]).safeTransfer(router, amounts[i]);
         }
 
         // Call Router::executeUserSet
-        router.functionCall(params, "ERROR_EXECUTE_OPERATION");
+        // TODO: is needed to check func sig?
+        router.functionCall(params, "ERROR_AAVE_V2_FLASH_LOAN_CALLBACK");
 
+        // Approve assets for Pool pulling
         for (uint256 i = 0; i < assets.length; i++) {
             uint256 amountOwing = amounts[i] + premiums[i];
             // TODO: is max approval safe?

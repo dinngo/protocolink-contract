@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "forge-std/Test.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../src/Router.sol";
-import "../src/SpenderERC20Approval.sol";
-import "../src/interfaces/ISpenderERC20Approval.sol";
+import {Test} from "forge-std/Test.sol";
+import {SafeERC20, IERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Router, IRouter} from "../src/Router.sol";
+import {SpenderERC20Approval, ISpenderERC20Approval} from "../src/SpenderERC20Approval.sol";
 
 interface IYVault {
     function deposit(uint256) external;
