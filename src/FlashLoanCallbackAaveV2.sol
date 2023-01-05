@@ -34,8 +34,14 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
         if (initiator != router) revert InvalidInitiator();
 
         // Transfer assets to Router
-        for (uint256 i = 0; i < assets.length; i++) {
+        uint256 assetsLength = assets.length;
+
+        for (uint256 i = 0; i < assetsLength;) {
             IERC20(assets[i]).safeTransfer(router, amounts[i]);
+
+            unchecked {
+                i++;
+            }
         }
 
         // Call Router::executeUserSet
@@ -43,10 +49,14 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
         router.functionCall(params, "ERROR_AAVE_V2_FLASH_LOAN_CALLBACK");
 
         // Approve assets for Pool pulling
-        for (uint256 i = 0; i < assets.length; i++) {
+        for (uint256 i = 0; i < assetsLength;) {
             uint256 amountOwing = amounts[i] + premiums[i];
             // TODO: is max approval safe?
             ApproveHelper._tokenApproveMax(assets[i], pool, amountOwing);
+
+            unchecked {
+                i++;
+            }
         }
 
         return true;

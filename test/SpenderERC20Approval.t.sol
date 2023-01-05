@@ -54,7 +54,14 @@ contract SpenderERC20ApprovalTest is Test {
 
         vm.startPrank(user);
         vm.expectRevert(ISpenderERC20Approval.RouterEmptyUser.selector);
-        spender.pull(address(mockERC20), amount);
+        spender.pullToken(address(mockERC20), amount);
+
+        vm.expectRevert(ISpenderERC20Approval.RouterEmptyUser.selector);
+        address[] memory tokens = new address[](1);
+        uint256[] memory amounts = new uint256[](1);
+        tokens[0] = address(mockERC20);
+        amounts[0] = amount;
+        spender.pullTokens(tokens, amounts);
         vm.stopPrank();
     }
 }

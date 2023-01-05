@@ -6,7 +6,7 @@ interface IRouter {
 
     error EmptyUser();
 
-    error UnequalArrayLength();
+    error LengthMismatch();
 
     error InsufficientBalance(address tokenOut, uint256 amountOutMin, uint256 balance);
 

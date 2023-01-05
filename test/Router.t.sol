@@ -176,7 +176,7 @@ contract RouterTest is Test {
         return IRouter.Logic(
             address(spender), // to
             configsEmpty,
-            abi.encodeWithSelector(spender.pull.selector, address(tokenIn), amountIn)
+            abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn)
         );
     }
 

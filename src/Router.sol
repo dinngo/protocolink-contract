@@ -45,16 +45,20 @@ contract Router is IRouter, ReentrancyGuard {
         private
     {
         // Check parameters
-        if (tokensOut.length != amountsOutMin.length) revert UnequalArrayLength();
+        uint256 tokensOutLength = tokensOut.length;
+        if (tokensOutLength != amountsOutMin.length) revert LengthMismatch();
 
         // Execute each logic
-        for (uint256 i = 0; i < logics.length; i++) {
+        uint256 logicsLength = logics.length;
+
+        for (uint256 i = 0; i < logicsLength;) {
             address to = logics[i].to;
             AmountInConfig[] memory configs = logics[i].configs;
             bytes memory data = logics[i].data;
 
             // Replace token amount in data with current token balance
-            for (uint256 j = 0; j < configs.length; j++) {
+            uint256 configsLength = configs.length;
+            for (uint256 j = 0; j < configsLength;) {
                 address tokenIn = configs[j].tokenIn;
                 uint256 ratio = configs[j].tokenInBalanceRatio;
                 uint256 offset = configs[j].amountInOffset;
@@ -68,14 +72,22 @@ contract Router is IRouter, ReentrancyGuard {
                 // TODO: is max approval safe?
                 // Approve max tokenIn
                 ApproveHelper._tokenApproveMax(tokenIn, to, amount);
+
+                unchecked {
+                    j++;
+                }
             }
 
             // Execute
             to.functionCall(data, "ERROR_ROUTER_EXECUTE");
+
+            unchecked {
+                i++;
+            }
         }
 
         // Push tokensOut if any balance and check min amount
-        for (uint256 i = 0; i < tokensOut.length; i++) {
+        for (uint256 i = 0; i < tokensOutLength;) {
             IERC20 tokenOut = IERC20(tokensOut[i]);
             uint256 amountOutMin = amountsOutMin[i];
             uint256 balance = tokenOut.balanceOf(address(this));
@@ -83,6 +95,10 @@ contract Router is IRouter, ReentrancyGuard {
             if (balance < amountOutMin) revert InsufficientBalance(address(tokenOut), amountOutMin, balance);
             if (balance > 0) {
                 tokenOut.safeTransfer(user, balance);
+            }
+
+            unchecked {
+                i++;
             }
         }
     }

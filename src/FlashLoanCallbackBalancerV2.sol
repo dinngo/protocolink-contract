@@ -28,8 +28,14 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
         if (msg.sender != balancerV2Vault) revert InvalidCaller();
 
         // Transfer tokens to Router
-        for (uint256 i = 0; i < tokens.length; i++) {
+        uint256 tokensLength = tokens.length;
+
+        for (uint256 i = 0; i < tokensLength;) {
             IERC20(tokens[i]).safeTransfer(router, amounts[i]);
+
+            unchecked {
+                i++;
+            }
         }
 
         // Call Router::executeUserSet
@@ -37,8 +43,12 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
         router.functionCall(userData, "ERROR_BALANCER_V2_FLASH_LOAN_CALLBACK");
 
         // Repay tokens to Vault
-        for (uint256 i = 0; i < tokens.length; i++) {
+        for (uint256 i = 0; i < tokensLength;) {
             IERC20(tokens[i]).safeTransfer(balancerV2Vault, amounts[i]);
+
+            unchecked {
+                i++;
+            }
         }
     }
 }
