@@ -29,6 +29,7 @@ contract FlashLoanCallbackAaveV2Test is Test {
     address[] tokensOutEmpty;
     uint256[] amountsOutMinEmpty;
     IRouter.Logic[] logicsEmpty;
+    IRouter.Input[] inputsEmpty;
 
     function setUp() external {
         user = makeAddr("user");
@@ -75,8 +76,6 @@ contract FlashLoanCallbackAaveV2Test is Test {
         public
         returns (IRouter.Logic memory)
     {
-        IRouter.AmountInConfig[] memory configsEmpty = new IRouter.AmountInConfig[](0);
-
         // Encode logic
         address receiverAddress = address(flashLoanCallback);
         address onBehalfOf = address(0);
@@ -95,7 +94,7 @@ contract FlashLoanCallbackAaveV2Test is Test {
                 params,
                 referralCode
             ),
-            configsEmpty,
+            inputsEmpty,
             address(flashLoanCallback) // entrant
         );
     }
@@ -103,7 +102,6 @@ contract FlashLoanCallbackAaveV2Test is Test {
     function _encodeExecuteUserSet(address[] memory tokens, uint256[] memory amounts) public returns (bytes memory) {
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](tokens.length);
-        IRouter.AmountInConfig[] memory configsEmpty = new IRouter.AmountInConfig[](0);
 
         for (uint256 i = 0; i < tokens.length; i++) {
             // Airdrop fee to Router
@@ -114,7 +112,7 @@ contract FlashLoanCallbackAaveV2Test is Test {
             logics[i] = IRouter.Logic(
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
-                configsEmpty,
+                inputsEmpty,
                 address(0) // entrant
             );
         }

@@ -126,7 +126,7 @@ contract RouterTest is Test {
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
         logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
-        logics[1] = _logicUniswapV2Swap(tokenIn, 1e18, tokenOut);
+        logics[1] = _logicUniswapV2Swap(tokenIn, 10_000, tokenOut);
 
         // Encode execute
         address[] memory tokensOut = new address[](1);
@@ -156,10 +156,10 @@ contract RouterTest is Test {
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](5);
         logics[0] = _logicSpenderERC20Approval(tokenIn0, amount0);
-        logics[1] = _logicUniswapV2Swap(tokenIn0, 0.5 * 1e18, tokenIn1); // 50% balance of tokenIn
+        logics[1] = _logicUniswapV2Swap(tokenIn0, 0.5 * 10_000, tokenIn1); // 50% balance of tokenIn
         logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, tokenIn1);
         logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, tokenIn0, tokenIn1);
-        logics[4] = _logicUniswapV2Swap(tokenIn1, 1e18, tokenIn0); // 100% balance of tokenIn
+        logics[4] = _logicUniswapV2Swap(tokenIn1, 10_000, tokenIn0); // 100% balance of tokenIn
 
         // Encode execute
         uint256[] memory amountsIn = new uint256[](1);
@@ -183,32 +183,32 @@ contract RouterTest is Test {
 
     function _logicSpenderERC20Approval(IERC20 tokenIn, uint256 amountIn) public view returns (IRouter.Logic memory) {
         // Encode logic
-        IRouter.AmountInConfig[] memory configsEmpty = new IRouter.AmountInConfig[](0);
+        IRouter.Input[] memory inputsEmpty = new IRouter.Input[](0);
 
         return IRouter.Logic(
             address(spender), // to
             abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
-            configsEmpty,
+            inputsEmpty,
             address(0) // entrant
         );
     }
 
     function _logicYearn(IERC20 tokenIn) public pure returns (IRouter.Logic memory) {
         // Encode logic
-        IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](1);
-        configs[0].tokenIn = address(tokenIn);
-        configs[0].tokenInBalanceRatio = 1e18;
-        configs[0].amountInOffset = 0;
+        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        inputs[0].token = address(tokenIn);
+        inputs[0].amountBps = 10_000;
+        inputs[0].amountOffset = 0;
 
         return IRouter.Logic(
             address(yVault), // to
             abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
-            configs,
+            inputs,
             address(0) // entrant
         );
     }
 
-    function _logicUniswapV2Swap(IERC20 tokenIn, uint256 tokenInBalanceRatio, IERC20 tokenOut)
+    function _logicUniswapV2Swap(IERC20 tokenIn, uint256 amountBps, IERC20 tokenOut)
         public
         view
         returns (IRouter.Logic memory)
@@ -226,15 +226,15 @@ contract RouterTest is Test {
             block.timestamp // deadline
         );
 
-        IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](1);
-        configs[0].tokenIn = address(tokenIn);
-        configs[0].tokenInBalanceRatio = tokenInBalanceRatio;
-        configs[0].amountInOffset = 0;
+        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        inputs[0].token = address(tokenIn);
+        inputs[0].amountBps = amountBps;
+        inputs[0].amountOffset = 0;
 
         return IRouter.Logic(
             address(uniswapRouter02), // to
             data,
-            configs,
+            inputs,
             address(0) // entrant
         );
     }
@@ -253,18 +253,18 @@ contract RouterTest is Test {
             block.timestamp // deadline
         );
 
-        IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](2);
-        configs[0].tokenIn = address(tokenIn0);
-        configs[1].tokenIn = address(tokenIn1);
-        configs[0].tokenInBalanceRatio = 1e18;
-        configs[1].tokenInBalanceRatio = 1e18;
-        configs[0].amountInOffset = 0x40;
-        configs[1].amountInOffset = 0x60;
+        IRouter.Input[] memory inputs = new IRouter.Input[](2);
+        inputs[0].token = address(tokenIn0);
+        inputs[1].token = address(tokenIn1);
+        inputs[0].amountBps = 10_000;
+        inputs[1].amountBps = 10_000;
+        inputs[0].amountOffset = 0x40;
+        inputs[1].amountOffset = 0x60;
 
         return IRouter.Logic(
             address(uniswapRouter02), // to
             data,
-            configs,
+            inputs,
             address(0) // entrant
         );
     }
@@ -286,15 +286,15 @@ contract RouterTest is Test {
             block.timestamp // deadline
         );
 
-        IRouter.AmountInConfig[] memory configs = new IRouter.AmountInConfig[](1);
-        configs[0].tokenIn = address(tokenIn);
-        configs[0].tokenInBalanceRatio = 1e18;
-        configs[0].amountInOffset = 0x40;
+        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        inputs[0].token = address(tokenIn);
+        inputs[0].amountBps = 10_000;
+        inputs[0].amountOffset = 0x40;
 
         return IRouter.Logic(
             address(uniswapRouter02), // to
             data,
-            configs,
+            inputs,
             address(0) // entrant
         );
     }

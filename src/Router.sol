@@ -10,7 +10,7 @@ contract Router is IRouter {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    uint256 public constant BASE = 1e18;
+    uint256 public constant BPS_BASE = 10_000;
 
     address public user;
 
@@ -58,16 +58,16 @@ contract Router is IRouter {
         for (uint256 i = 0; i < logicsLength;) {
             address to = logics[i].to;
             bytes memory data = logics[i].data;
+            Input[] memory inputs = logics[i].inputs;
             address _entrant = logics[i].entrant;
-            AmountInConfig[] memory configs = logics[i].configs;
 
-            // Replace token amount in data with current token balance
-            uint256 configsLength = configs.length;
-            for (uint256 j = 0; j < configsLength;) {
-                address tokenIn = configs[j].tokenIn;
-                uint256 ratio = configs[j].tokenInBalanceRatio;
-                uint256 offset = configs[j].amountInOffset;
-                uint256 amount = IERC20(tokenIn).balanceOf(address(this)) * ratio / BASE;
+            // Replace the amount in data with the calculated token amount by bps
+            uint256 inputsLength = inputs.length;
+            for (uint256 j = 0; j < inputsLength;) {
+                address token = inputs[j].token;
+                uint256 bps = inputs[j].amountBps;
+                uint256 offset = inputs[j].amountOffset;
+                uint256 amount = IERC20(token).balanceOf(address(this)) * bps / BPS_BASE;
 
                 assembly {
                     let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(length) + 0x4(sig)
@@ -75,8 +75,8 @@ contract Router is IRouter {
                 }
 
                 // TODO: is max approval safe?
-                // Approve max tokenIn
-                ApproveHelper._tokenApproveMax(tokenIn, to, amount);
+                // Approve max token
+                ApproveHelper._tokenApproveMax(token, to, amount);
 
                 unchecked {
                     j++;

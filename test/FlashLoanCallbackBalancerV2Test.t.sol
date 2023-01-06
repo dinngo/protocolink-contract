@@ -21,6 +21,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
     address[] tokensOutEmpty;
     uint256[] amountsOutMinEmpty;
     IRouter.Logic[] logicsEmpty;
+    IRouter.Input[] inputsEmpty;
 
     function setUp() external {
         user = makeAddr("user");
@@ -63,8 +64,6 @@ contract FlashLoanCallbackBalancerV2Test is Test {
         view
         returns (IRouter.Logic memory)
     {
-        IRouter.AmountInConfig[] memory configsEmpty = new IRouter.AmountInConfig[](0);
-
         // Encode logic
         address receiver = address(flashLoanCallback);
         bytes memory userData = _encodeExecuteUserSet(tokens, amounts);
@@ -72,7 +71,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
         return IRouter.Logic(
             address(balancerV2Vault), // to
             abi.encodeWithSelector(IBalancerV2Vault.flashLoan.selector, receiver, tokens, amounts, userData),
-            configsEmpty,
+            inputsEmpty,
             address(flashLoanCallback) // entrant
         );
     }
@@ -84,14 +83,13 @@ contract FlashLoanCallbackBalancerV2Test is Test {
     {
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](tokens.length);
-        IRouter.AmountInConfig[] memory configsEmpty = new IRouter.AmountInConfig[](0);
 
         for (uint256 i = 0; i < tokens.length; i++) {
             // Encode transfering token to the flash loan callback
             logics[i] = IRouter.Logic(
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i]),
-                configsEmpty,
+                inputsEmpty,
                 address(0) // entrant
             );
         }
