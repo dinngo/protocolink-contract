@@ -25,6 +25,11 @@ contract FlashLoanCallbackAaveV2Test is Test {
     IFlashLoanCallbackAaveV2 public flashLoanCallback;
     IAaveV2Pool pool = IAaveV2Pool(IAaveV2Provider(aaveV2Provider).getLendingPool());
 
+    // Empty arrays
+    address[] tokensOutEmpty;
+    uint256[] amountsOutMinEmpty;
+    IRouter.Logic[] logicsEmpty;
+
     function setUp() external {
         user = makeAddr("user");
 
@@ -44,8 +49,8 @@ contract FlashLoanCallbackAaveV2Test is Test {
         amountIn = bound(amountIn, 1, token.balanceOf(AUSDC_V2));
         vm.label(address(token), "Token");
 
-        address[] memory _logicBalancerV2FlashLoan = new address[](1);
-        _logicBalancerV2FlashLoan[0] = address(token);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(token);
 
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amountIn;
@@ -55,72 +60,66 @@ contract FlashLoanCallbackAaveV2Test is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicAaveV2FlashLoan(_logicBalancerV2FlashLoan, amounts, modes);
+        logics[0] = _logicAaveV2FlashLoan(tokens, amounts, modes);
 
         // Execute
-        address[] memory tokensOut = new address[](0);
-        uint256[] memory amountsOutMin = new uint256[](0);
         vm.prank(user);
-        router.execute(tokensOut, amountsOutMin, logics);
+        router.execute(tokensOutEmpty, amountsOutMinEmpty, logics);
 
         assertEq(token.balanceOf(address(router)), 0);
         assertEq(token.balanceOf(address(flashLoanCallback)), 0);
         assertEq(token.balanceOf(address(user)), 0);
     }
 
-    function _logicAaveV2FlashLoan(
-        address[] memory _logicBalancerV2FlashLoan,
-        uint256[] memory amounts,
-        uint256[] memory modes
-    ) public returns (IRouter.Logic memory) {
+    function _logicAaveV2FlashLoan(address[] memory tokens, uint256[] memory amounts, uint256[] memory modes)
+        public
+        returns (IRouter.Logic memory)
+    {
         IRouter.AmountInConfig[] memory configsEmpty = new IRouter.AmountInConfig[](0);
 
         // Encode logic
         address receiverAddress = address(flashLoanCallback);
         address onBehalfOf = address(0);
-        bytes memory params = _encodeExecuteUserSet(_logicBalancerV2FlashLoan, amounts);
+        bytes memory params = _encodeExecuteUserSet(tokens, amounts);
         uint16 referralCode = 0;
 
         return IRouter.Logic(
             address(pool), // to
-            configsEmpty,
             abi.encodeWithSelector(
                 IAaveV2Pool.flashLoan.selector,
                 receiverAddress,
-                _logicBalancerV2FlashLoan,
+                tokens,
                 amounts,
                 modes,
                 onBehalfOf,
                 params,
                 referralCode
-            )
+            ),
+            configsEmpty,
+            address(flashLoanCallback) // entrant
         );
     }
 
-    function _encodeExecuteUserSet(address[] memory _logicBalancerV2FlashLoan, uint256[] memory amounts)
-        public
-        returns (bytes memory)
-    {
+    function _encodeExecuteUserSet(address[] memory tokens, uint256[] memory amounts) public returns (bytes memory) {
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](_logicBalancerV2FlashLoan.length);
+        IRouter.Logic[] memory logics = new IRouter.Logic[](tokens.length);
         IRouter.AmountInConfig[] memory configsEmpty = new IRouter.AmountInConfig[](0);
 
-        for (uint256 i = 0; i < _logicBalancerV2FlashLoan.length; i++) {
+        for (uint256 i = 0; i < tokens.length; i++) {
             // Airdrop fee to Router
             uint256 fee = amounts[i] * 9 / 10000;
-            deal(address(_logicBalancerV2FlashLoan[i]), address(router), fee);
+            deal(address(tokens[i]), address(router), fee);
 
             // Encode transfering token + fee to the flash loan callback
             logics[i] = IRouter.Logic(
-                address(_logicBalancerV2FlashLoan[i]), // to
+                address(tokens[i]), // to
+                abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
                 configsEmpty,
-                abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee)
+                address(0) // entrant
             );
         }
 
         // Encode executeUserSet data
-        address[] memory tokensOut = new address[](0);
-        uint256[] memory amountsOutMin = new uint256[](0);
-        return abi.encodeWithSelector(IRouter.executeUserSet.selector, tokensOut, amountsOutMin, logics);
+        return abi.encodeWithSelector(IRouter.executeUserSet.selector, tokensOutEmpty, amountsOutMinEmpty, logics);
     }
 }

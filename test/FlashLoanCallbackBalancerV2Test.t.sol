@@ -17,6 +17,11 @@ contract FlashLoanCallbackBalancerV2Test is Test {
     IRouter public router;
     IFlashLoanCallbackBalancerV2 public flashLoanCallback;
 
+    // Empty arrays
+    address[] tokensOutEmpty;
+    uint256[] amountsOutMinEmpty;
+    IRouter.Logic[] logicsEmpty;
+
     function setUp() external {
         user = makeAddr("user");
 
@@ -45,10 +50,8 @@ contract FlashLoanCallbackBalancerV2Test is Test {
         logics[0] = _logicBalancerV2FlashLoan(tokens, amounts);
 
         // Execute
-        address[] memory tokensOut = new address[](0);
-        uint256[] memory amountsOutMin = new uint256[](0);
         vm.prank(user);
-        router.execute(tokensOut, amountsOutMin, logics);
+        router.execute(tokensOutEmpty, amountsOutMinEmpty, logics);
 
         assertEq(token.balanceOf(address(router)), 0);
         assertEq(token.balanceOf(address(flashLoanCallback)), 0);
@@ -68,8 +71,9 @@ contract FlashLoanCallbackBalancerV2Test is Test {
 
         return IRouter.Logic(
             address(balancerV2Vault), // to
+            abi.encodeWithSelector(IBalancerV2Vault.flashLoan.selector, receiver, tokens, amounts, userData),
             configsEmpty,
-            abi.encodeWithSelector(IBalancerV2Vault.flashLoan.selector, receiver, tokens, amounts, userData)
+            address(flashLoanCallback) // entrant
         );
     }
 
@@ -86,14 +90,13 @@ contract FlashLoanCallbackBalancerV2Test is Test {
             // Encode transfering token to the flash loan callback
             logics[i] = IRouter.Logic(
                 address(tokens[i]), // to
+                abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i]),
                 configsEmpty,
-                abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i])
+                address(0) // entrant
             );
         }
 
         // Encode executeUserSet data
-        address[] memory tokensOut = new address[](0);
-        uint256[] memory amountsOutMin = new uint256[](0);
-        return abi.encodeWithSelector(IRouter.executeUserSet.selector, tokensOut, amountsOutMin, logics);
+        return abi.encodeWithSelector(IRouter.executeUserSet.selector, tokensOutEmpty, amountsOutMinEmpty, logics);
     }
 }

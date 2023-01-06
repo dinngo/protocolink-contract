@@ -60,6 +60,11 @@ contract RouterTest is Test {
     IRouter public router;
     ISpenderERC20Approval public spender;
 
+    // Empty arrays
+    address[] tokensOutEmpty;
+    uint256[] amountsOutMinEmpty;
+    IRouter.Logic[] logicsEmpty;
+
     function setUp() external {
         user = makeAddr("user");
 
@@ -78,6 +83,13 @@ contract RouterTest is Test {
         vm.label(address(USDC), "USDC");
         vm.label(address(uniswapRouter02), "uniswapRouter02");
         vm.label(address(yVault), "yVault");
+    }
+
+    function testCannotEnterWhenEmptyEntrant() external {
+        vm.startPrank(user);
+        vm.expectRevert(IRouter.InvalidEntrant.selector);
+        router.executeUserSet(tokensOutEmpty, amountsOutMinEmpty, logicsEmpty);
+        vm.stopPrank();
     }
 
     // Test Logic.to is ERC20-compliant token.
@@ -175,8 +187,9 @@ contract RouterTest is Test {
 
         return IRouter.Logic(
             address(spender), // to
+            abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
             configsEmpty,
-            abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn)
+            address(0) // entrant
         );
     }
 
@@ -189,8 +202,9 @@ contract RouterTest is Test {
 
         return IRouter.Logic(
             address(yVault), // to
+            abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
             configs,
-            abi.encodeWithSelector(yVault.deposit.selector, 0) // amount will be replaced with balance
+            address(0) // entrant
         );
     }
 
@@ -219,8 +233,9 @@ contract RouterTest is Test {
 
         return IRouter.Logic(
             address(uniswapRouter02), // to
+            data,
             configs,
-            data
+            address(0) // entrant
         );
     }
 
@@ -248,8 +263,9 @@ contract RouterTest is Test {
 
         return IRouter.Logic(
             address(uniswapRouter02), // to
+            data,
             configs,
-            data
+            address(0) // entrant
         );
     }
 
@@ -277,8 +293,9 @@ contract RouterTest is Test {
 
         return IRouter.Logic(
             address(uniswapRouter02), // to
+            data,
             configs,
-            data
+            address(0) // entrant
         );
     }
 }

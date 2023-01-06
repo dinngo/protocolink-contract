@@ -2,18 +2,19 @@
 pragma solidity ^0.8.0;
 
 import {SafeERC20, IERC20, Address} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import {IRouter} from "./interfaces/IRouter.sol";
 import {ApproveHelper} from "./libraries/ApproveHelper.sol";
 
 /// @title Router executes arbitrary logics
-contract Router is IRouter, ReentrancyGuard {
+contract Router is IRouter {
     using SafeERC20 for IERC20;
     using Address for address;
 
     uint256 public constant BASE = 1e18;
 
     address public user;
+
+    address public entrant;
 
     /// @notice Execute logics given expected output tokens and min output amounts
     function execute(address[] calldata tokensOut, uint256[] calldata amountsOutMin, Logic[] calldata logics)
@@ -32,9 +33,12 @@ contract Router is IRouter, ReentrancyGuard {
     /// @notice Execute when user is set and called from a flash loan callback
     function executeUserSet(address[] calldata tokensOut, uint256[] calldata amountsOutMin, Logic[] calldata logics)
         public
-        nonReentrant
     {
-        // Check user is set.
+        // Check entrant is set and reset immediately
+        if (msg.sender != entrant) revert InvalidEntrant();
+        entrant = address(0);
+
+        // Check user is set
         if (user == address(0)) revert EmptyUser();
 
         _execute(tokensOut, amountsOutMin, logics);
@@ -53,8 +57,9 @@ contract Router is IRouter, ReentrancyGuard {
 
         for (uint256 i = 0; i < logicsLength;) {
             address to = logics[i].to;
-            AmountInConfig[] memory configs = logics[i].configs;
             bytes memory data = logics[i].data;
+            address _entrant = logics[i].entrant;
+            AmountInConfig[] memory configs = logics[i].configs;
 
             // Replace token amount in data with current token balance
             uint256 configsLength = configs.length;
@@ -78,8 +83,14 @@ contract Router is IRouter, ReentrancyGuard {
                 }
             }
 
+            // Set entrant who can enter one-time executeUserSet
+            if (_entrant != address(0)) entrant = _entrant;
+
             // Execute
             to.functionCall(data, "ERROR_ROUTER_EXECUTE");
+
+            // Reset entrant if the previous call didn't enter executeUserSet
+            if (entrant != address(0)) entrant = address(0);
 
             unchecked {
                 i++;

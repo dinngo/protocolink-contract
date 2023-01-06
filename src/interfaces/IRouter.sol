@@ -6,14 +6,17 @@ interface IRouter {
 
     error EmptyUser();
 
+    error InvalidEntrant();
+
     error LengthMismatch();
 
     error InsufficientBalance(address tokenOut, uint256 amountOutMin, uint256 balance);
 
     struct Logic {
         address to;
-        AmountInConfig[] configs;
         bytes data;
+        AmountInConfig[] configs;
+        address entrant;
     }
 
     struct AmountInConfig {

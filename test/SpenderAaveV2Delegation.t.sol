@@ -109,8 +109,9 @@ contract SpenderAaveV2DelegationTest is Test {
 
         return IRouter.Logic(
             address(spender), // to
+            abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode),
             configsEmpty,
-            abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode)
+            address(0) // entrant
         );
     }
 }
