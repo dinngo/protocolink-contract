@@ -30,7 +30,6 @@ contract SpenderERC20Approval is ISpenderERC20Approval {
 
         uint256 tokensLength = tokens.length;
         if (tokensLength != amounts.length) revert LengthMismatch();
-
         for (uint256 i = 0; i < tokensLength;) {
             _pull(tokens[i], amounts[i], user);
 

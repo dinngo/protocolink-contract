@@ -35,6 +35,9 @@ contract SpenderAaveV2DelegationTest is Test {
     IERC20 public mockERC20;
     IAaveV2Pool pool = IAaveV2Pool(IAaveV2Provider(aaveV2Provider).getLendingPool());
 
+    // Empty arrays
+    IRouter.Input[] inputsEmpty;
+
     function setUp() external {
         user = makeAddr("user");
 
@@ -84,33 +87,34 @@ contract SpenderAaveV2DelegationTest is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicSpenderAaveV2Delegation(address(tokenOut), amountIn, uint256(InterestRateMode.VARIABLE));
+        logics[0] = _logicSpenderAaveV2Delegation(tokenOut, amountIn, uint256(InterestRateMode.VARIABLE));
 
         // Execute
         address[] memory tokensOut = new address[](1);
-        uint256[] memory amountsOutMin = new uint256[](1);
         tokensOut[0] = address(tokenOut);
-        amountsOutMin[0] = amountIn;
         vm.prank(user);
-        router.execute(tokensOut, amountsOutMin, logics);
+        router.execute(tokensOut, logics);
 
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(spender)), 0);
         assertEq(tokenOut.balanceOf(address(user)), amountIn);
     }
 
-    function _logicSpenderAaveV2Delegation(address token, uint256 amount, uint256 interestRateMode)
+    function _logicSpenderAaveV2Delegation(IERC20 token, uint256 amount, uint256 interestRateMode)
         public
         view
         returns (IRouter.Logic memory)
     {
-        // Encode logic
-        IRouter.Input[] memory inputsEmpty = new IRouter.Input[](0);
+        // Encode outputs
+        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        outputs[0].token = address(token);
+        outputs[0].amountMin = amount;
 
         return IRouter.Logic(
             address(spender), // to
             abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode),
             inputsEmpty,
+            outputs,
             address(0) // entrant
         );
     }
