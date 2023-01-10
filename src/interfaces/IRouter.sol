@@ -10,13 +10,13 @@ interface IRouter {
 
     error LengthMismatch();
 
-    error InsufficientBalance(address tokenOut, uint256 amountOutMin, uint256 balance);
+    error InsufficientBalance(address tokenReturn, uint256 amountOutMin, uint256 balance);
 
     struct Logic {
         address to;
         bytes data;
         Input[] inputs;
-        // Output[] outputs;
+        Output[] outputs;
         address entrant;
     }
 
@@ -24,6 +24,7 @@ interface IRouter {
         address token;
         uint256 amountBps; // 7_000 means that the amount is 70% of the token balance
         uint256 amountOffset; // The byte offset of amount in Logic.data that will be replaced with the calculated token amount by bps
+        bool doApprove;
     }
 
     struct Output {
@@ -31,11 +32,11 @@ interface IRouter {
         uint256 amountMin;
     }
 
+    function BPS_BASE() external returns (uint256);
+
     function user() external returns (address);
 
-    function execute(address[] calldata tokensOut, uint256[] calldata amountsOutMin, Logic[] calldata logics)
-        external;
+    function execute(address[] calldata tokensReturn, Logic[] calldata logics) external;
 
-    function executeUserSet(address[] calldata tokensOut, uint256[] calldata amountsOutMin, Logic[] calldata logics)
-        external;
+    function executeByEntrant(address[] calldata tokensReturn, Logic[] calldata logics) external;
 }

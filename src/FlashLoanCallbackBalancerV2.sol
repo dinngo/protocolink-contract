@@ -29,7 +29,6 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
 
         // Transfer tokens to Router
         uint256 tokensLength = tokens.length;
-
         for (uint256 i = 0; i < tokensLength;) {
             IERC20(tokens[i]).safeTransfer(router, amounts[i]);
 
@@ -38,7 +37,7 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
             }
         }
 
-        // Call Router::executeUserSet
+        // Call Router::executeByEntrant
         // TODO: is needed to check func sig?
         router.functionCall(userData, "ERROR_BALANCER_V2_FLASH_LOAN_CALLBACK");
 

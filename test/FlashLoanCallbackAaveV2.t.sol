@@ -26,10 +26,9 @@ contract FlashLoanCallbackAaveV2Test is Test {
     IAaveV2Pool pool = IAaveV2Pool(IAaveV2Provider(aaveV2Provider).getLendingPool());
 
     // Empty arrays
-    address[] tokensOutEmpty;
-    uint256[] amountsOutMinEmpty;
-    IRouter.Logic[] logicsEmpty;
+    address[] tokensReturnEmpty;
     IRouter.Input[] inputsEmpty;
+    IRouter.Output[] outputsEmpty;
 
     function setUp() external {
         user = makeAddr("user");
@@ -65,7 +64,7 @@ contract FlashLoanCallbackAaveV2Test is Test {
 
         // Execute
         vm.prank(user);
-        router.execute(tokensOutEmpty, amountsOutMinEmpty, logics);
+        router.execute(tokensReturnEmpty, logics);
 
         assertEq(token.balanceOf(address(router)), 0);
         assertEq(token.balanceOf(address(flashLoanCallback)), 0);
@@ -79,7 +78,7 @@ contract FlashLoanCallbackAaveV2Test is Test {
         // Encode logic
         address receiverAddress = address(flashLoanCallback);
         address onBehalfOf = address(0);
-        bytes memory params = _encodeExecuteUserSet(tokens, amounts);
+        bytes memory params = _encodeExecuteByEntrant(tokens, amounts);
         uint16 referralCode = 0;
 
         return IRouter.Logic(
@@ -95,14 +94,14 @@ contract FlashLoanCallbackAaveV2Test is Test {
                 referralCode
             ),
             inputsEmpty,
+            outputsEmpty,
             address(flashLoanCallback) // entrant
         );
     }
 
-    function _encodeExecuteUserSet(address[] memory tokens, uint256[] memory amounts) public returns (bytes memory) {
+    function _encodeExecuteByEntrant(address[] memory tokens, uint256[] memory amounts) public returns (bytes memory) {
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](tokens.length);
-
         for (uint256 i = 0; i < tokens.length; i++) {
             // Airdrop fee to Router
             uint256 fee = amounts[i] * 9 / 10000;
@@ -113,11 +112,12 @@ contract FlashLoanCallbackAaveV2Test is Test {
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
                 inputsEmpty,
+                outputsEmpty,
                 address(0) // entrant
             );
         }
 
-        // Encode executeUserSet data
-        return abi.encodeWithSelector(IRouter.executeUserSet.selector, tokensOutEmpty, amountsOutMinEmpty, logics);
+        // Encode executeByEntrant data
+        return abi.encodeWithSelector(IRouter.executeByEntrant.selector, tokensReturnEmpty, logics);
     }
 }

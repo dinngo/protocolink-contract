@@ -35,7 +35,6 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
 
         // Transfer assets to Router
         uint256 assetsLength = assets.length;
-
         for (uint256 i = 0; i < assetsLength;) {
             IERC20(assets[i]).safeTransfer(router, amounts[i]);
 
@@ -44,7 +43,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
             }
         }
 
-        // Call Router::executeUserSet
+        // Call Router::executeByEntrant
         // TODO: is needed to check func sig?
         router.functionCall(params, "ERROR_AAVE_V2_FLASH_LOAN_CALLBACK");
 
@@ -52,7 +51,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
         for (uint256 i = 0; i < assetsLength;) {
             uint256 amountOwing = amounts[i] + premiums[i];
             // TODO: is max approval safe?
-            ApproveHelper._tokenApproveMax(assets[i], pool, amountOwing);
+            ApproveHelper._approveMax(assets[i], pool, amountOwing);
 
             unchecked {
                 i++;
