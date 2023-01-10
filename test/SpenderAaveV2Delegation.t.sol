@@ -90,10 +90,10 @@ contract SpenderAaveV2DelegationTest is Test {
         logics[0] = _logicSpenderAaveV2Delegation(tokenOut, amountIn, uint256(InterestRateMode.VARIABLE));
 
         // Execute
-        address[] memory tokensOut = new address[](1);
-        tokensOut[0] = address(tokenOut);
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(tokensOut, logics);
+        router.execute(logics, tokensReturn);
 
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(spender)), 0);

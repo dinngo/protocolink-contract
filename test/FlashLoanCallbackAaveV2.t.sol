@@ -64,7 +64,7 @@ contract FlashLoanCallbackAaveV2Test is Test {
 
         // Execute
         vm.prank(user);
-        router.execute(tokensReturnEmpty, logics);
+        router.execute(logics, tokensReturnEmpty);
 
         assertEq(token.balanceOf(address(router)), 0);
         assertEq(token.balanceOf(address(flashLoanCallback)), 0);
@@ -118,6 +118,6 @@ contract FlashLoanCallbackAaveV2Test is Test {
         }
 
         // Encode executeByEntrant data
-        return abi.encodeWithSelector(IRouter.executeByEntrant.selector, tokensReturnEmpty, logics);
+        return abi.encodeWithSelector(IRouter.executeByEntrant.selector, logics, tokensReturnEmpty);
     }
 }

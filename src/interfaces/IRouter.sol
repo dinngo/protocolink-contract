@@ -36,7 +36,7 @@ interface IRouter {
 
     function user() external returns (address);
 
-    function execute(address[] calldata tokensReturn, Logic[] calldata logics) external;
+    function execute(Logic[] calldata logics, address[] calldata tokensReturn) external;
 
-    function executeByEntrant(address[] calldata tokensReturn, Logic[] calldata logics) external;
+    function executeByEntrant(Logic[] calldata logics, address[] calldata tokensReturn) external;
 }

@@ -17,19 +17,19 @@ contract Router is IRouter {
     address private _entrant;
 
     /// @notice Execute logics given expected output tokens and min output amounts
-    function execute(address[] calldata tokensReturn, Logic[] calldata logics) external {
+    function execute(Logic[] calldata logics, address[] calldata tokensReturn) external {
         // Setup user and prevent reentrancy
         if (user != address(0)) revert NotEmptyUser();
         user = msg.sender;
 
-        _execute(tokensReturn, logics);
+        _execute(logics, tokensReturn);
 
         // Reset user
         user = address(0);
     }
 
     /// @notice Execute when user is set and called from a flash loan callback
-    function executeByEntrant(address[] calldata tokensReturn, Logic[] calldata logics) external {
+    function executeByEntrant(Logic[] calldata logics, address[] calldata tokensReturn) external {
         // Check _entrant is set and reset immediately
         if (msg.sender != _entrant) revert InvalidEntrant();
         _entrant = address(0);
@@ -37,14 +37,11 @@ contract Router is IRouter {
         // Check user is set
         if (user == address(0)) revert EmptyUser();
 
-        _execute(tokensReturn, logics);
+        _execute(logics, tokensReturn);
     }
 
     /// @notice Router executes logics and calls Spenders to consume user's approval, e.g. erc20 and debt tokens
-    function _execute(address[] calldata tokensReturn, Logic[] calldata logics) private {
-        // Check parameters
-        uint256 tokensReturnLength = tokensReturn.length;
-
+    function _execute(Logic[] calldata logics, address[] calldata tokensReturn) private {
         // Execute each logic
         uint256 logicsLength = logics.length;
         for (uint256 i = 0; i < logicsLength;) {
@@ -114,6 +111,7 @@ contract Router is IRouter {
         }
 
         // Push tokensReturn if any balance
+        uint256 tokensReturnLength = tokensReturn.length;
         for (uint256 i = 0; i < tokensReturnLength;) {
             IERC20 tokenReturn = IERC20(tokensReturn[i]);
             uint256 balance = tokenReturn.balanceOf(address(this));

@@ -90,7 +90,7 @@ contract RouterTest is Test {
     function testCannotEnterWhenEmptyEntrant() external {
         vm.startPrank(user);
         vm.expectRevert(IRouter.InvalidEntrant.selector);
-        router.executeByEntrant(tokensReturnEmpty, logicsEmpty);
+        router.executeByEntrant(logicsEmpty, tokensReturnEmpty);
         vm.stopPrank();
     }
 
@@ -110,7 +110,7 @@ contract RouterTest is Test {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(tokensReturn, logics);
+        router.execute(logics, tokensReturn);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(yVault.balanceOf(address(router)), 0);
@@ -133,7 +133,7 @@ contract RouterTest is Test {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(tokensReturn, logics);
+        router.execute(logics, tokensReturn);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
@@ -167,7 +167,7 @@ contract RouterTest is Test {
         tokensReturn[1] = address(tokenIn1); // Push intermediate token to ensure clean up Router
         tokensReturn[2] = address(tokenOut); // Push intermediate token to ensure clean up Router
         vm.prank(user);
-        router.execute(tokensReturn, logics);
+        router.execute(logics, tokensReturn);
 
         assertEq(tokenIn0.balanceOf(address(router)), 0);
         assertEq(tokenIn1.balanceOf(address(router)), 0);
