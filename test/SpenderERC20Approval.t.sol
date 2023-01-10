@@ -53,10 +53,10 @@ contract SpenderERC20ApprovalTest is Test {
         deal(address(mockERC20), user, amount);
 
         vm.startPrank(user);
-        vm.expectRevert(ISpenderERC20Approval.RouterEmptyUser.selector);
+        vm.expectRevert(ISpenderERC20Approval.RouterInvalidUser.selector);
         spender.pullToken(address(mockERC20), amount);
 
-        vm.expectRevert(ISpenderERC20Approval.RouterEmptyUser.selector);
+        vm.expectRevert(ISpenderERC20Approval.RouterInvalidUser.selector);
         address[] memory tokens = new address[](1);
         uint256[] memory amounts = new uint256[](1);
         tokens[0] = address(mockERC20);

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 interface IRouter {
-    error NotEmptyUser();
+    error InvalidUser();
 
     error EmptyUser();
 
@@ -36,9 +36,7 @@ interface IRouter {
         uint256 amountMin;
     }
 
-    function BPS_BASE() external returns (uint256);
-
-    function user() external returns (address);
+    function user() external view returns (address);
 
     function execute(Logic[] calldata logics, address[] calldata tokensReturn) external;
 

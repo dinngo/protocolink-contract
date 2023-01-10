@@ -10,32 +10,38 @@ contract Router is IRouter {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    uint256 public constant BPS_BASE = 10_000;
+    address private constant _USER = address(1);
+    address private constant _ENTRANT = address(2);
+    uint256 private constant _BPS_BASE = 10_000;
 
     address public user;
-
     address private _entrant;
+
+    constructor() {
+        user = _USER;
+        _entrant = _ENTRANT;
+    }
 
     /// @notice Execute logics and return tokens to user
     function execute(Logic[] calldata logics, address[] calldata tokensReturn) external {
         // Setup user and prevent reentrancy
-        if (user != address(0)) revert NotEmptyUser();
+        if (user != _USER) revert InvalidUser();
         user = msg.sender;
 
         _execute(logics, tokensReturn);
 
         // Reset user
-        user = address(0);
+        user = _USER;
     }
 
     /// @notice Execute when user is set and called from a flash loan callback
     function executeByEntrant(Logic[] calldata logics, address[] calldata tokensReturn) external {
-        // Check _entrant is set and reset immediately
+        // Check _entrant is set and reset _entrant immediately
         if (msg.sender != _entrant) revert InvalidEntrant();
-        _entrant = address(0);
+        _entrant = _ENTRANT;
 
         // Check user is set
-        if (user == address(0)) revert EmptyUser();
+        if (user == _USER) revert EmptyUser();
 
         _execute(logics, tokensReturn);
     }
@@ -63,7 +69,7 @@ contract Router is IRouter {
             for (uint256 j = 0; j < inputsLength;) {
                 address token = inputs[j].token;
                 uint256 amountOffset = inputs[j].amountOffset;
-                uint256 amount = IERC20(token).balanceOf(address(this)) * inputs[j].amountBps / BPS_BASE;
+                uint256 amount = IERC20(token).balanceOf(address(this)) * inputs[j].amountBps / _BPS_BASE;
 
                 // Replace the amount in data with the calculated token amount by bps
                 assembly {
@@ -71,7 +77,7 @@ contract Router is IRouter {
                     mstore(loc, amount)
                 }
 
-                // Approve max token
+                // Approve token
                 if (inputs[j].doApprove) ApproveHelper._approve(token, to, amount);
 
                 unchecked {
@@ -86,9 +92,9 @@ contract Router is IRouter {
             to.functionCall(data, "ERROR_ROUTER_EXECUTE");
 
             // Revert if the previous call didn't enter executeByEntrant
-            if (_entrant != address(0)) revert UnresetEntrant();
+            if (_entrant != _ENTRANT) revert UnresetEntrant();
 
-            // Reset to zero approval
+            // Reset approval
             for (uint256 j = 0; j < inputsLength;) {
                 if (inputs[j].doApprove) ApproveHelper._approveZero(inputs[j].token, to);
 
