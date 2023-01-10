@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {SafeERC20, IERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Router, IRouter} from "../src/Router.sol";
 import {SpenderERC20Approval, ISpenderERC20Approval} from "../src/SpenderERC20Approval.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
 
 interface IYVault {
     function deposit(uint256) external;
@@ -60,6 +61,7 @@ contract RouterTest is Test {
     address public user;
     IRouter public router;
     ISpenderERC20Approval public spender;
+    IERC20 public mockERC20;
 
     // Empty arrays
     address[] tokensReturnEmpty;
@@ -72,6 +74,7 @@ contract RouterTest is Test {
 
         router = new Router();
         spender = new SpenderERC20Approval(address(router));
+        mockERC20 = new MockERC20("Mock ERC20", "mERC20");
 
         // User approved spender
         vm.startPrank(user);
@@ -87,11 +90,50 @@ contract RouterTest is Test {
         vm.label(address(yVault), "yVault");
     }
 
-    function testCannotEnterWhenEmptyEntrant() external {
-        vm.startPrank(user);
+    function testCannotExecuteByInvalidEntrant() external {
         vm.expectRevert(IRouter.InvalidEntrant.selector);
         router.executeByEntrant(logicsEmpty, tokensReturnEmpty);
-        vm.stopPrank();
+    }
+
+    function testCannotEncodeApproveSig() external {
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = IRouter.Logic(
+            address(USDT), // to
+            abi.encodeWithSelector(IERC20.approve.selector, user, 0),
+            inputsEmpty,
+            outputsEmpty,
+            address(0) // entrant
+        );
+
+        vm.expectRevert(IRouter.InvalidERC20Sig.selector);
+        router.execute(logics, tokensReturnEmpty);
+    }
+
+    function testCannotEncodeTransferFromSig() external {
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = IRouter.Logic(
+            address(USDT), // to
+            abi.encodeWithSelector(IERC20.transferFrom.selector, user, 0),
+            inputsEmpty,
+            outputsEmpty,
+            address(0) // entrant
+        );
+
+        vm.expectRevert(IRouter.InvalidERC20Sig.selector);
+        router.execute(logics, tokensReturnEmpty);
+    }
+
+    function testCannotUnresetEntrant() external {
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = IRouter.Logic(
+            address(mockERC20), // to
+            abi.encodeWithSelector(IERC20.totalSupply.selector),
+            inputsEmpty,
+            outputsEmpty,
+            address(router) // entrant
+        );
+        vm.expectRevert(IRouter.UnresetEntrant.selector);
+        router.execute(logics, tokensReturnEmpty);
     }
 
     // Test Logic.to is ERC20-compliant token.

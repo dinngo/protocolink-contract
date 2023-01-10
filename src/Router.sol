@@ -16,7 +16,7 @@ contract Router is IRouter {
 
     address private _entrant;
 
-    /// @notice Execute logics given expected output tokens and min output amounts
+    /// @notice Execute logics and return tokens to user
     function execute(Logic[] calldata logics, address[] calldata tokensReturn) external {
         // Setup user and prevent reentrancy
         if (user != address(0)) revert NotEmptyUser();
@@ -51,7 +51,14 @@ contract Router is IRouter {
             Output[] memory outputs = logics[i].outputs;
             address entrant = logics[i].entrant;
 
-            // Execute each input
+            // Revert approve sig for soft avoiding giving approval from Router
+            // Revert transferFrom sig for avoiding exploiting user's approval to Router by mistake
+            bytes4 sig = bytes4(data);
+            if (sig == IERC20.approve.selector || sig == IERC20.transferFrom.selector) {
+                revert InvalidERC20Sig();
+            }
+
+            // Execute each inputｑ
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength;) {
                 address token = inputs[j].token;
@@ -72,14 +79,14 @@ contract Router is IRouter {
                 }
             }
 
-            // Set _entrant who can enter one-time executeByEntrant
+            // Set _entrant who should enter one-time executeByEntrant
             if (entrant != address(0)) _entrant = entrant;
 
             // Execute
             to.functionCall(data, "ERROR_ROUTER_EXECUTE");
 
-            // Reset _entrant if the previous call didn't enter executeByEntrant
-            if (_entrant != address(0)) _entrant = address(0);
+            // Revert if the previous call didn't enter executeByEntrant
+            if (_entrant != address(0)) revert UnresetEntrant();
 
             // Reset to zero approval
             for (uint256 j = 0; j < inputsLength;) {
@@ -90,7 +97,7 @@ contract Router is IRouter {
                 }
             }
 
-            // Execute each output
+            // Execute each output to hard check the min amounts are expected
             uint256 outputsLength = outputs.length;
             for (uint256 j = 0; j < outputsLength;) {
                 IERC20 token = IERC20(outputs[j].token);

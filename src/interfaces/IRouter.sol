@@ -10,6 +10,10 @@ interface IRouter {
 
     error LengthMismatch();
 
+    error InvalidERC20Sig();
+
+    error UnresetEntrant();
+
     error InsufficientBalance(address tokenReturn, uint256 amountOutMin, uint256 balance);
 
     struct Logic {
