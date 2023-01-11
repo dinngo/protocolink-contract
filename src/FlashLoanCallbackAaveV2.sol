@@ -20,18 +20,21 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
         aaveV2Provider = aaveV2Provider_;
     }
 
+    /// @dev No need to check whether `initiator` is Router as it's certain when the below conditions are satisfied:
+    ///      1. `to` in Router is Aave Pool, i.e, user signed a correct `to`
+    ///      2. `_entrant` in Router is set to this callback, i.e, user signed a correct `entrant`
+    ///      3. `msg.sender` of this callback is Aave Pool
+    ///      4. Aave Pool contract is benign
     function executeOperation(
         address[] memory assets,
         uint256[] memory amounts,
         uint256[] memory premiums,
-        address initiator,
+        address, // initiator
         bytes memory params
     ) external returns (bool) {
         address pool = IAaveV2Provider(aaveV2Provider).getLendingPool();
 
-        // TODO: are these checks redundant?
         if (msg.sender != pool) revert InvalidCaller();
-        if (initiator != router) revert InvalidInitiator();
 
         // Transfer assets to Router
         uint256 assetsLength = assets.length;
@@ -44,13 +47,15 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
         }
 
         // Call Router::executeByCallback
-        // TODO: is needed to check func sig?
+        // It's safe if someone intentionally calls Router::execute from this callback as the user, since Router is
+        // independent from this callback
         router.functionCall(params, "ERROR_AAVE_V2_FLASH_LOAN_CALLBACK");
 
-        // Approve assets for Pool pulling
+        // Approve assets for pulling from Aave Pool
         for (uint256 i = 0; i < assetsLength;) {
             uint256 amountOwing = amounts[i] + premiums[i];
-            // TODO: is max approval safe?
+
+            // Save gas by only the first user does approve. It's safe since this callback don't hold any asset
             ApproveHelper._approveMax(assets[i], pool, amountOwing);
 
             unchecked {
