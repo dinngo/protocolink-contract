@@ -115,7 +115,7 @@ contract SpenderAaveV2DelegationTest is Test {
             abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode),
             inputsEmpty,
             outputs,
-            address(0) // entrant
+            address(0) // callback
         );
     }
 }

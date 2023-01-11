@@ -90,9 +90,9 @@ contract RouterTest is Test {
         vm.label(address(yVault), "yVault");
     }
 
-    function testCannotExecuteByInvalidEntrant() external {
-        vm.expectRevert(IRouter.InvalidEntrant.selector);
-        router.executeByEntrant(logicsEmpty, tokensReturnEmpty);
+    function testCannotExecuteByInvalidCallback() external {
+        vm.expectRevert(IRouter.InvalidCallback.selector);
+        router.executeByCallback(logicsEmpty, tokensReturnEmpty);
     }
 
     function testCannotEncodeApproveSig() external {
@@ -102,7 +102,7 @@ contract RouterTest is Test {
             abi.encodeWithSelector(IERC20.approve.selector, user, 0),
             inputsEmpty,
             outputsEmpty,
-            address(0) // entrant
+            address(0) // callback
         );
 
         vm.expectRevert(IRouter.InvalidERC20Sig.selector);
@@ -116,23 +116,23 @@ contract RouterTest is Test {
             abi.encodeWithSelector(IERC20.transferFrom.selector, user, 0),
             inputsEmpty,
             outputsEmpty,
-            address(0) // entrant
+            address(0) // callback
         );
 
         vm.expectRevert(IRouter.InvalidERC20Sig.selector);
         router.execute(logics, tokensReturnEmpty);
     }
 
-    function testCannotUnresetEntrant() external {
+    function testCannotUnresetCallback() external {
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
         logics[0] = IRouter.Logic(
             address(mockERC20), // to
             abi.encodeWithSelector(IERC20.totalSupply.selector),
             inputsEmpty,
             outputsEmpty,
-            address(router) // entrant
+            address(router) // callback
         );
-        vm.expectRevert(IRouter.UnresetEntrant.selector);
+        vm.expectRevert(IRouter.UnresetCallback.selector);
         router.execute(logics, tokensReturnEmpty);
     }
 
@@ -223,7 +223,7 @@ contract RouterTest is Test {
             abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
             inputsEmpty,
             outputsEmpty,
-            address(0) // entrant
+            address(0) // callback
         );
     }
 
@@ -252,7 +252,7 @@ contract RouterTest is Test {
             abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
             inputs,
             outputs,
-            address(0) // entrant
+            address(0) // callback
         );
     }
 
@@ -294,7 +294,7 @@ contract RouterTest is Test {
             data,
             inputs,
             outputs,
-            address(0) // entrant
+            address(0) // callback
         );
     }
 
@@ -340,7 +340,7 @@ contract RouterTest is Test {
             data,
             inputs,
             outputs,
-            address(0) // entrant
+            address(0) // callback
         );
     }
 
@@ -383,7 +383,7 @@ contract RouterTest is Test {
             data,
             inputs,
             outputs,
-            address(0) // entrant
+            address(0) // callback
         );
     }
 }

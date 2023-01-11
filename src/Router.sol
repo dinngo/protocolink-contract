@@ -10,36 +10,36 @@ contract Router is IRouter {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    address private constant _USER = address(1);
-    address private constant _ENTRANT = address(2);
+    address private constant _INIT_USER = address(1);
+    address private constant _INIT_CALLBACK = address(2);
     uint256 private constant _BPS_BASE = 10_000;
 
     address public user;
-    address private _entrant;
+    address private _callback;
 
     constructor() {
-        user = _USER;
-        _entrant = _ENTRANT;
+        user = _INIT_USER;
+        _callback = _INIT_CALLBACK;
     }
 
     /// @notice Execute logics and return tokens to user
     function execute(Logic[] calldata logics, address[] calldata tokensReturn) external {
         // Setup user and prevent reentrancy
-        if (user != _USER) revert InvalidUser();
+        if (user != _INIT_USER) revert InvalidUser();
         user = msg.sender;
 
         _execute(logics, tokensReturn);
 
         // Reset user
-        user = _USER;
+        user = _INIT_USER;
     }
 
     /// @notice Execute when user is set and called from a flash loan callback
     /// @dev As only execute -> _execute can enter this function, user must be valid here
-    function executeByEntrant(Logic[] calldata logics, address[] calldata tokensReturn) external {
-        // Check _entrant is set and reset _entrant immediately
-        if (msg.sender != _entrant) revert InvalidEntrant();
-        _entrant = _ENTRANT;
+    function executeByCallback(Logic[] calldata logics, address[] calldata tokensReturn) external {
+        // Check _callback is set and reset _callback immediately
+        if (msg.sender != _callback) revert InvalidCallback();
+        _callback = _INIT_CALLBACK;
 
         _execute(logics, tokensReturn);
     }
@@ -53,7 +53,7 @@ contract Router is IRouter {
             bytes memory data = logics[i].data;
             Input[] memory inputs = logics[i].inputs;
             Output[] memory outputs = logics[i].outputs;
-            address entrant = logics[i].entrant;
+            address callback = logics[i].callback;
 
             // Revert approve sig for soft avoiding giving approval from Router
             // Revert transferFrom sig for avoiding exploiting user's approval to Router by mistake
@@ -83,14 +83,14 @@ contract Router is IRouter {
                 }
             }
 
-            // Set _entrant who should enter one-time executeByEntrant
-            if (entrant != address(0)) _entrant = entrant;
+            // Set _callback who should enter one-time executeByCallback
+            if (callback != address(0)) _callback = callback;
 
             // Execute
             to.functionCall(data, "ERROR_ROUTER_EXECUTE");
 
-            // Revert if the previous call didn't enter executeByEntrant
-            if (_entrant != _ENTRANT) revert UnresetEntrant();
+            // Revert if the previous call didn't enter executeByCallback
+            if (_callback != _INIT_CALLBACK) revert UnresetCallback();
 
             // Reset approval
             for (uint256 j = 0; j < inputsLength;) {

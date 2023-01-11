@@ -4,13 +4,13 @@ pragma solidity ^0.8.0;
 interface IRouter {
     error InvalidUser();
 
-    error InvalidEntrant();
+    error InvalidCallback();
 
     error LengthMismatch();
 
     error InvalidERC20Sig();
 
-    error UnresetEntrant();
+    error UnresetCallback();
 
     error InsufficientBalance(address tokenReturn, uint256 amountOutMin, uint256 balance);
 
@@ -19,7 +19,7 @@ interface IRouter {
         bytes data;
         Input[] inputs;
         Output[] outputs;
-        address entrant;
+        address callback;
     }
 
     struct Input {
@@ -38,5 +38,5 @@ interface IRouter {
 
     function execute(Logic[] calldata logics, address[] calldata tokensReturn) external;
 
-    function executeByEntrant(Logic[] calldata logics, address[] calldata tokensReturn) external;
+    function executeByCallback(Logic[] calldata logics, address[] calldata tokensReturn) external;
 }

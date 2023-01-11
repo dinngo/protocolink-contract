@@ -78,7 +78,7 @@ contract FlashLoanCallbackAaveV2Test is Test {
         // Encode logic
         address receiverAddress = address(flashLoanCallback);
         address onBehalfOf = address(0);
-        bytes memory params = _encodeExecuteByEntrant(tokens, amounts);
+        bytes memory params = _encodeExecuteByCallback(tokens, amounts);
         uint16 referralCode = 0;
 
         return IRouter.Logic(
@@ -95,11 +95,14 @@ contract FlashLoanCallbackAaveV2Test is Test {
             ),
             inputsEmpty,
             outputsEmpty,
-            address(flashLoanCallback) // entrant
+            address(flashLoanCallback) // callback
         );
     }
 
-    function _encodeExecuteByEntrant(address[] memory tokens, uint256[] memory amounts) public returns (bytes memory) {
+    function _encodeExecuteByCallback(address[] memory tokens, uint256[] memory amounts)
+        public
+        returns (bytes memory)
+    {
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -113,11 +116,11 @@ contract FlashLoanCallbackAaveV2Test is Test {
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
                 inputsEmpty,
                 outputsEmpty,
-                address(0) // entrant
+                address(0) // callback
             );
         }
 
-        // Encode executeByEntrant data
-        return abi.encodeWithSelector(IRouter.executeByEntrant.selector, logics, tokensReturnEmpty);
+        // Encode executeByCallback data
+        return abi.encodeWithSelector(IRouter.executeByCallback.selector, logics, tokensReturnEmpty);
     }
 }
