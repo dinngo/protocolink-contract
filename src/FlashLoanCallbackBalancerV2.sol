@@ -24,7 +24,6 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
         uint256[] memory, // feeAmounts
         bytes memory userData
     ) external {
-        // TODO: is the check redundant?
         if (msg.sender != balancerV2Vault) revert InvalidCaller();
 
         // Transfer tokens to Router
@@ -38,7 +37,6 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
         }
 
         // Call Router::executeByCallback
-        // TODO: is needed to check func sig?
         router.functionCall(userData, "ERROR_BALANCER_V2_FLASH_LOAN_CALLBACK");
 
         // Repay tokens to Vault
