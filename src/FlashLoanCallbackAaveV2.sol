@@ -43,7 +43,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
             }
         }
 
-        // Call Router::executeByEntrant
+        // Call Router::executeByCallback
         // TODO: is needed to check func sig?
         router.functionCall(params, "ERROR_AAVE_V2_FLASH_LOAN_CALLBACK");
 
