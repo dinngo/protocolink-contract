@@ -10,28 +10,28 @@ contract Router is IRouter {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    address private constant _USER = address(1);
-    address private constant _CALLBACK = address(2);
+    address private constant _INIT_USER = address(1);
+    address private constant _INIT_CALLBACK = address(2);
     uint256 private constant _BPS_BASE = 10_000;
 
     address public user;
     address private _callback;
 
     constructor() {
-        user = _USER;
-        _callback = _CALLBACK;
+        user = _INIT_USER;
+        _callback = _INIT_CALLBACK;
     }
 
     /// @notice Execute logics and return tokens to user
     function execute(Logic[] calldata logics, address[] calldata tokensReturn) external {
         // Setup user and prevent reentrancy
-        if (user != _USER) revert InvalidUser();
+        if (user != _INIT_USER) revert InvalidUser();
         user = msg.sender;
 
         _execute(logics, tokensReturn);
 
         // Reset user
-        user = _USER;
+        user = _INIT_USER;
     }
 
     /// @notice Execute when user is set and called from a flash loan callback
@@ -39,7 +39,7 @@ contract Router is IRouter {
     function executeByCallback(Logic[] calldata logics, address[] calldata tokensReturn) external {
         // Check _callback is set and reset _callback immediately
         if (msg.sender != _callback) revert InvalidCallback();
-        _callback = _CALLBACK;
+        _callback = _INIT_CALLBACK;
 
         _execute(logics, tokensReturn);
     }
@@ -90,7 +90,7 @@ contract Router is IRouter {
             to.functionCall(data, "ERROR_ROUTER_EXECUTE");
 
             // Revert if the previous call didn't enter executeByCallback
-            if (_callback != _CALLBACK) revert UnresetCallback();
+            if (_callback != _INIT_CALLBACK) revert UnresetCallback();
 
             // Reset approval
             for (uint256 j = 0; j < inputsLength;) {
