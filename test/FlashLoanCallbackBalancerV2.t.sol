@@ -65,7 +65,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
     {
         // Encode logic
         address receiver = address(flashLoanCallback);
-        bytes memory userData = _encodeExecuteByCallback(tokens, amounts);
+        bytes memory userData = _encodeExecute(tokens, amounts);
 
         return IRouter.Logic(
             address(balancerV2Vault), // to
@@ -76,7 +76,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
         );
     }
 
-    function _encodeExecuteByCallback(address[] memory tokens, uint256[] memory amounts)
+    function _encodeExecute(address[] memory tokens, uint256[] memory amounts)
         public
         view
         returns (bytes memory)
@@ -94,7 +94,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
             );
         }
 
-        // Encode executeByCallback data
-        return abi.encodeWithSelector(IRouter.executeByCallback.selector, logics, tokensReturnEmpty);
+        // Encode execute data
+        return abi.encodeWithSelector(IRouter.execute.selector, logics, tokensReturnEmpty);
     }
 }

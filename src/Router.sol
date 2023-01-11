@@ -25,23 +25,28 @@ contract Router is IRouter {
     /// @notice Execute logics and return tokens to user
     function execute(Logic[] calldata logics, address[] calldata tokensReturn) external {
         // Setup user and prevent reentrancy
-        if (user != _INIT_USER) revert InvalidUser();
-        user = msg.sender;
+        bool fUserSet;
+        if (user == _INIT_USER) {
+            user = msg.sender;
+            fUserSet = true;
+        } else {
+            if (_callback == _INIT_CALLBACK) {
+                revert InvalidUser();
+            } else {
+                if (_callback != msg.sender) {
+                    revert InvalidCallback();
+                } else {
+                    _callback = _INIT_CALLBACK;
+                }
+            }
+        }
 
         _execute(logics, tokensReturn);
 
         // Reset user
-        user = _INIT_USER;
-    }
-
-    /// @notice Execute when user is set and called from a flash loan callback
-    /// @dev As only execute -> _execute can enter this function, user must be valid here
-    function executeByCallback(Logic[] calldata logics, address[] calldata tokensReturn) external {
-        // Check _callback is set and reset _callback immediately
-        if (msg.sender != _callback) revert InvalidCallback();
-        _callback = _INIT_CALLBACK;
-
-        _execute(logics, tokensReturn);
+        if (fUserSet) {
+            user = _INIT_USER;
+        }
     }
 
     /// @notice Router executes logics and calls Spenders to consume user's approval, e.g. erc20 and debt tokens
