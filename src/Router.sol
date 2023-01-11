@@ -35,13 +35,11 @@ contract Router is IRouter {
     }
 
     /// @notice Execute when user is set and called from a flash loan callback
+    /// @dev As only execute -> _execute can enter this function, user must be valid here
     function executeByEntrant(Logic[] calldata logics, address[] calldata tokensReturn) external {
         // Check _entrant is set and reset _entrant immediately
         if (msg.sender != _entrant) revert InvalidEntrant();
         _entrant = _ENTRANT;
-
-        // Check user is set
-        if (user == _USER) revert EmptyUser();
 
         _execute(logics, tokensReturn);
     }
