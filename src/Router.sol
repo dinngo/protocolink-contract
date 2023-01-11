@@ -62,14 +62,17 @@ contract Router is IRouter {
                 revert InvalidERC20Sig();
             }
 
-            // Execute each inputｑ
+            // Execute each input
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength;) {
                 address token = inputs[j].token;
                 uint256 amountOffset = inputs[j].amountOffset;
-                uint256 amount = IERC20(token).balanceOf(address(this)) * inputs[j].amountBps / _BPS_BASE;
+                uint256 amountBps = inputs[j].amountBps;
+
+                if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
 
                 // Replace the amount in data with the calculated token amount by bps
+                uint256 amount = IERC20(token).balanceOf(address(this)) * amountBps / _BPS_BASE;
                 assembly {
                     let loc := add(add(data, 0x24), amountOffset) // 0x24 = 0x20(length) + 0x4(sig)
                     mstore(loc, amount)

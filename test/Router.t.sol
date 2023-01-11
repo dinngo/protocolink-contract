@@ -123,6 +123,45 @@ contract RouterTest is Test {
         router.execute(logics, tokensReturnEmpty);
     }
 
+    function testCannotBeInvalidBps() external {
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+
+        // Revert if amountBps = 0
+        inputs[0] = IRouter.Input(
+            address(0),
+            0, // amountBps
+            0,
+            false
+        );
+        logics[0] = IRouter.Logic(
+            address(0), // to
+            "",
+            inputs,
+            outputsEmpty,
+            address(0) // callback
+        );
+        vm.expectRevert(IRouter.InvalidBps.selector);
+        router.execute(logics, tokensReturnEmpty);
+
+        // Revert if amountBps = BPS_BASE + 1
+        inputs[0] = IRouter.Input(
+            address(0),
+            BPS_BASE + 1, // amountBps
+            0,
+            false
+        );
+        logics[0] = IRouter.Logic(
+            address(0), // to
+            "",
+            inputs,
+            outputsEmpty,
+            address(0) // callback
+        );
+        vm.expectRevert(IRouter.InvalidBps.selector);
+        router.execute(logics, tokensReturnEmpty);
+    }
+
     function testCannotUnresetCallback() external {
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
         logics[0] = IRouter.Logic(
