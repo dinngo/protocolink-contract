@@ -10,6 +10,8 @@ interface IRouter {
 
     error InvalidERC20Sig();
 
+    error InvalidBps();
+
     error UnresetCallback();
 
     error InsufficientBalance(address tokenReturn, uint256 amountOutMin, uint256 balance);
