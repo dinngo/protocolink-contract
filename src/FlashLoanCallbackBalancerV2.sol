@@ -21,7 +21,7 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
     function receiveFlashLoan(
         address[] memory tokens,
         uint256[] memory amounts,
-        uint256[] memory, // feeAmounts
+        uint256[] memory feeAmounts,
         bytes memory userData
     ) external {
         if (msg.sender != balancerV2Vault) revert InvalidCaller();
@@ -41,7 +41,7 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
 
         // Repay tokens to Vault
         for (uint256 i = 0; i < tokensLength;) {
-            IERC20(tokens[i]).safeTransfer(balancerV2Vault, amounts[i]);
+            IERC20(tokens[i]).safeTransfer(balancerV2Vault, amounts[i] + feeAmounts[i]);
 
             unchecked {
                 i++;
