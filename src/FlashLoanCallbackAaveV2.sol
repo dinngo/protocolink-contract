@@ -22,7 +22,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
 
     /// @dev No need to check whether `initiator` is Router as it's certain when the below conditions are satisfied:
     ///      1. `to` in Router is Aave Pool, i.e, user signed a correct `to`
-    ///      2. `_entrant` in Router is set to this callback, i.e, user signed a correct `entrant`
+    ///      2. `_callback` in Router is set to this callback, i.e, user signed a correct `callback`
     ///      3. `msg.sender` of this callback is Aave Pool
     ///      4. Aave Pool contract is benign
     function executeOperation(
