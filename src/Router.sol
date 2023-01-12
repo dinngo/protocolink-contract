@@ -29,15 +29,11 @@ contract Router is IRouter {
         if (user == _INIT_USER) {
             user = msg.sender;
             fUserSet = true;
-        } else {
-            if (_callback == _INIT_CALLBACK) {
-                revert InvalidUser();
+        } else { // If the user is set, execute should be called through callback
+            if (_callback != msg.sender) {
+                revert InvalidCallback();
             } else {
-                if (_callback != msg.sender) {
-                    revert InvalidCallback();
-                } else {
-                    _callback = _INIT_CALLBACK;
-                }
+                _callback = _INIT_CALLBACK;
             }
         }
 
