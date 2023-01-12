@@ -2,8 +2,6 @@
 pragma solidity ^0.8.0;
 
 interface IRouter {
-    error InvalidUser();
-
     error InvalidCallback();
 
     error LengthMismatch();
