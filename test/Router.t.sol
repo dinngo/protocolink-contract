@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {Test} from "forge-std/Test.sol";
-import {SafeERC20, IERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Router, IRouter} from "../src/Router.sol";
-import {SpenderERC20Approval, ISpenderERC20Approval} from "../src/SpenderERC20Approval.sol";
-import {MockERC20} from "./mocks/MockERC20.sol";
-import {ICallback, MockCallback} from "./mocks/MockCallback.sol";
+import {Test} from 'forge-std/Test.sol';
+import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {Router, IRouter} from '../src/Router.sol';
+import {SpenderERC20Approval, ISpenderERC20Approval} from '../src/SpenderERC20Approval.sol';
+import {MockERC20} from './mocks/MockERC20.sol';
+import {ICallback, MockCallback} from './mocks/MockCallback.sol';
 
 interface IYVault {
     function deposit(uint256) external;
@@ -73,11 +73,11 @@ contract RouterTest is Test {
     IRouter.Output[] outputsEmpty;
 
     function setUp() external {
-        user = makeAddr("user");
+        user = makeAddr('user');
 
         router = new Router();
         spender = new SpenderERC20Approval(address(router));
-        mockERC20 = new MockERC20("Mock ERC20", "mERC20");
+        mockERC20 = new MockERC20('Mock ERC20', 'mERC20');
         mockCallback = new MockCallback();
 
         // User approved spender
@@ -86,12 +86,12 @@ contract RouterTest is Test {
         USDC.safeApprove(address(spender), type(uint256).max);
         vm.stopPrank();
 
-        vm.label(address(router), "Router");
-        vm.label(address(spender), "SpenderERC20Approval");
-        vm.label(address(USDT), "USDT");
-        vm.label(address(USDC), "USDC");
-        vm.label(address(uniswapRouter02), "uniswapRouter02");
-        vm.label(address(yVault), "yVault");
+        vm.label(address(router), 'Router');
+        vm.label(address(spender), 'SpenderERC20Approval');
+        vm.label(address(USDT), 'USDT');
+        vm.label(address(USDC), 'USDC');
+        vm.label(address(uniswapRouter02), 'uniswapRouter02');
+        vm.label(address(yVault), 'yVault');
     }
 
     function testCannotExecuteByInvalidCallback() external {
@@ -105,7 +105,13 @@ contract RouterTest is Test {
         );
         bytes memory data = abi.encodeWithSelector(IRouter.execute.selector, callbacks, tokensReturnEmpty);
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(address(mockCallback), abi.encodeWithSelector(ICallback.callback.selector, data), inputsEmpty, outputsEmpty, address(router));
+        logics[0] = IRouter.Logic(
+            address(mockCallback),
+            abi.encodeWithSelector(ICallback.callback.selector, data),
+            inputsEmpty,
+            outputsEmpty,
+            address(router)
+        );
         vm.expectRevert(IRouter.InvalidCallback.selector);
         router.execute(logics, tokensReturnEmpty);
     }
@@ -151,7 +157,7 @@ contract RouterTest is Test {
         );
         logics[0] = IRouter.Logic(
             address(0), // to
-            "",
+            '',
             inputs,
             outputsEmpty,
             address(0) // callback
@@ -168,7 +174,7 @@ contract RouterTest is Test {
         );
         logics[0] = IRouter.Logic(
             address(0), // to
-            "",
+            '',
             inputs,
             outputsEmpty,
             address(0) // callback
@@ -243,10 +249,11 @@ contract RouterTest is Test {
     function testExecuteUniswapV2SwapAddRemoveSwap(uint256 amountIn0) external {
         IERC20 tokenIn0 = USDC;
         IERC20 tokenIn1 = USDT;
-        IERC20 tokenOut =
-            IERC20(IUniswapV2Factory(uniswapRouter02.factory()).getPair(address(tokenIn0), address(tokenIn1)));
+        IERC20 tokenOut = IERC20(
+            IUniswapV2Factory(uniswapRouter02.factory()).getPair(address(tokenIn0), address(tokenIn1))
+        );
         amountIn0 = bound(amountIn0, 1e6, 1e10);
-        uint256 amountIn0Half = amountIn0 * 5_000 / BPS_BASE;
+        uint256 amountIn0Half = (amountIn0 * 5_000) / BPS_BASE;
         deal(address(tokenIn0), user, amountIn0);
 
         // Encode logics
@@ -272,22 +279,19 @@ contract RouterTest is Test {
     }
 
     function _logicSpenderERC20Approval(IERC20 tokenIn, uint256 amountIn) public view returns (IRouter.Logic memory) {
-        return IRouter.Logic(
-            address(spender), // to
-            abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
-            inputsEmpty,
-            outputsEmpty,
-            address(0) // callback
-        );
+        return
+            IRouter.Logic(
+                address(spender), // to
+                abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
+                inputsEmpty,
+                outputsEmpty,
+                address(0) // callback
+            );
     }
 
-    function _logicYearn(IERC20 tokenIn, uint256 amountIn, IERC20 tokenOut)
-        public
-        pure
-        returns (IRouter.Logic memory)
-    {
+    function _logicYearn(IERC20 tokenIn, uint256 amountIn, IERC20 tokenOut) public pure returns (IRouter.Logic memory) {
         // FIXME: it's relaxed amountMin = amountIn * 90%
-        uint256 amountMin = amountIn * 9_000 / BPS_BASE;
+        uint256 amountMin = (amountIn * 9_000) / BPS_BASE;
 
         // Encode inputs
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
@@ -301,22 +305,24 @@ contract RouterTest is Test {
         outputs[0].token = address(tokenOut);
         outputs[0].amountMin = amountMin;
 
-        return IRouter.Logic(
-            address(yVault), // to
-            abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
-            inputs,
-            outputs,
-            address(0) // callback
-        );
+        return
+            IRouter.Logic(
+                address(yVault), // to
+                abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
+                inputs,
+                outputs,
+                address(0) // callback
+            );
     }
 
-    function _logicUniswapV2Swap(IERC20 tokenIn, uint256 amountIn, uint256 amountBps, IERC20 tokenOut)
-        public
-        view
-        returns (IRouter.Logic memory)
-    {
+    function _logicUniswapV2Swap(
+        IERC20 tokenIn,
+        uint256 amountIn,
+        uint256 amountBps,
+        IERC20 tokenOut
+    ) public view returns (IRouter.Logic memory) {
         // At least get 99% tokenIn since both are stablecoins
-        uint256 amountMin = amountIn * 9_900 / BPS_BASE;
+        uint256 amountMin = (amountIn * 9_900) / BPS_BASE;
 
         // Encode data
         address[] memory path = new address[](2);
@@ -343,22 +349,24 @@ contract RouterTest is Test {
         outputs[0].token = address(tokenOut);
         outputs[0].amountMin = amountMin;
 
-        return IRouter.Logic(
-            address(uniswapRouter02), // to
-            data,
-            inputs,
-            outputs,
-            address(0) // callback
-        );
+        return
+            IRouter.Logic(
+                address(uniswapRouter02), // to
+                data,
+                inputs,
+                outputs,
+                address(0) // callback
+            );
     }
 
-    function _logicUniswapV2AddLiquidity(IERC20 tokenIn0, uint256 amountIn0, IERC20 tokenIn1, IERC20 tokenOut)
-        public
-        view
-        returns (IRouter.Logic memory)
-    {
+    function _logicUniswapV2AddLiquidity(
+        IERC20 tokenIn0,
+        uint256 amountIn0,
+        IERC20 tokenIn1,
+        IERC20 tokenOut
+    ) public view returns (IRouter.Logic memory) {
         // At least adds 98% token0 to liquidity
-        uint256 amountIn0Min = amountIn0 * 9_800 / BPS_BASE;
+        uint256 amountIn0Min = (amountIn0 * 9_800) / BPS_BASE;
 
         // Encode data
         bytes memory data = abi.encodeWithSelector(
@@ -389,22 +397,24 @@ contract RouterTest is Test {
         outputs[0].token = address(tokenOut);
         outputs[0].amountMin = 1; // FIXME: should calculate the expected min amount
 
-        return IRouter.Logic(
-            address(uniswapRouter02), // to
-            data,
-            inputs,
-            outputs,
-            address(0) // callback
-        );
+        return
+            IRouter.Logic(
+                address(uniswapRouter02), // to
+                data,
+                inputs,
+                outputs,
+                address(0) // callback
+            );
     }
 
-    function _logicUniswapV2RemoveLiquidity(IERC20 tokenIn, IERC20 tokenOut0, uint256 amountOut0, IERC20 tokenOut1)
-        public
-        view
-        returns (IRouter.Logic memory)
-    {
+    function _logicUniswapV2RemoveLiquidity(
+        IERC20 tokenIn,
+        IERC20 tokenOut0,
+        uint256 amountOut0,
+        IERC20 tokenOut1
+    ) public view returns (IRouter.Logic memory) {
         // At least returns 98% token0 from liquidity
-        uint256 amountOut0Min = amountOut0 * 9_800 / BPS_BASE;
+        uint256 amountOut0Min = (amountOut0 * 9_800) / BPS_BASE;
 
         // Encode data
         bytes memory data = abi.encodeWithSelector(
@@ -432,12 +442,13 @@ contract RouterTest is Test {
         outputs[0].amountMin = amountOut0Min;
         outputs[0].amountMin = 1; // FIXME: should calculate the expected min amount
 
-        return IRouter.Logic(
-            address(uniswapRouter02), // to
-            data,
-            inputs,
-            outputs,
-            address(0) // callback
-        );
+        return
+            IRouter.Logic(
+                address(uniswapRouter02), // to
+                data,
+                inputs,
+                outputs,
+                address(0) // callback
+            );
     }
 }

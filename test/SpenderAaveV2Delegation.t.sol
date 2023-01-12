@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {Test} from "forge-std/Test.sol";
-import {SafeERC20, IERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Router, IRouter} from "../src/Router.sol";
-import {SpenderAaveV2Delegation, ISpenderAaveV2Delegation, IAaveV2Provider} from "../src/SpenderAaveV2Delegation.sol";
-import {IAaveV2Pool} from "../src/interfaces/aaveV2/IAaveV2Pool.sol";
-import {MockERC20} from "./mocks/MockERC20.sol";
+import {Test} from 'forge-std/Test.sol';
+import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {Router, IRouter} from '../src/Router.sol';
+import {SpenderAaveV2Delegation, ISpenderAaveV2Delegation, IAaveV2Provider} from '../src/SpenderAaveV2Delegation.sol';
+import {IAaveV2Pool} from '../src/interfaces/aaveV2/IAaveV2Pool.sol';
+import {MockERC20} from './mocks/MockERC20.sol';
 
 interface IDebtToken {
     function UNDERLYING_ASSET_ADDRESS() external view returns (address);
@@ -39,24 +39,24 @@ contract SpenderAaveV2DelegationTest is Test {
     IRouter.Input[] inputsEmpty;
 
     function setUp() external {
-        user = makeAddr("user");
+        user = makeAddr('user');
 
         router = new Router();
         spender = new SpenderAaveV2Delegation(address(router), address(aaveV2Provider));
-        mockERC20 = new MockERC20("Mock ERC20", "mERC20");
+        mockERC20 = new MockERC20('Mock ERC20', 'mERC20');
 
         // User approved spender aave v2 delegation
         vm.startPrank(user);
         AUSDC_V2_DEBT_VARIABLE.approveDelegation(address(spender), type(uint256).max);
         vm.stopPrank();
 
-        vm.label(address(router), "Router");
-        vm.label(address(spender), "SpenderAaveV2Delegation");
-        vm.label(address(mockERC20), "mERC20");
-        vm.label(address(aaveV2Provider), "AaveV2Provider");
-        vm.label(address(pool), "AaveV2Pool");
-        vm.label(address(AUSDC_V2), "aUSDC");
-        vm.label(address(AUSDC_V2_DEBT_VARIABLE), "variableDebtUSDC");
+        vm.label(address(router), 'Router');
+        vm.label(address(spender), 'SpenderAaveV2Delegation');
+        vm.label(address(mockERC20), 'mERC20');
+        vm.label(address(aaveV2Provider), 'AaveV2Provider');
+        vm.label(address(pool), 'AaveV2Pool');
+        vm.label(address(AUSDC_V2), 'aUSDC');
+        vm.label(address(AUSDC_V2_DEBT_VARIABLE), 'variableDebtUSDC');
     }
 
     // Cannot call spender directly
@@ -75,7 +75,7 @@ contract SpenderAaveV2DelegationTest is Test {
         IDebtToken tokenIn = AUSDC_V2_DEBT_VARIABLE;
         IERC20 tokenOut = IERC20(tokenIn.UNDERLYING_ASSET_ADDRESS());
         amountIn = bound(amountIn, 1, tokenIn.totalSupply());
-        vm.label(address(tokenOut), "Token");
+        vm.label(address(tokenOut), 'Token');
 
         // Setup collateral
         vm.startPrank(user);
@@ -100,22 +100,23 @@ contract SpenderAaveV2DelegationTest is Test {
         assertEq(tokenOut.balanceOf(address(user)), amountIn);
     }
 
-    function _logicSpenderAaveV2Delegation(IERC20 token, uint256 amount, uint256 interestRateMode)
-        public
-        view
-        returns (IRouter.Logic memory)
-    {
+    function _logicSpenderAaveV2Delegation(
+        IERC20 token,
+        uint256 amount,
+        uint256 interestRateMode
+    ) public view returns (IRouter.Logic memory) {
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](1);
         outputs[0].token = address(token);
         outputs[0].amountMin = amount;
 
-        return IRouter.Logic(
-            address(spender), // to
-            abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode),
-            inputsEmpty,
-            outputs,
-            address(0) // callback
-        );
+        return
+            IRouter.Logic(
+                address(spender), // to
+                abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode),
+                inputsEmpty,
+                outputs,
+                address(0) // callback
+            );
     }
 }

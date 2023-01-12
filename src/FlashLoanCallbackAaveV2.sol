@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {SafeERC20, IERC20, Address} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IRouter} from "./interfaces/IRouter.sol";
-import {IFlashLoanCallbackAaveV2} from "./interfaces/IFlashLoanCallbackAaveV2.sol";
-import {IAaveV2Provider} from "./interfaces/aaveV2/IAaveV2Provider.sol";
-import {ApproveHelper} from "./libraries/ApproveHelper.sol";
+import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IRouter} from './interfaces/IRouter.sol';
+import {IFlashLoanCallbackAaveV2} from './interfaces/IFlashLoanCallbackAaveV2.sol';
+import {IAaveV2Provider} from './interfaces/aaveV2/IAaveV2Provider.sol';
+import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 /// @title Aave V2 flash loan callback
 contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
@@ -38,7 +38,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
 
         // Transfer assets to Router
         uint256 assetsLength = assets.length;
-        for (uint256 i = 0; i < assetsLength;) {
+        for (uint256 i = 0; i < assetsLength; ) {
             IERC20(assets[i]).safeTransfer(router, amounts[i]);
 
             unchecked {
@@ -47,10 +47,10 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
         }
 
         // Call Router::execute
-        router.functionCall(params, "ERROR_AAVE_V2_FLASH_LOAN_CALLBACK");
+        router.functionCall(params, 'ERROR_AAVE_V2_FLASH_LOAN_CALLBACK');
 
         // Approve assets for pulling from Aave Pool
-        for (uint256 i = 0; i < assetsLength;) {
+        for (uint256 i = 0; i < assetsLength; ) {
             uint256 amountOwing = amounts[i] + premiums[i];
 
             // Save gas by only the first user does approve. It's safe since this callback don't hold any asset

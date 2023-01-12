@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {SafeERC20, IERC20, Address} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IRouter} from "./interfaces/IRouter.sol";
-import {ApproveHelper} from "./libraries/ApproveHelper.sol";
+import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IRouter} from './interfaces/IRouter.sol';
+import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 /// @title Router executes arbitrary logics
 contract Router is IRouter {
@@ -29,7 +29,8 @@ contract Router is IRouter {
         if (user == _INIT_USER) {
             user = msg.sender;
             fUserSet = true;
-        } else { // If the user is set, execute should be called through callback
+        } else {
+            // If the user is set, execute should be called through callback
             if (_callback != msg.sender) {
                 revert InvalidCallback();
             } else {
@@ -49,7 +50,7 @@ contract Router is IRouter {
     function _execute(Logic[] calldata logics, address[] calldata tokensReturn) private {
         // Execute each logic
         uint256 logicsLength = logics.length;
-        for (uint256 i = 0; i < logicsLength;) {
+        for (uint256 i = 0; i < logicsLength; ) {
             address to = logics[i].to;
             bytes memory data = logics[i].data;
             Input[] memory inputs = logics[i].inputs;
@@ -65,7 +66,7 @@ contract Router is IRouter {
 
             // Execute each input
             uint256 inputsLength = inputs.length;
-            for (uint256 j = 0; j < inputsLength;) {
+            for (uint256 j = 0; j < inputsLength; ) {
                 address token = inputs[j].token;
                 uint256 amountOffset = inputs[j].amountOffset;
                 uint256 amountBps = inputs[j].amountBps;
@@ -73,7 +74,7 @@ contract Router is IRouter {
                 if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
 
                 // Replace the amount in data with the calculated token amount by bps
-                uint256 amount = IERC20(token).balanceOf(address(this)) * amountBps / _BPS_BASE;
+                uint256 amount = (IERC20(token).balanceOf(address(this)) * amountBps) / _BPS_BASE;
                 assembly {
                     let loc := add(add(data, 0x24), amountOffset) // 0x24 = 0x20(length) + 0x4(sig)
                     mstore(loc, amount)
@@ -91,13 +92,13 @@ contract Router is IRouter {
             if (callback != address(0)) _callback = callback;
 
             // Execute
-            to.functionCall(data, "ERROR_ROUTER_EXECUTE");
+            to.functionCall(data, 'ERROR_ROUTER_EXECUTE');
 
             // Revert if the previous call didn't enter execute
             if (_callback != _INIT_CALLBACK) revert UnresetCallback();
 
             // Reset approval
-            for (uint256 j = 0; j < inputsLength;) {
+            for (uint256 j = 0; j < inputsLength; ) {
                 if (inputs[j].doApprove) ApproveHelper._approveZero(inputs[j].token, to);
 
                 unchecked {
@@ -107,7 +108,7 @@ contract Router is IRouter {
 
             // Execute each output to hard check the min amounts are expected
             uint256 outputsLength = outputs.length;
-            for (uint256 j = 0; j < outputsLength;) {
+            for (uint256 j = 0; j < outputsLength; ) {
                 IERC20 token = IERC20(outputs[j].token);
                 uint256 amountMin = outputs[j].amountMin;
                 uint256 balance = token.balanceOf(address(this));
@@ -127,7 +128,7 @@ contract Router is IRouter {
 
         // Push tokensReturn if any balance
         uint256 tokensReturnLength = tokensReturn.length;
-        for (uint256 i = 0; i < tokensReturnLength;) {
+        for (uint256 i = 0; i < tokensReturnLength; ) {
             IERC20 tokenReturn = IERC20(tokensReturn[i]);
             uint256 balance = tokenReturn.balanceOf(address(this));
 
