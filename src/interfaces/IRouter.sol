@@ -2,8 +2,6 @@
 pragma solidity ^0.8.0;
 
 interface IRouter {
-    error InvalidUser();
-
     error InvalidCallback();
 
     error LengthMismatch();
@@ -39,6 +37,4 @@ interface IRouter {
     function user() external view returns (address);
 
     function execute(Logic[] calldata logics, address[] calldata tokensReturn) external;
-
-    function executeByCallback(Logic[] calldata logics, address[] calldata tokensReturn) external;
 }

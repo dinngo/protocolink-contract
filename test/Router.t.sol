@@ -6,9 +6,11 @@ import {SafeERC20, IERC20} from "openzeppelin-contracts/contracts/token/ERC20/ut
 import {Router, IRouter} from "../src/Router.sol";
 import {SpenderERC20Approval, ISpenderERC20Approval} from "../src/SpenderERC20Approval.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
+import {ICallback, MockCallback} from "./mocks/MockCallback.sol";
 
 interface IYVault {
     function deposit(uint256) external;
+
     function balanceOf(address) external returns (uint256);
 }
 
@@ -62,6 +64,7 @@ contract RouterTest is Test {
     IRouter public router;
     ISpenderERC20Approval public spender;
     IERC20 public mockERC20;
+    ICallback public mockCallback;
 
     // Empty arrays
     address[] tokensReturnEmpty;
@@ -75,6 +78,7 @@ contract RouterTest is Test {
         router = new Router();
         spender = new SpenderERC20Approval(address(router));
         mockERC20 = new MockERC20("Mock ERC20", "mERC20");
+        mockCallback = new MockCallback();
 
         // User approved spender
         vm.startPrank(user);
@@ -91,8 +95,19 @@ contract RouterTest is Test {
     }
 
     function testCannotExecuteByInvalidCallback() external {
+        IRouter.Logic[] memory callbacks = new IRouter.Logic[](1);
+        callbacks[0] = IRouter.Logic(
+            address(mockERC20), // to
+            abi.encodeWithSelector(IERC20.totalSupply.selector),
+            inputsEmpty,
+            outputsEmpty,
+            address(0) // callback
+        );
+        bytes memory data = abi.encodeWithSelector(IRouter.execute.selector, callbacks, tokensReturnEmpty);
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = IRouter.Logic(address(mockCallback), abi.encodeWithSelector(ICallback.callback.selector, data), inputsEmpty, outputsEmpty, address(router));
         vm.expectRevert(IRouter.InvalidCallback.selector);
-        router.executeByCallback(logicsEmpty, tokensReturnEmpty);
+        router.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotEncodeApproveSig() external {
