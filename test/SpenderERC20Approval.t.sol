@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {Test} from "forge-std/Test.sol";
-import {SafeERC20, IERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Router, IRouter} from "../src/Router.sol";
-import {SpenderERC20Approval, ISpenderERC20Approval} from "../src/SpenderERC20Approval.sol";
-import {MockERC20} from "./mocks/MockERC20.sol";
+import {Test} from 'forge-std/Test.sol';
+import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {Router, IRouter} from '../src/Router.sol';
+import {SpenderERC20Approval, ISpenderERC20Approval} from '../src/SpenderERC20Approval.sol';
+import {MockERC20} from './mocks/MockERC20.sol';
 
 interface IYVault {
     function deposit(uint256) external;
+
     function balanceOf(address) external returns (uint256);
 }
 
@@ -31,20 +32,20 @@ contract SpenderERC20ApprovalTest is Test {
     IERC20 public mockERC20;
 
     function setUp() external {
-        user = makeAddr("user");
+        user = makeAddr('user');
 
         router = new Router();
         spender = new SpenderERC20Approval(address(router));
-        mockERC20 = new MockERC20("Mock ERC20", "mERC20");
+        mockERC20 = new MockERC20('Mock ERC20', 'mERC20');
 
         // User approved spender
         vm.startPrank(user);
         mockERC20.safeApprove(address(spender), type(uint256).max);
         vm.stopPrank();
 
-        vm.label(address(router), "Router");
-        vm.label(address(spender), "SpenderERC20Approval");
-        vm.label(address(mockERC20), "mERC20");
+        vm.label(address(router), 'Router');
+        vm.label(address(spender), 'SpenderERC20Approval');
+        vm.label(address(mockERC20), 'mERC20');
     }
 
     // Cannot call spender directly

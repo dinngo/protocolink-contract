@@ -1,0 +1,17 @@
+{
+  "name": "router",
+  "license": "MIT",
+  "version": "0.1.0",
+  "description": "Router smart contracts",
+  "files": [
+    "src/**/*.sol"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dinngodev/router-contract"
+  },
+  "devDependencies": {
+    "prettier": "^2.8.2",
+    "prettier-plugin-solidity": "^1.1.1"
+  }
+}
