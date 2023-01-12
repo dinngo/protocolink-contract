@@ -31,6 +31,9 @@ contract SpenderERC20ApprovalTest is Test {
     ISpenderERC20Approval public spender;
     IERC20 public mockERC20;
 
+    IRouter.Input[] inputsEmpty;
+    IRouter.Output[] outputsEmpty;
+
     function setUp() external {
         user = makeAddr('user');
 
@@ -48,21 +51,53 @@ contract SpenderERC20ApprovalTest is Test {
         vm.label(address(mockERC20), 'mERC20');
     }
 
+    function testPullToken(uint256 amountIn) external {
+        IERC20 tokenIn = mockERC20;
+        IERC20 tokenOut = mockERC20;
+        amountIn = bound(amountIn, 1e1, 1e12);
+        deal(address(tokenIn), user, amountIn);
+
+        // Encode logics
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
+
+        // Encode execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(tokenOut);
+        vm.prank(user);
+        router.execute(logics, tokensReturn);
+
+        assertEq(tokenIn.balanceOf(address(router)), 0);
+        assertEq(tokenOut.balanceOf(address(router)), 0);
+        assertGt(tokenOut.balanceOf(address(user)), 0);
+    }
+
     // Cannot call spender directly
-    function testCannotExploit(uint128 amount) external {
+    function testCannotBeCalledByNonRouter(uint128 amount) external {
         vm.assume(amount > 0);
         deal(address(mockERC20), user, amount);
 
         vm.startPrank(user);
-        vm.expectRevert(ISpenderERC20Approval.RouterInvalidUser.selector);
+        vm.expectRevert(ISpenderERC20Approval.InvalidRouter.selector);
         spender.pullToken(address(mockERC20), amount);
 
-        vm.expectRevert(ISpenderERC20Approval.RouterInvalidUser.selector);
+        vm.expectRevert(ISpenderERC20Approval.InvalidRouter.selector);
         address[] memory tokens = new address[](1);
         uint256[] memory amounts = new uint256[](1);
         tokens[0] = address(mockERC20);
         amounts[0] = amount;
         spender.pullTokens(tokens, amounts);
         vm.stopPrank();
+    }
+
+    function _logicSpenderERC20Approval(IERC20 tokenIn, uint256 amountIn) public view returns (IRouter.Logic memory) {
+        return
+            IRouter.Logic(
+                address(spender), // to
+                abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
+                inputsEmpty,
+                outputsEmpty,
+                address(0) // callback
+            );
     }
 }

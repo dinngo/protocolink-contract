@@ -60,12 +60,12 @@ contract SpenderAaveV2DelegationTest is Test {
     }
 
     // Cannot call spender directly
-    function testCannotExploit(uint128 amount) external {
+    function testCannotBeCalledByNonRouter(uint128 amount) external {
         vm.assume(amount > 0);
         deal(address(mockERC20), user, amount);
 
         vm.startPrank(user);
-        vm.expectRevert(ISpenderAaveV2Delegation.RouterInvalidUser.selector);
+        vm.expectRevert(ISpenderAaveV2Delegation.InvalidRouter.selector);
         spender.borrow(address(mockERC20), amount, uint256(InterestRateMode.VARIABLE));
         vm.stopPrank();
     }
