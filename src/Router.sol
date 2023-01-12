@@ -84,13 +84,13 @@ contract Router is IRouter {
                 }
             }
 
-            // Set _callback who should enter one-time executeByCallback
+            // Set _callback who should enter one-time execute
             if (callback != address(0)) _callback = callback;
 
             // Execute
             to.functionCall(data, "ERROR_ROUTER_EXECUTE");
 
-            // Revert if the previous call didn't enter executeByCallback
+            // Revert if the previous call didn't enter execute
             if (_callback != _INIT_CALLBACK) revert UnresetCallback();
 
             // Reset approval

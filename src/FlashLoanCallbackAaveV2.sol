@@ -46,9 +46,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
             }
         }
 
-        // Call Router::executeByCallback
-        // It's safe if someone intentionally calls Router::execute from this callback as the user, since Router is
-        // independent from this callback
+        // Call Router::execute
         router.functionCall(params, "ERROR_AAVE_V2_FLASH_LOAN_CALLBACK");
 
         // Approve assets for pulling from Aave Pool

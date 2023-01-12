@@ -36,7 +36,7 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
             }
         }
 
-        // Call Router::executeByCallback
+        // Call Router::execute
         router.functionCall(userData, "ERROR_BALANCER_V2_FLASH_LOAN_CALLBACK");
 
         // Repay tokens to Vault
