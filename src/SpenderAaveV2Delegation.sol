@@ -11,7 +11,6 @@ import {IAaveV2Pool} from './interfaces/aaveV2/IAaveV2Pool.sol';
 contract SpenderAaveV2Delegation is ISpenderAaveV2Delegation {
     using SafeERC20 for IERC20;
 
-    address private constant _INIT_USER = address(1);
     uint16 private constant _REFERRAL_CODE = 56;
 
     address public immutable router;
@@ -25,8 +24,8 @@ contract SpenderAaveV2Delegation is ISpenderAaveV2Delegation {
     /// @notice Router asks to borrow tokens using the user's delegation
     /// @dev Router must guarantee that the public user is msg.sender who called Router.
     function borrow(address asset, uint256 amount, uint256 interestRateMode) external {
+        if (msg.sender != router) revert InvalidRouter();
         address user = IRouter(router).user();
-        if (user == _INIT_USER) revert RouterInvalidUser();
 
         address pool = IAaveV2Provider(aaveV2Provider).getLendingPool();
         IAaveV2Pool(pool).borrow(asset, amount, interestRateMode, _REFERRAL_CODE, user);

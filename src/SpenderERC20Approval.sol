@@ -9,8 +9,6 @@ import {ISpenderERC20Approval} from './interfaces/ISpenderERC20Approval.sol';
 contract SpenderERC20Approval is ISpenderERC20Approval {
     using SafeERC20 for IERC20;
 
-    address private constant _INIT_USER = address(1);
-
     address public immutable router;
 
     constructor(address router_) {
@@ -20,15 +18,15 @@ contract SpenderERC20Approval is ISpenderERC20Approval {
     /// @notice Router asks to transfer tokens from the user
     /// @dev Router must guarantee that the public user is msg.sender who called Router.
     function pullToken(address token, uint256 amount) external {
+        if (msg.sender != router) revert InvalidRouter();
         address user = IRouter(router).user();
-        if (user == _INIT_USER) revert RouterInvalidUser();
 
         _pull(token, amount, user);
     }
 
     function pullTokens(address[] calldata tokens, uint256[] calldata amounts) external {
+        if (msg.sender != router) revert InvalidRouter();
         address user = IRouter(router).user();
-        if (user == _INIT_USER) revert RouterInvalidUser();
 
         uint256 tokensLength = tokens.length;
         if (tokensLength != amounts.length) revert LengthMismatch();
