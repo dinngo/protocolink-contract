@@ -36,5 +36,5 @@ interface IRouter {
 
     function user() external view returns (address);
 
-    function execute(Logic[] calldata logics, address[] calldata tokensReturn) external;
+    function execute(Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 }

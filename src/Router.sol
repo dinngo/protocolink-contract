@@ -9,9 +9,11 @@ import {ApproveHelper} from './libraries/ApproveHelper.sol';
 contract Router is IRouter {
     using SafeERC20 for IERC20;
     using Address for address;
+    using Address for address payable;
 
     address private constant _INIT_USER = address(1);
     address private constant _INIT_CALLBACK = address(2);
+    address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     uint256 private constant _BPS_BASE = 10_000;
 
     address public user;
@@ -22,8 +24,10 @@ contract Router is IRouter {
         _callback = _INIT_CALLBACK;
     }
 
+    receive() external payable {}
+
     /// @notice Execute logics and return tokens to user
-    function execute(Logic[] calldata logics, address[] calldata tokensReturn) external {
+    function execute(Logic[] calldata logics, address[] calldata tokensReturn) external payable {
         // Setup user and prevent reentrancy
         bool fUserSet;
         if (user == _INIT_USER) {
@@ -65,23 +69,30 @@ contract Router is IRouter {
             }
 
             // Execute each input
+            uint256 value;
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength; ) {
-                address token = inputs[j].token;
+                address token = inputs[j].token; // Each token should be unique
                 uint256 amountOffset = inputs[j].amountOffset;
                 uint256 amountBps = inputs[j].amountBps;
 
                 if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
 
-                // Replace the amount in data with the calculated token amount by bps
-                uint256 amount = (IERC20(token).balanceOf(address(this)) * amountBps) / _BPS_BASE;
-                assembly {
-                    let loc := add(add(data, 0x24), amountOffset) // 0x24 = 0x20(length) + 0x4(sig)
-                    mstore(loc, amount)
+                // Calculate amount by bps
+                uint256 balance = _getBalance(token);
+                uint256 amount = (balance * amountBps) / _BPS_BASE;
+
+                // Replace amount in data if offset is valid
+                if (amountOffset != type(uint256).max) {
+                    assembly {
+                        let loc := add(add(data, 0x24), amountOffset) // 0x24 = 0x20(length) + 0x4(sig)
+                        mstore(loc, amount)
+                    }
                 }
 
-                // Approve token
+                // Approve ERC20 or set native token value
                 if (inputs[j].doApprove) ApproveHelper._approve(token, to, amount);
+                else if (token == _NATIVE) value = amount;
 
                 unchecked {
                     j++;
@@ -92,7 +103,7 @@ contract Router is IRouter {
             if (callback != address(0)) _callback = callback;
 
             // Execute
-            to.functionCall(data, 'ERROR_ROUTER_EXECUTE');
+            to.functionCallWithValue(data, value, 'ERROR_ROUTER_EXECUTE');
 
             // Revert if the previous call didn't enter execute
             if (_callback != _INIT_CALLBACK) revert UnresetCallback();
@@ -109,9 +120,9 @@ contract Router is IRouter {
             // Execute each output to hard check the min amounts are expected
             uint256 outputsLength = outputs.length;
             for (uint256 j = 0; j < outputsLength; ) {
-                IERC20 token = IERC20(outputs[j].token);
+                address token = outputs[j].token;
                 uint256 amountMin = outputs[j].amountMin;
-                uint256 balance = token.balanceOf(address(this));
+                uint256 balance = _getBalance(token);
 
                 // Check min amount
                 if (balance < amountMin) revert InsufficientBalance(address(token), amountMin, balance);
@@ -129,16 +140,25 @@ contract Router is IRouter {
         // Push tokensReturn if any balance
         uint256 tokensReturnLength = tokensReturn.length;
         for (uint256 i = 0; i < tokensReturnLength; ) {
-            IERC20 tokenReturn = IERC20(tokensReturn[i]);
-            uint256 balance = tokenReturn.balanceOf(address(this));
-
-            if (balance > 0) {
-                tokenReturn.safeTransfer(user, balance);
+            address token = tokensReturn[i];
+            uint256 balance = _getBalance(token);
+            if (token == _NATIVE) {
+                payable(user).sendValue(balance);
+            } else {
+                IERC20(token).safeTransfer(user, balance);
             }
 
             unchecked {
                 i++;
             }
+        }
+    }
+
+    function _getBalance(address token) private view returns (uint256 balance) {
+        if (token == _NATIVE) {
+            balance = address(this).balance;
+        } else {
+            balance = IERC20(token).balanceOf(address(this));
         }
     }
 }
