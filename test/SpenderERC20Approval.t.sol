@@ -7,22 +7,6 @@ import {Router, IRouter} from '../src/Router.sol';
 import {SpenderERC20Approval, ISpenderERC20Approval} from '../src/SpenderERC20Approval.sol';
 import {MockERC20} from './mocks/MockERC20.sol';
 
-interface IYVault {
-    function deposit(uint256) external;
-
-    function balanceOf(address) external returns (uint256);
-}
-
-interface IUniswapV2Router02 {
-    function swapExactTokensForTokens(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external returns (uint256[] memory amounts);
-}
-
 contract SpenderERC20ApprovalTest is Test {
     using SafeERC20 for IERC20;
 

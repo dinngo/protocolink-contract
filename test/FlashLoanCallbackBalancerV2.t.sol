@@ -8,19 +8,11 @@ import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from '../src/
 import {IBalancerV2Vault} from '../src/interfaces/balancerV2/IBalancerV2Vault.sol';
 
 contract FlashLoanCallbackBalancerV2Test is Test {
-    using SafeERC20 for IERC20;
-
     IBalancerV2Vault public constant balancerV2Vault = IBalancerV2Vault(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
-    IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
     address public user;
     IRouter public router;
     IFlashLoanCallbackBalancerV2 public flashLoanCallback;
-
-    // Empty arrays
-    address[] tokensReturnEmpty;
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
 
     function setUp() external {
         user = makeAddr('user');
@@ -30,67 +22,19 @@ contract FlashLoanCallbackBalancerV2Test is Test {
 
         vm.label(address(router), 'Router');
         vm.label(address(flashLoanCallback), 'FlashLoanCallbackBalancerV2');
-        vm.label(address(USDC), 'USDC');
+        vm.label(address(balancerV2Vault), 'BalancerV2Vault');
     }
 
-    function testExecuteBalancerV2FlashLoan(uint256 amountIn) external {
-        vm.assume(amountIn > 1e6);
-        IERC20 token = USDC;
-        amountIn = bound(amountIn, 1, token.balanceOf(address(balancerV2Vault)));
-        vm.label(address(token), 'Token');
-
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token);
-
-        uint256[] memory amounts = new uint256[](1);
-        amounts[0] = amountIn;
-
-        // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicBalancerV2FlashLoan(tokens, amounts);
+    // Cannot call flash loan callback directly
+    function testCannotBeCalledByInvalidCaller() external {
+        address[] memory tokens = new address[](0);
+        uint256[] memory amounts = new uint256[](0);
+        uint256[] memory feeAmounts = new uint256[](0);
 
         // Execute
-        vm.prank(user);
-        router.execute(logics, tokensReturnEmpty);
-
-        assertEq(token.balanceOf(address(router)), 0);
-        assertEq(token.balanceOf(address(flashLoanCallback)), 0);
-        assertEq(token.balanceOf(address(user)), 0);
-    }
-
-    function _logicBalancerV2FlashLoan(
-        address[] memory tokens,
-        uint256[] memory amounts
-    ) public view returns (IRouter.Logic memory) {
-        // Encode logic
-        address receiver = address(flashLoanCallback);
-        bytes memory userData = _encodeExecute(tokens, amounts);
-
-        return
-            IRouter.Logic(
-                address(balancerV2Vault), // to
-                abi.encodeWithSelector(IBalancerV2Vault.flashLoan.selector, receiver, tokens, amounts, userData),
-                inputsEmpty,
-                outputsEmpty,
-                address(flashLoanCallback) // callback
-            );
-    }
-
-    function _encodeExecute(address[] memory tokens, uint256[] memory amounts) public view returns (bytes memory) {
-        // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; i++) {
-            // Encode transfering token to the flash loan callback
-            logics[i] = IRouter.Logic(
-                address(tokens[i]), // to
-                abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i]),
-                inputsEmpty,
-                outputsEmpty,
-                address(0) // callback
-            );
-        }
-
-        // Encode execute data
-        return abi.encodeWithSelector(IRouter.execute.selector, logics, tokensReturnEmpty);
+        vm.startPrank(user);
+        vm.expectRevert(IFlashLoanCallbackBalancerV2.InvalidCaller.selector);
+        flashLoanCallback.receiveFlashLoan(tokens, amounts, feeAmounts, '');
+        vm.stopPrank();
     }
 }
