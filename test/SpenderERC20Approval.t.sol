@@ -19,7 +19,7 @@ contract SpenderERC20ApprovalTest is Test {
     IRouter.Output[] outputsEmpty;
 
     function setUp() external {
-        user = makeAddr('user');
+        user = makeAddr('User');
 
         router = new Router();
         spender = new SpenderERC20Approval(address(router));
@@ -45,7 +45,7 @@ contract SpenderERC20ApprovalTest is Test {
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
         logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
 
-        // Encode execute
+        // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
@@ -53,7 +53,7 @@ contract SpenderERC20ApprovalTest is Test {
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
-        assertGt(tokenOut.balanceOf(address(user)), 0);
+        assertGt(tokenOut.balanceOf(user), 0);
     }
 
     // Cannot call spender directly

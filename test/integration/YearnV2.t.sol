@@ -29,7 +29,7 @@ contract YearnV2Test is Test {
     IRouter.Output[] outputsEmpty;
 
     function setUp() external {
-        user = makeAddr('user');
+        user = makeAddr('User');
 
         router = new Router();
         spender = new SpenderERC20Approval(address(router));
@@ -64,7 +64,7 @@ contract YearnV2Test is Test {
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(yVault.balanceOf(address(router)), 0);
-        assertGt(yVault.balanceOf(address(user)), 0);
+        assertGt(yVault.balanceOf(user), 0);
     }
 
     function _logicSpenderERC20Approval(IERC20 tokenIn, uint256 amountIn) public view returns (IRouter.Logic memory) {

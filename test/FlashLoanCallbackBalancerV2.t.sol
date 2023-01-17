@@ -15,7 +15,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
     IFlashLoanCallbackBalancerV2 public flashLoanCallback;
 
     function setUp() external {
-        user = makeAddr('user');
+        user = makeAddr('User');
 
         router = new Router();
         flashLoanCallback = new FlashLoanCallbackBalancerV2(address(router), address(balancerV2Vault));

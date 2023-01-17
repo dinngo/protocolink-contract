@@ -23,7 +23,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
     IRouter.Output[] outputsEmpty;
 
     function setUp() external {
-        user = makeAddr('user');
+        user = makeAddr('User');
 
         router = new Router();
         flashLoanCallback = new FlashLoanCallbackBalancerV2(address(router), address(balancerV2Vault));
@@ -56,7 +56,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
 
         assertEq(token.balanceOf(address(router)), 0);
         assertEq(token.balanceOf(address(flashLoanCallback)), 0);
-        assertEq(token.balanceOf(address(user)), 0);
+        assertEq(token.balanceOf(user), 0);
     }
 
     function _logicBalancerV2FlashLoan(

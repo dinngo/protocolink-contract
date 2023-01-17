@@ -14,7 +14,7 @@ contract FlashLoanCallbackAaveV2Test is Test {
     IFlashLoanCallbackAaveV2 public flashLoanCallback;
 
     function setUp() external {
-        user = makeAddr('user');
+        user = makeAddr('User');
 
         router = new Router();
         flashLoanCallback = new FlashLoanCallbackAaveV2(address(router), address(aaveV2Provider));

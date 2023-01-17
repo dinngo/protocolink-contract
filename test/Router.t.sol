@@ -25,7 +25,7 @@ contract RouterTest is Test {
     IRouter.Output[] outputsEmpty;
 
     function setUp() external {
-        user = makeAddr('user');
+        user = makeAddr('User');
 
         router = new Router();
         spender = new SpenderERC20Approval(address(router));
