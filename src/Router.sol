@@ -72,7 +72,7 @@ contract Router is IRouter {
             uint256 value;
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength; ) {
-                address token = inputs[j].token; // Each token should be unique
+                address token = inputs[j].token;
                 uint256 amountOffset = inputs[j].amountOffset;
                 uint256 amountBps = inputs[j].amountBps;
 
