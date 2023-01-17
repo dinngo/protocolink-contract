@@ -42,7 +42,7 @@ contract SpenderAaveV2DelegationTest is Test {
     IRouter.Output[] outputsEmpty;
 
     function setUp() external {
-        user = makeAddr('user');
+        user = makeAddr('User');
 
         router = new Router();
         spender = new SpenderAaveV2Delegation(address(router), address(aaveV2Provider));
@@ -89,7 +89,7 @@ contract SpenderAaveV2DelegationTest is Test {
 
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(spender)), 0);
-        assertEq(tokenOut.balanceOf(address(user)), amountIn);
+        assertEq(tokenOut.balanceOf(user), amountIn);
     }
 
     function testExecuteAaveV2FlashLoan(uint256 amountIn) external {
@@ -117,7 +117,7 @@ contract SpenderAaveV2DelegationTest is Test {
 
         assertEq(token.balanceOf(address(router)), 0);
         assertEq(token.balanceOf(address(flashLoanCallback)), 0);
-        assertEq(token.balanceOf(address(user)), 0);
+        assertEq(token.balanceOf(user), 0);
     }
 
     function _logicSpenderAaveV2Delegation(

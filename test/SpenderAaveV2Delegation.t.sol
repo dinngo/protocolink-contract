@@ -24,7 +24,7 @@ contract SpenderAaveV2DelegationTest is Test {
     MockERC20Debt public mockERC20Debt;
 
     function setUp() external {
-        user = makeAddr('user');
+        user = makeAddr('User');
 
         router = new Router();
         spender = new SpenderAaveV2Delegation(address(router), address(aaveV2Provider));
