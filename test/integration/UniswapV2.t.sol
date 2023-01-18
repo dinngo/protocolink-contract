@@ -74,6 +74,7 @@ contract UniswapV2Test is Test {
 
     address public user;
     IRouter public router;
+    address public permit2Addr = address(0x000000000022D473030F116dDEE9F6B43aC78BA3);
     ISpenderERC20Approval public spender;
 
     // Empty arrays
@@ -84,7 +85,7 @@ contract UniswapV2Test is Test {
         user = makeAddr('User');
 
         router = new Router();
-        spender = new SpenderERC20Approval(address(router));
+        spender = new SpenderERC20Approval(address(router), permit2Addr);
 
         // User approved spender
         vm.startPrank(user);
