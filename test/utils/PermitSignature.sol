@@ -298,7 +298,7 @@ contract PermitSignature is Test {
         });
     }
 
-    function defaultERC20PermitMultiple(address[] memory tokens, uint256 nonce)
+    function defaultERC20PermitMultiple(address[] memory tokens, uint256[] memory amounts, uint256 nonce)
         internal
         view
         returns (ISignatureTransfer.PermitBatchTransferFrom memory)
@@ -306,7 +306,7 @@ contract PermitSignature is Test {
         ISignatureTransfer.TokenPermissions[] memory permitted =
             new ISignatureTransfer.TokenPermissions[](tokens.length);
         for (uint256 i = 0; i < tokens.length; ++i) {
-            permitted[i] = ISignatureTransfer.TokenPermissions({token: tokens[i], amount: 1 ** 18});
+            permitted[i] = ISignatureTransfer.TokenPermissions({token: tokens[i], amount: amounts[i]});
         }
         return ISignatureTransfer.PermitBatchTransferFrom({
             permitted: permitted,
