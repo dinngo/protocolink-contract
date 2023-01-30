@@ -274,13 +274,13 @@ contract PermitSignature is Test {
         });
     }
 
-    function defaultERC20PermitTransfer(address token0, uint256 amount, uint256 nonce)
+    function defaultERC20PermitTransfer(address token0, uint256 nonce)
         internal
         view
         returns (ISignatureTransfer.PermitTransferFrom memory)
     {
         return ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({token: token0, amount: amount}),
+            permitted: ISignatureTransfer.TokenPermissions({token: token0, amount: 10 ** 18}),
             nonce: nonce,
             deadline: block.timestamp + 100
         });

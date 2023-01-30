@@ -49,6 +49,13 @@ contract SpenderERC20Approval is ISpenderERC20Approval {
         _permitPull(token, amount, user, nonce, deadline, signature);
     }
 
+    function permitPullTokens(address[] calldata tokens, uint256[] calldata amounts, uint256 nonce, uint256 deadline, bytes calldata signature) external {
+        if (msg.sender != router) revert InvalidRouter();
+        address user = IRouter(router).user();
+
+        _permitPullTokens(tokens, amounts, user, nonce, deadline, signature);
+    }
+
     function _pull(address token, uint256 amount, address user) private {
         IERC20(token).safeTransferFrom(user, router, amount);
     }
@@ -60,6 +67,26 @@ contract SpenderERC20Approval is ISpenderERC20Approval {
             deadline: deadline
         });
         ISignatureTransfer.SignatureTransferDetails memory transferDetails = ISignatureTransfer.SignatureTransferDetails({to: router, requestedAmount: amount});
+        ISignatureTransfer(permit2).permitTransferFrom(permit, transferDetails, user, signature);
+    }
+
+    function _permitPullTokens(address[] calldata tokens, uint256[] calldata amounts, address user, uint256 nonce, uint256 deadline, bytes calldata signature) private {
+        uint256 tokensLength = tokens.length;
+        if (tokensLength != amounts.length) revert LengthMismatch();
+        ISignatureTransfer.TokenPermissions[] memory permitted = new ISignatureTransfer.TokenPermissions[](tokensLength);
+        ISignatureTransfer.SignatureTransferDetails[] memory transferDetails = new ISignatureTransfer.SignatureTransferDetails[](tokensLength);
+        for (uint256 i = 0; i < tokensLength; ) {
+            permitted[i] = ISignatureTransfer.TokenPermissions({token: tokens[i], amount: amounts[i]});
+            transferDetails[i] = ISignatureTransfer.SignatureTransferDetails({to: router, requestedAmount: amounts[i]});
+            unchecked {
+                i++;
+            }
+        }
+        ISignatureTransfer.PermitBatchTransferFrom memory permit = ISignatureTransfer.PermitBatchTransferFrom({
+            permitted: permitted,
+            nonce: nonce,
+            deadline: deadline
+        });
         ISignatureTransfer(permit2).permitTransferFrom(permit, transferDetails, user, signature);
     }
 }
