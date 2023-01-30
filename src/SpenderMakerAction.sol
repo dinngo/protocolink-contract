@@ -4,13 +4,15 @@ pragma solidity ^0.8.0;
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {IDSProxy, IDSProxyRegistry} from './interfaces/maker/IDSProxy.sol';
-import {IMakerManager, IMakerChainLog} from './interfaces/maker/IMaker.sol';
+import {IMakerManager, IMakerGemJoin, IMakerChainLog} from './interfaces/maker/IMaker.sol';
 import {ISpenderMakerAction} from './interfaces/ISpenderMakerAction.sol';
 import {Utils} from './libraries/utils.sol';
+import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 contract SpenderMakerAction is ISpenderMakerAction {
     using SafeERC20 for IERC20;
 
+    address public constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     IDSProxyRegistry public constant PROXY_REGISTRY = IDSProxyRegistry(0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4);
     IMakerManager public constant CDP_MANAGER = IMakerManager(0x5ef30b9986345249bc32d8928B7ee64DE9435E39);
     address public constant PROXY_ACTIONS = 0x82ecD135Dce65Fbc6DbdD0e4237E0AF93FFD5038;
@@ -24,10 +26,11 @@ contract SpenderMakerAction is ISpenderMakerAction {
         _;
     }
 
-    modifier cdpAllowed(address user, uint256 cdp) {
-        address owner = CDP_MANAGER.owns(cdp);
+    modifier cdpAllowed(uint256 cdp) {
+        address user = IRouter(router).user();
+        address cdpOwner = CDP_MANAGER.owns(cdp);
         require(
-            PROXY_REGISTRY.proxies(user) == owner || CDP_MANAGER.cdpCan(owner, cdp, user) == 1,
+            PROXY_REGISTRY.proxies(user) == cdpOwner || CDP_MANAGER.cdpCan(cdpOwner, cdp, user) == 1,
             'Unauthorized sender of cdp'
         );
         _;
@@ -45,12 +48,13 @@ contract SpenderMakerAction is ISpenderMakerAction {
         bytes32 ilk,
         uint256 wadD
     ) external payable returns (uint256 cdp) {
-        IDSProxy proxy = IDSProxy(_getProxy(address(this)));
-        value = Utils._getBalance(address(0), value);
+        // Get spender DSProxy
+        IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
+        value = Utils._getBalance(NATIVE_TOKEN_ADDRESS, value);
         bytes4 funcSig = 0xe685cc04; // selector of "openLockETHAndDraw(address,address,address,address,bytes32,uint256)"
 
         try
-            proxy.execute{value: value}(
+            dsProxy.execute{value: value}(
                 PROXY_ACTIONS,
                 abi.encodeWithSelector(funcSig, address(CDP_MANAGER), getMcdJug(), ethJoin, daiJoin, ilk, wadD)
             )
@@ -62,46 +66,8 @@ contract SpenderMakerAction is ISpenderMakerAction {
             revert ActionFail(funcSig, '');
         }
 
-        _transferDAIToRouter();
+        _transferTokenToRouter(DAI_TOKEN);
         _transferCdp(cdp);
-    }
-
-    /*   function openLockETHAndDraw(
-        uint256 value,
-        address ethJoin,
-        address daiJoin,
-        bytes32 ilk,
-        uint256 wadD
-    ) external payable returns (uint256 cdp) {
-        IDSProxy proxy = IDSProxy(_getProxy(address(this)));
-        // if amount == type(uint256).max return balance of Proxy
-        value = _getBalance(address(0), value);
-
-        try
-            proxy.execute{value: value}(
-                getProxyActions(),
-                abi.encodeWithSelector(
-                    // selector of "openLockETHAndDraw(address,address,address,address,bytes32,uint256)"
-                    0xe685cc04,
-                    getCdpManager(),
-                    getMcdJug(),
-                    ethJoin,
-                    daiJoin,
-                    ilk,
-                    wadD
-                )
-            )
-        returns (bytes32 ret) {
-            cdp = uint256(ret);
-        } catch Error(string memory reason) {
-            _revertMsg("openLockETHAndDraw", reason);
-        } catch {
-            _revertMsg("openLockETHAndDraw");
-        }
-
-
-        _transferDAIToRouter();
-        _transferCdp();
     }
 
     function openLockGemAndDraw(
@@ -111,20 +77,22 @@ contract SpenderMakerAction is ISpenderMakerAction {
         uint256 wadC,
         uint256 wadD
     ) external payable returns (uint256 cdp) {
-        IDSProxy proxy = IDSProxy(_getProxy(address(this)));
+        // Get spender DSProxy
+        IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
+
+        // Get collateral token
         address token = IMakerGemJoin(gemJoin).gem();
+        wadC = Utils._getBalance(token, wadC);
+        bytes4 funcSig = 0xdb802a32; // selector of "openLockGemAndDraw(address,address,address,address,bytes32,uint256,uint256,bool)"
 
-        // if amount == type(uint256).max return balance of Proxy
-        wadC = _getBalance(token, wadC);
+        ApproveHelper._approve(token, address(dsProxy), wadC);
 
-        _tokenApprove(token, address(proxy), wadC);
         try
-            proxy.execute(
-                getProxyActions(),
+            dsProxy.execute(
+                address(PROXY_ACTIONS),
                 abi.encodeWithSelector(
-                    // selector of "openLockGemAndDraw(address,address,address,address,bytes32,uint256,uint256,bool)"
-                    0xdb802a32,
-                    getCdpManager(),
+                    funcSig,
+                    address(CDP_MANAGER),
                     getMcdJug(),
                     gemJoin,
                     daiJoin,
@@ -137,150 +105,164 @@ contract SpenderMakerAction is ISpenderMakerAction {
         returns (bytes32 ret) {
             cdp = uint256(ret);
         } catch Error(string memory reason) {
-            _revertMsg("openLockGemAndDraw", reason);
+            revert ActionFail(funcSig, reason);
         } catch {
-            _revertMsg("openLockGemAndDraw");
+            revert ActionFail(funcSig, '');
         }
-        _tokenApproveZero(token, address(proxy));
 
-        
+        ApproveHelper._approveZero(token, address(dsProxy));
+
+        _transferTokenToRouter(DAI_TOKEN);
+        _transferCdp(cdp);
     }
-    function safeLockETH(
-        uint256 value,
-        address ethJoin,
-        uint256 cdp
-    ) external payable {
-        
-        IDSProxy proxy = IDSProxy(_getProxy(address(this)));
-        address owner = _getProxy(_getSender());
-        // if amount == type(uint256).max return balance of Proxy
-        value = _getBalance(address(0), value);
+
+    function safeLockETH(uint256 value, address ethJoin, uint256 cdp) external payable {
+        // Get spender DSProxy
+        IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
+        address user = IRouter(router).user();
+        address userDSProxy = _getProxy(user);
+        value = Utils._getBalance(NATIVE_TOKEN_ADDRESS, value);
+        bytes4 funcSig = 0xee284576; // selector of "safeLockETH(address,address,uint256,address)"
 
         try
-            proxy.execute{value: value}(
-                getProxyActions(),
-                abi.encodeWithSelector(
-                    // selector of "safeLockETH(address,address,uint256,address)"
-                    0xee284576,
-                    getCdpManager(),
-                    ethJoin,
-                    cdp,
-                    owner
-                )
+            dsProxy.execute{value: value}(
+                address(PROXY_ACTIONS),
+                abi.encodeWithSelector(funcSig, address(CDP_MANAGER), ethJoin, cdp, userDSProxy)
             )
         {} catch Error(string memory reason) {
-            _revertMsg("safeLockETH", reason);
+            revert ActionFail(funcSig, reason);
         } catch {
-            _revertMsg("safeLockETH");
+            revert ActionFail(funcSig, '');
         }
     }
 
-    function safeLockGem(
-        address gemJoin,
-        uint256 cdp,
-        uint256 wad
-    ) external payable {
-        IDSProxy proxy = IDSProxy(_getProxy(address(this)));
-        address owner = _getProxy(_getSender());
+    function safeLockGem(address gemJoin, uint256 cdp, uint256 wad) external payable {
+        // Get spender DSProxy
+        IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
+        address user = IRouter(router).user();
+        address userDSProxy = _getProxy(user);
+
+        // Get collateral token
         address token = IMakerGemJoin(gemJoin).gem();
-        // if amount == type(uint256).max return balance of Proxy
-        wad = _getBalance(token, wad);
-        _tokenApprove(token, address(proxy), wad);
+        wad = Utils._getBalance(token, wad);
+        bytes4 funcSig = 0xead64729; // selector of "safeLockGem(address,address,uint256,uint256,bool,address)"
+
+        ApproveHelper._approve(token, address(dsProxy), wad);
+
         try
-            proxy.execute(
-                getProxyActions(),
-                abi.encodeWithSelector(
-                    // selector of "safeLockGem(address,address,uint256,uint256,bool,address)"
-                    0xead64729,
-                    getCdpManager(),
-                    gemJoin,
-                    cdp,
-                    wad,
-                    true,
-                    owner
-                )
+            dsProxy.execute(
+                address(PROXY_ACTIONS),
+                abi.encodeWithSelector(funcSig, address(CDP_MANAGER), gemJoin, cdp, wad, true, userDSProxy)
             )
         {} catch Error(string memory reason) {
-            _revertMsg("safeLockGem", reason);
+            revert ActionFail(funcSig, reason);
         } catch {
-            _revertMsg("safeLockGem");
+            revert ActionFail(funcSig, '');
         }
-        _tokenApproveZero(token, address(proxy));
+        ApproveHelper._approveZero(token, address(dsProxy));
     }
 
-    function freeETH(
-        address ethJoin,
-        uint256 cdp,
-        uint256 wad
-    ) external payable cdpAllowed(cdp) {
-        // Check msg.sender authority
-        IDSProxy proxy = IDSProxy(_getProxy(address(this)));
+    function freeETH(address ethJoin, uint256 cdp, uint256 wad) external payable cdpAllowed(cdp) {
+        // Get spender DSProxy
+        IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
+        bytes4 funcSig = 0x7b5a3b43; // selector of "freeETH(address,address,uint256,uint256)"
+
         try
-            proxy.execute(
-                getProxyActions(),
-                abi.encodeWithSelector(
-                    // selector of "freeETH(address,address,uint256,uint256)"
-                    0x7b5a3b43,
-                    getCdpManager(),
-                    ethJoin,
-                    cdp,
-                    wad
-                )
+            dsProxy.execute(
+                address(PROXY_ACTIONS),
+                abi.encodeWithSelector(0x7b5a3b43, address(CDP_MANAGER), ethJoin, cdp, wad)
             )
         {} catch Error(string memory reason) {
-            _revertMsg("freeETH", reason);
+            revert ActionFail(funcSig, reason);
         } catch {
-            _revertMsg("freeETH");
+            revert ActionFail(funcSig, '');
         }
+
+        _transferTokenToRouter(NATIVE_TOKEN_ADDRESS);
     }
 
-    function freeGem(
-        address gemJoin,
-        uint256 cdp,
-        uint256 wad
-    ) external payable cdpAllowed(cdp) {
-        // Check msg.sender authority
-        IDSProxy proxy = IDSProxy(_getProxy(address(this)));
+    function freeGem(address gemJoin, uint256 cdp, uint256 wad) external payable cdpAllowed(cdp) {
+        // Get spender DSProxy
+        IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
+
+        // Get collateral token
         address token = IMakerGemJoin(gemJoin).gem();
+        bytes4 funcSig = 0x6ab6a491; // selector of "freeGem(address,address,uint256,uint256)"
+
         try
-            proxy.execute(
-                getProxyActions(),
-                abi.encodeWithSelector(
-                    // selector of "freeGem(address,address,uint256,uint256)"
-                    0x6ab6a491,
-                    getCdpManager(),
-                    gemJoin,
-                    cdp,
-                    wad
-                )
+            dsProxy.execute(
+                address(PROXY_ACTIONS),
+                abi.encodeWithSelector(funcSig, address(CDP_MANAGER), gemJoin, cdp, wad)
             )
         {} catch Error(string memory reason) {
-            _revertMsg("freeGem", reason);
+            revert ActionFail(funcSig, reason);
         } catch {
-            _revertMsg("freeGem");
+            revert ActionFail(funcSig, '');
         }
 
-        // Update post process
-        _updateToken(token);
+        _transferTokenToRouter(token);
     }
 
-    function draw(
-        address daiJoin,
-        uint256 cdp,
-        uint256 wad
-    ) external payable cdpAllowed(cdp) {
-       
-        _transferDAIToRouter();
+    function draw(address daiJoin, uint256 cdp, uint256 wad) external payable cdpAllowed(cdp) {
+        // Get spender DSProxy
+        IDSProxy proxy = IDSProxy(_getProxy(address(this)));
+        bytes4 funcSig = 0x9f6f3d5b; // selector of "draw(address,address,address,uint256,uint256)"
+
+        try
+            proxy.execute(
+                address(PROXY_ACTIONS),
+                abi.encodeWithSelector(funcSig, address(CDP_MANAGER), getMcdJug(), daiJoin, cdp, wad)
+            )
+        {} catch Error(string memory reason) {
+            revert ActionFail(funcSig, reason);
+        } catch {
+            revert ActionFail(funcSig, '');
+        }
+
+        _transferTokenToRouter(DAI_TOKEN);
     }
 
-    function wipe(
-        address daiJoin,
-        uint256 cdp,
-        uint256 wad
-    ) external payable {
-        
+    function wipe(address daiJoin, uint256 cdp, uint256 wad) external payable {
+        // Get spender DSProxy
+        IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
+        bytes4 funcSig = 0x4b666199; // selector of "wipe(address,address,uint256,uint256)"
+
+        ApproveHelper._approve(DAI_TOKEN, address(dsProxy), wad);
+
+        try
+            dsProxy.execute(
+                address(PROXY_ACTIONS),
+                abi.encodeWithSelector(funcSig, address(CDP_MANAGER), daiJoin, cdp, wad)
+            )
+        {} catch Error(string memory reason) {
+            revert ActionFail(funcSig, reason);
+        } catch {
+            revert ActionFail(funcSig, '');
+        }
+
+        ApproveHelper._approveZero(DAI_TOKEN, address(dsProxy));
     }
-   */
+
+    function wipeAll(address daiJoin, uint256 cdp) external payable {
+        // Get spender DSProxy
+        IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
+        bytes4 funcSig = 0x036a2395; // selector of "wipeAll(address,address,uint256)"
+
+        ApproveHelper._approveMax(DAI_TOKEN, address(dsProxy), type(uint256).max);
+
+        try
+            dsProxy.execute(address(PROXY_ACTIONS), abi.encodeWithSelector(funcSig, address(CDP_MANAGER), daiJoin, cdp))
+        {} catch Error(string memory reason) {
+            revert ActionFail(funcSig, reason);
+        } catch {
+            revert ActionFail(funcSig, '');
+        }
+
+        ApproveHelper._approveZero(DAI_TOKEN, address(dsProxy));
+
+        // Transfer remaining token to router
+        _transferTokenToRouter(DAI_TOKEN);
+    }
 
     function getMcdJug() public view returns (address) {
         return IMakerChainLog(CHAIN_LOG).getAddress('MCD_JUG');
@@ -295,6 +277,7 @@ contract SpenderMakerAction is ISpenderMakerAction {
     }
 
     function _transferCdp(uint256 cdp) internal {
+        // Get spender DSProxy
         IDSProxy proxy = IDSProxy(_getProxy(address(this)));
         address user = IRouter(router).user();
         bytes4 funcSig = 0x493c2049; // selector of "giveToProxy(address,address,uint256,address)"
@@ -310,8 +293,14 @@ contract SpenderMakerAction is ISpenderMakerAction {
         }
     }
 
-    function _transferDAIToRouter() internal {
-        uint256 balance = IERC20(DAI_TOKEN).balanceOf(address(this));
-        IERC20(DAI_TOKEN).safeTransfer(router, balance);
+    function _transferTokenToRouter(address token) internal {
+        if (token == NATIVE_TOKEN_ADDRESS) {
+            uint256 balance = address(this).balance;
+            (bool succ, ) = router.call{value: balance}('');
+            require(succ, 'transfer ETH fail');
+        } else {
+            uint256 balance = IERC20(token).balanceOf(address(this));
+            IERC20(token).safeTransfer(router, balance);
+        }
     }
 }
