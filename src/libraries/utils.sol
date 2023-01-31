@@ -5,7 +5,7 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
-///@notice
+///@notice Include some common function.
 library Utils {
     address public constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 

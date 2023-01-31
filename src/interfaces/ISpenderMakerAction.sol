@@ -3,17 +3,36 @@ pragma solidity ^0.8.0;
 
 interface ISpenderMakerAction {
     error InvalidRouter();
+
     error ActionFail(bytes4 sig, string reason);
 
-    // function createDSProxy() external returns (address); // if proxy exist, skip.
+    function openLockETHAndDraw(
+        uint256 value,
+        address ethJoin,
+        address daiJoin,
+        bytes32 ilk,
+        uint256 wadD
+    ) external payable returns (uint256 cdp);
 
-    // function isDSProxyExist() external view returns (bool); // check user's (tx.origin) is exist or not
+    function openLockGemAndDraw(
+        address gemJoin,
+        address daiJoin,
+        bytes32 ilk,
+        uint256 wadC,
+        uint256 wadD
+    ) external payable returns (uint256 cdp);
 
-    // function openLockETHAndDraw(
-    //     uint256 value,
-    //     address ethJoin,
-    //     address daiJoin,
-    //     bytes32 ilk,
-    //     uint256 wadD
-    // ) external payable returns (uint256 cdp);
+    function safeLockETH(uint256 value, address ethJoin, uint256 cdp) external payable;
+
+    function safeLockGem(address gemJoin, uint256 cdp, uint256 wad) external payable;
+
+    function freeETH(address ethJoin, uint256 cdp, uint256 wad) external payable;
+
+    function freeGem(address gemJoin, uint256 cdp, uint256 wad) external payable;
+
+    function draw(address daiJoin, uint256 cdp, uint256 wad) external payable;
+
+    function wipe(address daiJoin, uint256 cdp, uint256 wad) external payable;
+
+    function wipeAll(address daiJoin, uint256 cdp) external payable;
 }
