@@ -39,6 +39,8 @@ contract RouterTest is Test {
 
         vm.label(address(router), 'Router');
         vm.label(address(spender), 'SpenderERC20Approval');
+        vm.label(address(mockERC20), 'mERC20');
+        vm.label(address(mockCallback), 'mCallback');
     }
 
     function testCannotExecuteByInvalidCallback() external {

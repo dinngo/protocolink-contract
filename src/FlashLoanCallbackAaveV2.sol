@@ -36,10 +36,14 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
 
         if (msg.sender != pool) revert InvalidCaller();
 
-        // Transfer assets to Router
+        // Transfer assets to Router and record initial balances
         uint256 assetsLength = assets.length;
+        uint256[] memory initBalances = new uint256[](assetsLength);
         for (uint256 i = 0; i < assetsLength; ) {
-            IERC20(assets[i]).safeTransfer(router, amounts[i]);
+            address asset = assets[i];
+
+            IERC20(asset).safeTransfer(router, amounts[i]);
+            initBalances[i] = IERC20(asset).balanceOf(address(this));
 
             unchecked {
                 i++;
@@ -51,10 +55,14 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
 
         // Approve assets for pulling from Aave Pool
         for (uint256 i = 0; i < assetsLength; ) {
+            address asset = assets[i];
             uint256 amountOwing = amounts[i] + premiums[i];
 
+            // Check no excess balance
+            if (IERC20(asset).balanceOf(address(this)) != initBalances[i] + amountOwing) revert ExcessBalance(asset);
+
             // Save gas by only the first user does approve. It's safe since this callback don't hold any asset
-            ApproveHelper._approveMax(assets[i], pool, amountOwing);
+            ApproveHelper._approveMax(asset, pool, amountOwing);
 
             unchecked {
                 i++;

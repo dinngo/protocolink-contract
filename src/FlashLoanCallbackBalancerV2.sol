@@ -26,10 +26,14 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
     ) external {
         if (msg.sender != balancerV2Vault) revert InvalidCaller();
 
-        // Transfer tokens to Router
+        // Transfer tokens to Router and record initial balances
         uint256 tokensLength = tokens.length;
+        uint256[] memory initBalances = new uint256[](tokensLength);
         for (uint256 i = 0; i < tokensLength; ) {
-            IERC20(tokens[i]).safeTransfer(router, amounts[i]);
+            address token = tokens[i];
+
+            IERC20(token).safeTransfer(router, amounts[i]);
+            initBalances[i] = IERC20(token).balanceOf(address(this));
 
             unchecked {
                 i++;
@@ -41,7 +45,11 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
 
         // Repay tokens to Vault
         for (uint256 i = 0; i < tokensLength; ) {
-            IERC20(tokens[i]).safeTransfer(balancerV2Vault, amounts[i] + feeAmounts[i]);
+            address token = tokens[i];
+            IERC20(token).safeTransfer(balancerV2Vault, amounts[i] + feeAmounts[i]);
+
+            // Check no excess balance
+            if (IERC20(token).balanceOf(address(this)) != initBalances[i]) revert ExcessBalance(token);
 
             unchecked {
                 i++;
