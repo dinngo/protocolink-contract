@@ -19,10 +19,10 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
     }
 
     function receiveFlashLoan(
-        address[] memory tokens,
-        uint256[] memory amounts,
-        uint256[] memory feeAmounts,
-        bytes memory userData
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        uint256[] calldata feeAmounts,
+        bytes calldata userData
     ) external {
         if (msg.sender != balancerV2Vault) revert InvalidCaller();
 

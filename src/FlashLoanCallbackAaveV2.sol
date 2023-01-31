@@ -26,11 +26,11 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
     ///      3. `msg.sender` of this callback is Aave Pool
     ///      4. Aave Pool contract is benign
     function executeOperation(
-        address[] memory assets,
-        uint256[] memory amounts,
-        uint256[] memory premiums,
+        address[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] calldata premiums,
         address, // initiator
-        bytes memory params
+        bytes calldata params
     ) external returns (bool) {
         address pool = IAaveV2Provider(aaveV2Provider).getLendingPool();
 
