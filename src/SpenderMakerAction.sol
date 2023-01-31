@@ -9,6 +9,7 @@ import {ISpenderMakerAction} from './interfaces/ISpenderMakerAction.sol';
 import {Utils} from './libraries/utils.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
+///@title Spender for Maker which user can interact with Maker
 contract SpenderMakerAction is ISpenderMakerAction {
     using SafeERC20 for IERC20;
 
@@ -26,6 +27,7 @@ contract SpenderMakerAction is ISpenderMakerAction {
         _;
     }
 
+    ///@notice Check if user has permission to modify cdp
     modifier cdpAllowed(uint256 cdp) {
         address user = IRouter(router).user();
         address cdpOwner = CDP_MANAGER.owns(cdp);
@@ -41,13 +43,15 @@ contract SpenderMakerAction is ISpenderMakerAction {
         _createDSProxy();
     }
 
+    /// @notice Creates a cdp for the user(for a specific `ilk`), deposits `value` amount of ETH in `ethJoin`
+    /// and exits `wad` amount of DAI token from `daiJoin` adapter.
     function openLockETHAndDraw(
         uint256 value,
         address ethJoin,
         address daiJoin,
         bytes32 ilk,
         uint256 wadD
-    ) external payable returns (uint256 cdp) {
+    ) external payable onlyRouter returns (uint256 cdp) {
         // Get spender DSProxy
         IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
         value = Utils._getBalance(NATIVE_TOKEN_ADDRESS, value);
@@ -70,13 +74,15 @@ contract SpenderMakerAction is ISpenderMakerAction {
         _transferCdp(cdp);
     }
 
+    /// @notice Creates a cdp for the user(for a specific `ilk`), deposits `wadC` amount of collateral in `gemJoin`
+    /// and exits `wadD` amount of DAI token from `daiJoin` adapter.
     function openLockGemAndDraw(
         address gemJoin,
         address daiJoin,
         bytes32 ilk,
         uint256 wadC,
         uint256 wadD
-    ) external payable returns (uint256 cdp) {
+    ) external payable onlyRouter returns (uint256 cdp) {
         // Get spender DSProxy
         IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
 
@@ -116,7 +122,8 @@ contract SpenderMakerAction is ISpenderMakerAction {
         _transferCdp(cdp);
     }
 
-    function safeLockETH(uint256 value, address ethJoin, uint256 cdp) external payable {
+    /// @notice Deposits `value` amount of ETH in `ethJoin` adapter and increase the locked value of `cdp`.
+    function safeLockETH(uint256 value, address ethJoin, uint256 cdp) external payable onlyRouter {
         // Get spender DSProxy
         IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
         address user = IRouter(router).user();
@@ -136,7 +143,8 @@ contract SpenderMakerAction is ISpenderMakerAction {
         }
     }
 
-    function safeLockGem(address gemJoin, uint256 cdp, uint256 wad) external payable {
+    /// @notice Deposits `wad` amount of collateral in `gemJoin` adapter and increase the locked value of `cdp`.
+    function safeLockGem(address gemJoin, uint256 cdp, uint256 wad) external payable onlyRouter {
         // Get spender DSProxy
         IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
         address user = IRouter(router).user();
@@ -159,10 +167,12 @@ contract SpenderMakerAction is ISpenderMakerAction {
         } catch {
             revert ActionFail(funcSig, '');
         }
+
         ApproveHelper._approveZero(token, address(dsProxy));
     }
 
-    function freeETH(address ethJoin, uint256 cdp, uint256 wad) external payable cdpAllowed(cdp) {
+    /// @notice Decrease locked value of `cdp` and withdraws `wad` amount of ETH from `ethJoin` adapter.
+    function freeETH(address ethJoin, uint256 cdp, uint256 wad) external payable onlyRouter cdpAllowed(cdp) {
         // Get spender DSProxy
         IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
         bytes4 funcSig = 0x7b5a3b43; // selector of "freeETH(address,address,uint256,uint256)"
@@ -181,7 +191,8 @@ contract SpenderMakerAction is ISpenderMakerAction {
         _transferTokenToRouter(NATIVE_TOKEN_ADDRESS);
     }
 
-    function freeGem(address gemJoin, uint256 cdp, uint256 wad) external payable cdpAllowed(cdp) {
+    /// @notice Decrease locked value of `cdp` and withdraws `wad` amount of collateral from `gemJoin` adapter.
+    function freeGem(address gemJoin, uint256 cdp, uint256 wad) external payable onlyRouter cdpAllowed(cdp) {
         // Get spender DSProxy
         IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
 
@@ -203,7 +214,8 @@ contract SpenderMakerAction is ISpenderMakerAction {
         _transferTokenToRouter(token);
     }
 
-    function draw(address daiJoin, uint256 cdp, uint256 wad) external payable cdpAllowed(cdp) {
+    /// @notice Increase debt of `cdp` and exits `wad` amount of DAI token from `daiJoin` adapter.
+    function draw(address daiJoin, uint256 cdp, uint256 wad) external payable onlyRouter cdpAllowed(cdp) {
         // Get spender DSProxy
         IDSProxy proxy = IDSProxy(_getProxy(address(this)));
         bytes4 funcSig = 0x9f6f3d5b; // selector of "draw(address,address,address,uint256,uint256)"
@@ -222,7 +234,8 @@ contract SpenderMakerAction is ISpenderMakerAction {
         _transferTokenToRouter(DAI_TOKEN);
     }
 
-    function wipe(address daiJoin, uint256 cdp, uint256 wad) external payable {
+    /// @notice Repay `wad` amount of DAI token to `daiJoin` adapter and decrease the debt of `cdp`.
+    function wipe(address daiJoin, uint256 cdp, uint256 wad) external payable onlyRouter {
         // Get spender DSProxy
         IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
         bytes4 funcSig = 0x4b666199; // selector of "wipe(address,address,uint256,uint256)"
@@ -243,7 +256,8 @@ contract SpenderMakerAction is ISpenderMakerAction {
         ApproveHelper._approveZero(DAI_TOKEN, address(dsProxy));
     }
 
-    function wipeAll(address daiJoin, uint256 cdp) external payable {
+    /// @notice Repay all the necessary amount of DAI token to `daiJoin` adapter and set the debt to zero of `cdp`.
+    function wipeAll(address daiJoin, uint256 cdp) external payable onlyRouter {
         // Get spender DSProxy
         IDSProxy dsProxy = IDSProxy(_getProxy(address(this)));
         bytes4 funcSig = 0x036a2395; // selector of "wipeAll(address,address,uint256)"
@@ -268,6 +282,7 @@ contract SpenderMakerAction is ISpenderMakerAction {
         return IMakerChainLog(CHAIN_LOG).getAddress('MCD_JUG');
     }
 
+    /// @notice Get `user`'s DSProxy.
     function _getProxy(address user) internal view returns (address) {
         return IDSProxyRegistry(PROXY_REGISTRY).proxies(user);
     }
@@ -281,6 +296,7 @@ contract SpenderMakerAction is ISpenderMakerAction {
         IDSProxy proxy = IDSProxy(_getProxy(address(this)));
         address user = IRouter(router).user();
         bytes4 funcSig = 0x493c2049; // selector of "giveToProxy(address,address,uint256,address)"
+
         try
             proxy.execute(
                 address(PROXY_ACTIONS),
