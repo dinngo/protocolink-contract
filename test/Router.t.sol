@@ -41,6 +41,35 @@ contract RouterTest is Test {
         vm.label(address(spender), 'SpenderERC20Approval');
     }
 
+    function testCannotReceiveLessOutputToken() external {
+        IERC20 tokenOut = mockERC20;
+        uint256 amount;
+        uint256 amountMin;
+        amount = amountMin = 1 ether;
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+
+        // Output token already exists in router
+        deal(address(tokenOut), address(router), 10 ether);
+
+        outputs[0] = IRouter.Output(address(tokenOut), amountMin);
+
+        // Receive 0 output token
+        logics[0] = IRouter.Logic(
+            address(mockERC20), // to
+            abi.encodeWithSelector(MockERC20.mint.selector, address(router), 0),
+            inputsEmpty,
+            outputs,
+            address(0) // callback
+        );
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(tokenOut);
+        vm.expectRevert(abi.encodeWithSelector(IRouter.InsufficientBalance.selector, address(tokenOut), amountMin, 0));
+        router.execute(logics, tokensReturn);
+    }
+
     function testCannotExecuteByInvalidCallback() external {
         IRouter.Logic[] memory callbacks = new IRouter.Logic[](1);
         callbacks[0] = IRouter.Logic(
