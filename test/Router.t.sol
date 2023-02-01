@@ -99,8 +99,9 @@ contract RouterTest is Test {
         inputs[0] = IRouter.Input(
             address(0),
             0, // amountBps
-            0,
-            false
+            0, // amountOffset
+            0, // amountFixed
+            false // doApprove
         );
         logics[0] = IRouter.Logic(
             address(0), // to
@@ -116,8 +117,9 @@ contract RouterTest is Test {
         inputs[0] = IRouter.Input(
             address(0),
             BPS_BASE + 1, // amountBps
-            0,
-            false
+            0, // amountOffset
+            0, // amountFixed
+            false // doApprove
         );
         logics[0] = IRouter.Logic(
             address(0), // to

@@ -15,6 +15,7 @@ contract Router is IRouter {
     address private constant _INIT_CALLBACK = address(2);
     address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     uint256 private constant _BPS_BASE = 10_000;
+    uint256 private constant _SKIP = type(uint256).max;
 
     address public user;
     address private _callback;
@@ -68,25 +69,29 @@ contract Router is IRouter {
                 revert InvalidERC20Sig();
             }
 
-            // Execute each input
+            // Execute each input if need to modify the amount or do approve
             uint256 value;
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength; ) {
                 address token = inputs[j].token;
-                uint256 amountOffset = inputs[j].amountOffset;
                 uint256 amountBps = inputs[j].amountBps;
 
-                if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
+                // Set fixed amount if bps is skip, or calculate amount by bps
+                uint256 amount;
+                if (amountBps == _SKIP) {
+                    amount = inputs[j].amountFixed;
+                } else {
+                    if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
 
-                // Calculate amount by bps
-                uint256 balance = _getBalance(token);
-                uint256 amount = (balance * amountBps) / _BPS_BASE;
+                    amount = (_getBalance(token) * amountBps) / _BPS_BASE;
 
-                // Replace amount in data if offset is valid
-                if (amountOffset != type(uint256).max) {
-                    assembly {
-                        let loc := add(add(data, 0x24), amountOffset) // 0x24 = 0x20(length) + 0x4(sig)
-                        mstore(loc, amount)
+                    // Skip if amount is not in data, e.g., most protocols set native amount in call value
+                    uint256 amountOffset = inputs[j].amountOffset;
+                    if (amountOffset != _SKIP) {
+                        assembly {
+                            let loc := add(add(data, 0x24), amountOffset) // 0x24 = 0x20(data_length) + 0x4(sig)
+                            mstore(loc, amount)
+                        }
                     }
                 }
 

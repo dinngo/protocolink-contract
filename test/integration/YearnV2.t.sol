@@ -19,6 +19,7 @@ contract YearnV2Test is Test {
     IERC20 public constant USDT = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7); // USDT
     IYVault public constant yVault = IYVault(0x2f08119C6f07c006695E079AAFc638b8789FAf18); // yUSDT
     uint256 public constant BPS_BASE = 10_000;
+    uint256 public constant SKIP = type(uint256).max;
 
     address public user;
     IRouter public router;
@@ -54,7 +55,7 @@ contract YearnV2Test is Test {
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
         logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
-        logics[1] = _logicYearn(tokenIn, amountIn, tokenOut);
+        logics[1] = _logicYearn(tokenIn, amountIn, SKIP, tokenOut); // Fixed amount
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -78,15 +79,21 @@ contract YearnV2Test is Test {
             );
     }
 
-    function _logicYearn(IERC20 tokenIn, uint256 amountIn, IERC20 tokenOut) public pure returns (IRouter.Logic memory) {
+    function _logicYearn(
+        IERC20 tokenIn,
+        uint256 amountIn,
+        uint256 amountBps,
+        IERC20 tokenOut
+    ) public pure returns (IRouter.Logic memory) {
         // FIXME: it's relaxed amountMin = amountIn * 90%
         uint256 amountMin = (amountIn * 9_000) / BPS_BASE;
 
         // Encode inputs
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = address(tokenIn);
-        inputs[0].amountBps = BPS_BASE;
+        inputs[0].amountBps = amountBps;
         inputs[0].amountOffset = 0;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountFixed = amountIn;
         inputs[0].doApprove = true;
 
         // Encode outputs
