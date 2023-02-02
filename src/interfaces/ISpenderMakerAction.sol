@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 interface ISpenderMakerAction {
     error InvalidRouter();
-
     error ActionFail(bytes4 sig, string reason);
+    error UnauthorizedSender(uint256 cdp);
 
     function openLockETHAndDraw(
         uint256 value,
