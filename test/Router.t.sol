@@ -45,7 +45,7 @@ contract RouterTest is Test {
         IRouter.Logic[] memory callbacks = new IRouter.Logic[](1);
         callbacks[0] = IRouter.Logic(
             address(mockERC20), // to
-            abi.encodeWithSelector(IERC20.totalSupply.selector),
+            abi.encodeWithSelector(MockERC20.dummy.selector),
             inputsEmpty,
             outputsEmpty,
             address(0) // callback
@@ -134,12 +134,39 @@ contract RouterTest is Test {
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
         logics[0] = IRouter.Logic(
             address(mockERC20), // to
-            abi.encodeWithSelector(IERC20.totalSupply.selector),
+            abi.encodeWithSelector(MockERC20.dummy.selector),
             inputsEmpty,
             outputsEmpty,
             address(router) // callback
         );
         vm.expectRevert(IRouter.UnresetCallback.selector);
         router.execute(logics, tokensReturnEmpty);
+    }
+
+    function testCannotReceiveLessOutputToken() external {
+        IERC20 tokenOut = mockERC20;
+        uint256 amountMin = 1 ether;
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+
+        // Output token already exists in router
+        deal(address(tokenOut), address(router), 10 ether);
+
+        outputs[0] = IRouter.Output(address(tokenOut), amountMin);
+
+        // Receive 0 output token
+        logics[0] = IRouter.Logic(
+            address(mockERC20), // to
+            abi.encodeWithSelector(MockERC20.dummy.selector),
+            inputsEmpty,
+            outputs,
+            address(0) // callback
+        );
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(tokenOut);
+        vm.expectRevert(abi.encodeWithSelector(IRouter.InsufficientBalance.selector, address(tokenOut), amountMin, 0));
+        router.execute(logics, tokensReturn);
     }
 }
