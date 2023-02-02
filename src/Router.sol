@@ -99,12 +99,11 @@ contract Router is IRouter {
                 }
             }
 
-            // Store initial output token amount
+            // Store initial output token balances
             uint256 outputsLength = outputs.length;
-            uint256[] memory outputInitBalance = new uint256[](outputsLength);
+            uint256[] memory outputInitBalances = new uint256[](outputsLength);
             for (uint256 j = 0; j < outputsLength; ) {
-                address token = outputs[j].token;
-                outputInitBalance[j] = _getBalance(token);
+                outputInitBalances[j] = _getBalance(outputs[j].token);
 
                 unchecked {
                     j++;
@@ -133,7 +132,7 @@ contract Router is IRouter {
             for (uint256 j = 0; j < outputsLength; ) {
                 address token = outputs[j].token;
                 uint256 amountMin = outputs[j].amountMin;
-                uint256 balance = _getBalance(token) - outputInitBalance[j];
+                uint256 balance = _getBalance(token) - outputInitBalances[j];
 
                 // Check min amount
                 if (balance < amountMin) revert InsufficientBalance(address(token), amountMin, balance);
