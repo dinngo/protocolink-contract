@@ -234,8 +234,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].amountBps = amountBps;
-        inputs[0].amountOffset = SKIP;
-        if (inputs[0].amountBps == SKIP) inputs[0].amountFixed = amountIn;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = SKIP;
         inputs[0].doApprove = false;
 
         // Encode outputs
@@ -277,8 +277,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = amountBps;
-        inputs[0].amountOffset = 0;
-        if (inputs[0].amountBps == SKIP) inputs[0].amountFixed = amountIn;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = 0;
         inputs[0].doApprove = true;
 
         // Encode outputs
@@ -322,8 +322,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = amountBps;
-        inputs[0].amountOffset = 0;
-        if (inputs[0].amountBps == SKIP) inputs[0].amountFixed = amountIn;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = 0;
         inputs[0].doApprove = true;
 
         // Encode outputs
@@ -370,10 +370,10 @@ contract UniswapV2Test is Test {
         inputs[1].token = address(tokenIn1);
         inputs[0].amountBps = BPS_BASE;
         inputs[1].amountBps = BPS_BASE;
-        inputs[0].amountOffset = 0x40;
-        inputs[1].amountOffset = 0x60;
-        if (inputs[0].amountBps == SKIP) inputs[0].amountFixed = amountIn0;
-        if (inputs[1].amountBps == SKIP) inputs[1].amountFixed = amountIn1;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn0;
+        else inputs[0].amountOrOffset = 0x40;
+        if (inputs[1].amountBps == SKIP) inputs[1].amountOrOffset = amountIn1;
+        else inputs[1].amountOrOffset = 0x60;
         inputs[0].doApprove = true;
         inputs[1].doApprove = true;
 
@@ -418,8 +418,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = BPS_BASE;
-        inputs[0].amountOffset = 0x40;
-        if (inputs[0].amountBps == SKIP) inputs[0].amountFixed = amountIn;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = 0x40;
         inputs[0].doApprove = true;
 
         // Encode outputs

@@ -62,8 +62,8 @@ contract WETHTest is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].amountBps = amountBps;
-        inputs[0].amountOffset = SKIP; // data don't have amount parameter
-        if (inputs[0].amountBps == SKIP) inputs[0].amountFixed = amountIn;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = SKIP; // data don't have amount parameter
         inputs[0].doApprove = false;
 
         // Encode outputs

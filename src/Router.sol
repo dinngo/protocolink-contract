@@ -79,17 +79,17 @@ contract Router is IRouter {
                 // Set fixed amount if bps is skip, or calculate amount by bps
                 uint256 amount;
                 if (amountBps == _SKIP) {
-                    amount = inputs[j].amountFixed;
+                    amount = inputs[j].amountOrOffset;
                 } else {
                     if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
 
                     amount = (_getBalance(token) * amountBps) / _BPS_BASE;
 
                     // Skip if amount is not in data, e.g., most protocols set native amount in call value
-                    uint256 amountOffset = inputs[j].amountOffset;
-                    if (amountOffset != _SKIP) {
+                    uint256 offset = inputs[j].amountOrOffset;
+                    if (offset != _SKIP) {
                         assembly {
-                            let loc := add(add(data, 0x24), amountOffset) // 0x24 = 0x20(data_length) + 0x4(sig)
+                            let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
                             mstore(loc, amount)
                         }
                     }

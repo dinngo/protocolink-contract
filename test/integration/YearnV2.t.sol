@@ -55,7 +55,7 @@ contract YearnV2Test is Test {
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
         logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
-        logics[1] = _logicYearn(tokenIn, amountIn, SKIP, tokenOut); // Fixed amount
+        logics[1] = _logicYearn(tokenIn, amountIn, BPS_BASE, tokenOut);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -92,8 +92,8 @@ contract YearnV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = amountBps;
-        inputs[0].amountOffset = 0;
-        if (inputs[0].amountBps == SKIP) inputs[0].amountFixed = amountIn;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = 0;
         inputs[0].doApprove = true;
 
         // Encode outputs
