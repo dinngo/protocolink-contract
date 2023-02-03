@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {Router, IRouter} from '../src/Router.sol';
 import {SpenderERC20Approval, ISpenderERC20Approval} from '../src/SpenderERC20Approval.sol';
-import {MockERC20} from './mocks/MockERC20.sol';
 
 contract SpenderERC20ApprovalTest is Test {
     using SafeERC20 for IERC20;
@@ -23,7 +23,7 @@ contract SpenderERC20ApprovalTest is Test {
 
         router = new Router();
         spender = new SpenderERC20Approval(address(router));
-        mockERC20 = new MockERC20('Mock ERC20', 'mERC20');
+        mockERC20 = new ERC20('Mock ERC20', 'mERC20');
 
         // User approved spender
         vm.startPrank(user);
