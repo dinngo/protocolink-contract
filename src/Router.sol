@@ -76,16 +76,19 @@ contract Router is IRouter {
                 address token = inputs[j].token;
                 uint256 amountBps = inputs[j].amountBps;
 
-                // Set fixed amount if bps is skip, or calculate amount by bps
+                // Calculate native or token amount
+                // 1. if amountBps is skip: read amountOrOffset as amount
+                // 2. if amountBps isn't skip: balance multiplied by amountBps as amount
+                // 3. if amountBps isn't skip and amountOrOffset isn't skip:
+                //    => replace the amount at offset equal to amountOrOffset with the calculated amount
                 uint256 amount;
                 if (amountBps == _SKIP) {
                     amount = inputs[j].amountOrOffset;
                 } else {
                     if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
-
                     amount = (_getBalance(token) * amountBps) / _BPS_BASE;
 
-                    // Skip if amount is not in data, e.g., most protocols set native amount in call value
+                    // Skip if don't need to replace, e.g., most protocols set native amount in call value
                     uint256 offset = inputs[j].amountOrOffset;
                     if (offset != _SKIP) {
                         assembly {
