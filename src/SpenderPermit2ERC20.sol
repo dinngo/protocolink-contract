@@ -3,8 +3,7 @@ pragma solidity ^0.8.0;
 
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IRouter} from './interfaces/IRouter.sol';
-import {ISpenderPermit2ERC20} from './interfaces/ISpenderPermit2ERC20.sol';
-import {ISignatureTransfer} from './interfaces/permit2/ISignatureTransfer.sol';
+import {ISpenderPermit2ERC20, ISignatureTransfer, IAllowanceTransfer} from './interfaces/ISpenderPermit2ERC20.sol';
 
 /// @title Spender for permit ERC20 token where users can permit use amount
 contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
@@ -42,5 +41,26 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         }
 
         ISignatureTransfer(permit2).permitTransferFrom(permit, transferDetails, user, signature);
+    }
+
+    function permitToken(IAllowanceTransfer.PermitSingle memory permitSingle, bytes calldata signature) external {
+        if (msg.sender != router) revert InvalidRouter();
+        address user = IRouter(router).user();
+
+        if (permitSingle.spender != address(this)) revert InvalidSpender();
+
+        IAllowanceTransfer(permit2).permit(user, permitSingle, signature);
+    }
+
+    function permitTokens(IAllowanceTransfer.PermitBatch memory permitBatch, bytes calldata signature) external {
+
+    }
+
+    function pullToken(address token, uint256 amount) external {
+
+    }
+
+    function pullTokens(address[] calldata tokens, uint256[] calldata amounts) external {
+
     }
 }
