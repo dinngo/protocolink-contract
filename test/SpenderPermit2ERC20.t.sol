@@ -8,6 +8,7 @@ import {SpenderPermit2ERC20, ISpenderPermit2ERC20} from '../src/SpenderPermit2ER
 import {MockERC20} from './mocks/MockERC20.sol';
 import {PermitSignature} from "./utils/PermitSignature.sol";
 import {ISignatureTransfer} from '../src/interfaces/permit2/ISignatureTransfer.sol';
+import {ISpenderPermit2ERC20} from '../src/interfaces/ISpenderPermit2ERC20.sol';
 import {EIP712} from 'permit2/EIP712.sol';
 
 contract SpenderPermit2ERC20Test is Test, PermitSignature {
@@ -56,16 +57,18 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         amountIn = bound(amountIn, 1e1, 1e12);
         deal(address(tokenIn), user, amountIn);
 
-        // create signed permit
+        // Create signed permit
         uint256 nonce = 0;
-        uint256 deadline = block.timestamp + 100;
         ISignatureTransfer.PermitTransferFrom memory permit = defaultERC20PermitTransfer(address(tokenIn), nonce);
         permit.permitted.amount = amountIn;
         bytes memory sig = getPermitTransferSignature(permit, address(spender), userPrivateKey, DOMAIN_SEPARATOR);
 
+        // Create transfer details
+        ISignatureTransfer.SignatureTransferDetails memory transferDetails = ISignatureTransfer.SignatureTransferDetails({to: address(router), requestedAmount: amountIn});
+
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicSpenderERC20Permit(tokenIn, amountIn, nonce, deadline, sig);
+        logics[0] = _logicSpenderPermit2ERC20PermitPullToken(permit, transferDetails, sig);
 
         // Encode execute
         address[] memory tokensReturn = new address[](1);
@@ -78,20 +81,22 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         assertGt(tokenOut.balanceOf(address(user)), 0);
     }
 
-    function testCannotPermitPullTokenByNotUser() external {
+    function testPermitPullTokenInvalidUser() external {
         IERC20 tokenIn = mockERC20;
         IERC20 tokenOut = mockERC20;
         deal(address(tokenIn), user, defaultAmount);
 
-        // create signed permit
+        // Create signed permit
         uint256 nonce = 0;
-        uint256 deadline = block.timestamp + 100;
         ISignatureTransfer.PermitTransferFrom memory permit = defaultERC20PermitTransfer(address(tokenIn), nonce);
         bytes memory sig = getPermitTransferSignature(permit, address(spender), userPrivateKey, DOMAIN_SEPARATOR);
 
+        // Create transfer details
+        ISignatureTransfer.SignatureTransferDetails memory transferDetails = ISignatureTransfer.SignatureTransferDetails({to: address(router), requestedAmount: defaultAmount});
+
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicSpenderERC20Permit(tokenIn, defaultAmount, nonce, deadline, sig);
+        logics[0] = _logicSpenderPermit2ERC20PermitPullToken(permit, transferDetails, sig);
 
         // Encode execute
         address[] memory tokensReturn = new address[](1);
@@ -101,15 +106,39 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         router.execute(logics, tokensReturn);
     }
 
+     function testPermitPullTokenInvalidTransferTo() external {
+        IERC20 tokenIn = mockERC20;
+        IERC20 tokenOut = mockERC20;
+        deal(address(tokenIn), user, defaultAmount);
+
+        // Create signed permit
+        uint256 nonce = 0;
+        ISignatureTransfer.PermitTransferFrom memory permit = defaultERC20PermitTransfer(address(tokenIn), nonce);
+        bytes memory sig = getPermitTransferSignature(permit, address(spender), userPrivateKey, DOMAIN_SEPARATOR);
+
+        // Create transfer details
+        ISignatureTransfer.SignatureTransferDetails memory transferDetails = ISignatureTransfer.SignatureTransferDetails({to: address(this), requestedAmount: defaultAmount});
+
+        // Encode logics
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = _logicSpenderPermit2ERC20PermitPullToken(permit, transferDetails, sig);
+
+        // Encode execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(tokenOut);
+
+        vm.expectRevert(ISpenderPermit2ERC20.InvalidTransferTo.selector);
+        router.execute(logics, tokensReturn);
+    }
+
     function testPermitPullTokens(uint256 amountIn) external {
         IERC20 tokenIn = mockERC20;
         IERC20 tokenOut = mockERC20;
         amountIn = bound(amountIn, 1e1, 1e12);
         deal(address(tokenIn), user, amountIn);
 
-        // create signed permit
+        // Create signed permit
         uint256 nonce = 0;
-        uint256 deadline = block.timestamp + 100;
         address[] memory tokens = new address[](1);
         uint256[] memory amounts = new uint256[](1);
         tokens[0] = address(tokenIn);
@@ -117,9 +146,13 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         ISignatureTransfer.PermitBatchTransferFrom memory permit = defaultERC20PermitMultiple(tokens, amounts, nonce);
         bytes memory sig = getPermitBatchTransferSignature(permit, address(spender), userPrivateKey, DOMAIN_SEPARATOR);
 
+        // Create transfer details
+        ISignatureTransfer.SignatureTransferDetails[] memory transferDetails = new ISignatureTransfer.SignatureTransferDetails[](1);
+        transferDetails[0] = ISignatureTransfer.SignatureTransferDetails({to: address(router), requestedAmount: amountIn});
+
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicSpenderERC20PermitPullTokens(tokens, amounts, nonce, deadline, sig);
+        logics[0] = _logicSpenderPermit2ERC20PermitPullTokens(permit, transferDetails, sig);
 
         // Encode execute
         address[] memory tokensReturn = new address[](1);
@@ -130,6 +163,37 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertGt(tokenOut.balanceOf(address(user)), 0);
+    }
+
+    function testPermitPullTokensLengthMismatch() external {
+        IERC20 tokenIn = mockERC20;
+        IERC20 tokenOut = mockERC20;
+        deal(address(tokenIn), user, defaultAmount);
+
+        // Create signed permit
+        uint256 nonce = 0;
+        address[] memory tokens = new address[](2);
+        uint256[] memory amounts = new uint256[](2);
+        tokens[0] = address(tokenIn);
+        tokens[1] = address(tokenIn);
+        amounts[0] = defaultAmount;
+        amounts[1] = defaultAmount;
+        ISignatureTransfer.PermitBatchTransferFrom memory permit = defaultERC20PermitMultiple(tokens, amounts, nonce);
+        bytes memory sig = getPermitBatchTransferSignature(permit, address(spender), userPrivateKey, DOMAIN_SEPARATOR);
+
+        // Create transfer details
+        ISignatureTransfer.SignatureTransferDetails[] memory transferDetails = new ISignatureTransfer.SignatureTransferDetails[](1);
+        transferDetails[0] = ISignatureTransfer.SignatureTransferDetails({to: address(router), requestedAmount: defaultAmount});
+
+        // Encode logics
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = _logicSpenderPermit2ERC20PermitPullTokens(permit, transferDetails, sig);
+
+        // Encode execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(tokenOut);
+        vm.expectRevert(ISpenderPermit2ERC20.LengthMismatch.selector);
+        router.execute(logics, tokensReturn);
     }
 
     // Cannot call spender directly
@@ -150,22 +214,21 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
     //     vm.stopPrank();
     // }
 
-    function _logicSpenderERC20Permit(IERC20 tokenIn, uint256 amountIn, uint256 nonce, uint256 deadline, bytes memory signature) public view returns (IRouter.Logic memory) {
+    function _logicSpenderPermit2ERC20PermitPullToken(ISignatureTransfer.PermitTransferFrom memory permit, ISignatureTransfer.SignatureTransferDetails memory transferDetails, bytes memory signature) public view returns (IRouter.Logic memory) {
         return
             IRouter.Logic(
                 address(spender), // to
-                abi.encodeWithSelector(spender.permitPullToken.selector, address(tokenIn), amountIn, nonce, deadline, signature),
+                abi.encodeWithSelector(spender.permitPullToken.selector, permit, transferDetails, signature),
                 inputsEmpty,
                 outputsEmpty,
                 address(0) // callback
             );
     }
-
-     function _logicSpenderERC20PermitPullTokens(address[] memory tokens, uint256[] memory amounts, uint256 nonce, uint256 deadline, bytes memory signature) public view returns (IRouter.Logic memory) {
+    function _logicSpenderPermit2ERC20PermitPullTokens(ISignatureTransfer.PermitBatchTransferFrom memory permit, ISignatureTransfer.SignatureTransferDetails[] memory transferDetails, bytes memory signature) public view returns (IRouter.Logic memory) {
         return
             IRouter.Logic(
                 address(spender), // to
-                abi.encodeWithSelector(spender.permitPullTokens.selector, tokens, amounts, nonce, deadline, signature),
+                abi.encodeWithSelector(spender.permitPullTokens.selector, permit, transferDetails, signature),
                 inputsEmpty,
                 outputsEmpty,
                 address(0) // callback

@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {ISignatureTransfer} from './permit2/ISignatureTransfer.sol';
 interface ISpenderPermit2ERC20 {
     error InvalidRouter();
     error LengthMismatch();
+    error InvalidTransferTo();
 
-    function permitPullToken(address token, uint256 amount, uint256 nonce, uint256 deadline, bytes calldata signature) external;
+    function permitPullToken(ISignatureTransfer.PermitTransferFrom memory permit, ISignatureTransfer.SignatureTransferDetails calldata transferDetails, bytes calldata signature) external;
 
-    function permitPullTokens(address[] calldata tokens, uint256[] calldata amounts, uint256 nonce, uint256 deadline, bytes calldata signature) external;
+    function permitPullTokens(ISignatureTransfer.PermitBatchTransferFrom memory permit, ISignatureTransfer.SignatureTransferDetails[] calldata transferDetails, bytes calldata signature) external;
 }
