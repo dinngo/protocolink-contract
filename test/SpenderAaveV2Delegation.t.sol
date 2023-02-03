@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {Router, IRouter} from '../src/Router.sol';
 import {SpenderAaveV2Delegation, ISpenderAaveV2Delegation, IAaveV2Provider} from '../src/SpenderAaveV2Delegation.sol';
-import {MockERC20Debt} from './mocks/MockERC20Debt.sol';
 
 contract SpenderAaveV2DelegationTest is Test {
     using SafeERC20 for IERC20;
@@ -21,19 +21,22 @@ contract SpenderAaveV2DelegationTest is Test {
     address public user;
     IRouter public router;
     ISpenderAaveV2Delegation public spender;
-    MockERC20Debt public mockERC20Debt;
+    IERC20 public mockERC20Debt;
 
     function setUp() external {
         user = makeAddr('User');
 
         router = new Router();
         spender = new SpenderAaveV2Delegation(address(router), address(aaveV2Provider));
-        mockERC20Debt = new MockERC20Debt('Mock ERC20 Debt', 'mERC20Debt');
+        mockERC20Debt = new ERC20('mockERC20Debt', 'mock');
 
         // User approved spender aave v2 delegation
-        vm.startPrank(user);
-        mockERC20Debt.approveDelegation(address(spender), type(uint256).max);
-        vm.stopPrank();
+        vm.mockCall(
+            address(mockERC20Debt),
+            0,
+            abi.encodeWithSignature('borrowAllowance(address,address)', user, address(spender)),
+            abi.encode(type(uint256).max)
+        );
 
         vm.label(address(router), 'Router');
         vm.label(address(spender), 'SpenderAaveV2Delegation');
