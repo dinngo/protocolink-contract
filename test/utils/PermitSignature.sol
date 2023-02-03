@@ -251,7 +251,7 @@ contract PermitSignature is Test {
         });
     }
 
-    function defaultERC20PermitBatchAllowance(address[] memory tokens, uint160 amount, address spender, uint48 expiration, uint48 nonce)
+    function defaultERC20PermitBatchAllowance(address[] memory tokens, uint160[] memory amounts, address spender, uint48 expiration, uint48 nonce)
         internal
         view
         returns (IAllowanceTransfer.PermitBatch memory)
@@ -261,7 +261,7 @@ contract PermitSignature is Test {
         for (uint256 i = 0; i < tokens.length; ++i) {
             details[i] = IAllowanceTransfer.PermitDetails({
                 token: tokens[i],
-                amount: amount,
+                amount: amounts[i],
                 expiration: expiration,
                 nonce: nonce
             });
@@ -274,25 +274,25 @@ contract PermitSignature is Test {
         });
     }
 
-    function defaultERC20PermitTransfer(address token0, uint256 nonce)
+    function defaultERC20PermitTransfer(address token0, uint256 amount, uint256 nonce)
         internal
         view
         returns (ISignatureTransfer.PermitTransferFrom memory)
     {
         return ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({token: token0, amount: 10 ** 18}),
+            permitted: ISignatureTransfer.TokenPermissions({token: token0, amount: amount}),
             nonce: nonce,
             deadline: block.timestamp + 100
         });
     }
 
-    function defaultERC20PermitWitnessTransfer(address token0, uint256 nonce)
+    function defaultERC20PermitWitnessTransfer(address token0, uint256 amount, uint256 nonce)
         internal
         view
         returns (ISignatureTransfer.PermitTransferFrom memory)
     {
         return ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({token: token0, amount: 10 ** 18}),
+            permitted: ISignatureTransfer.TokenPermissions({token: token0, amount: amount}),
             nonce: nonce,
             deadline: block.timestamp + 100
         });

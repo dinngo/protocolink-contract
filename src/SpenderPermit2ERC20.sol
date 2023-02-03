@@ -32,10 +32,10 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         if (msg.sender != router) revert InvalidRouter();
         address user = IRouter(router).user();
 
-        uint256 numPermitted = permit.permitted.length;
-        if (numPermitted != transferDetails.length) revert LengthMismatch(); // permitTransferFrom will check length again
+        uint256 permittedLength = permit.permitted.length;
+        if (permittedLength != transferDetails.length) revert LengthMismatch(); // permitTransferFrom will check length again
 
-        for (uint256 i = 0; i < numPermitted; ){
+        for (uint256 i = 0; i < permittedLength; ){
             if (transferDetails[i].to != router) revert InvalidTransferTo();
             unchecked { ++i; }
         }
@@ -53,14 +53,36 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
     }
 
     function permitTokens(IAllowanceTransfer.PermitBatch memory permitBatch, bytes calldata signature) external {
+        if (msg.sender != router) revert InvalidRouter();
+        address user = IRouter(router).user();
 
+        uint256 permittedLength = permitBatch.details.length;
+        for (uint256 i = 0; i < permittedLength; ){
+            if (permitBatch.spender != address(this)) revert InvalidSpender();
+            unchecked { ++i; }
+        }
+
+        IAllowanceTransfer(permit2).permit(user, permitBatch, signature);
     }
 
-    function pullToken(address token, uint256 amount) external {
+    function pullToken(address token, uint160 amount) external {
+        if (msg.sender != router) revert InvalidRouter();
+        address user = IRouter(router).user();
 
+        IAllowanceTransfer(permit2).transferFrom(user, router, amount, token);
     }
 
-    function pullTokens(address[] calldata tokens, uint256[] calldata amounts) external {
+    function pullTokens(IAllowanceTransfer.AllowanceTransferDetails[] calldata transferDetails) external {
+        if (msg.sender != router) revert InvalidRouter();
+        address user = IRouter(router).user();
 
+        uint256 tokensLength = transferDetails.length;
+        for (uint256 i = 0; i < tokensLength; ) {
+            if (transferDetails[i].from != user) revert InvalidTransferFrom();
+            if (transferDetails[i].to != router) revert InvalidTransferTo();
+            unchecked { i++; }
+        }
+
+        IAllowanceTransfer(permit2).transferFrom(transferDetails);
     }
 }
