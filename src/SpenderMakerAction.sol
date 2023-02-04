@@ -6,7 +6,6 @@ import {IRouter} from './interfaces/IRouter.sol';
 import {IDSProxy, IDSProxyRegistry} from './interfaces/maker/IDSProxy.sol';
 import {IMakerManager, IMakerGemJoin} from './interfaces/maker/IMaker.sol';
 import {ISpenderMakerAction} from './interfaces/ISpenderMakerAction.sol';
-import {Utils} from './libraries/utils.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 ///@title Spender for Maker which user can interact with Maker
@@ -72,7 +71,6 @@ contract SpenderMakerAction is ISpenderMakerAction {
         bytes32 ilk,
         uint256 wadD
     ) external payable onlyRouter returns (uint256 cdp) {
-        value = Utils._getBalance(NATIVE_TOKEN_ADDRESS, value);
         bytes4 funcSig = 0xe685cc04; // selector of "openLockETHAndDraw(address,address,address,address,bytes32,uint256)"
 
         try
@@ -103,7 +101,6 @@ contract SpenderMakerAction is ISpenderMakerAction {
     ) external onlyRouter returns (uint256 cdp) {
         // Get collateral token
         address token = IMakerGemJoin(gemJoin).gem();
-        wadC = Utils._getBalance(token, wadC);
         bytes4 funcSig = 0xdb802a32; // selector of "openLockGemAndDraw(address,address,address,address,bytes32,uint256,uint256,bool)"
 
         ApproveHelper._approve(token, address(dsProxy), wadC);
@@ -125,51 +122,6 @@ contract SpenderMakerAction is ISpenderMakerAction {
 
         _transferTokenToRouter(daiToken);
         _transferCdp(cdp);
-    }
-
-    /// @notice Deposits `value` amount of ETH in `ethJoin` adapter and increase the locked value of `cdp`.
-    function safeLockETH(uint256 value, address ethJoin, uint256 cdp) external payable onlyRouter {
-        address user = IRouter(router).user();
-        address userDSProxy = _getProxy(user);
-        value = Utils._getBalance(NATIVE_TOKEN_ADDRESS, value);
-        bytes4 funcSig = 0xee284576; // selector of "safeLockETH(address,address,uint256,address)"
-
-        try
-            dsProxy.execute{value: value}(
-                proxyActions,
-                abi.encodeWithSelector(funcSig, cdpManager, ethJoin, cdp, userDSProxy)
-            )
-        {} catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
-    }
-
-    /// @notice Deposits `wad` amount of collateral in `gemJoin` adapter and increase the locked value of `cdp`.
-    function safeLockGem(address gemJoin, uint256 cdp, uint256 wad) external onlyRouter {
-        address user = IRouter(router).user();
-        address userDSProxy = _getProxy(user);
-
-        // Get collateral token
-        address token = IMakerGemJoin(gemJoin).gem();
-        wad = Utils._getBalance(token, wad);
-        bytes4 funcSig = 0xead64729; // selector of "safeLockGem(address,address,uint256,uint256,bool,address)"
-
-        ApproveHelper._approve(token, address(dsProxy), wad);
-
-        try
-            dsProxy.execute(
-                proxyActions,
-                abi.encodeWithSelector(funcSig, cdpManager, gemJoin, cdp, wad, true, userDSProxy)
-            )
-        {} catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
-
-        ApproveHelper._approveZero(token, address(dsProxy));
     }
 
     /// @notice Decrease locked value of `cdp` and withdraws `wad` amount of ETH from `ethJoin` adapter.
@@ -216,43 +168,6 @@ contract SpenderMakerAction is ISpenderMakerAction {
             revert ActionFail(funcSig, '');
         }
 
-        _transferTokenToRouter(daiToken);
-    }
-
-    /// @notice Repay `wad` amount of DAI token to `daiJoin` adapter and decrease the debt of `cdp`.
-    function wipe(address daiJoin, uint256 cdp, uint256 wad) external onlyRouter {
-        bytes4 funcSig = 0x4b666199; // selector of "wipe(address,address,uint256,uint256)"
-
-        ApproveHelper._approve(daiToken, address(dsProxy), wad);
-
-        try
-            dsProxy.execute(proxyActions, abi.encodeWithSelector(funcSig, cdpManager, daiJoin, cdp, wad))
-        {} catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
-
-        ApproveHelper._approveZero(daiToken, address(dsProxy));
-    }
-
-    /// @notice Repay all the necessary amount of DAI token to `daiJoin` adapter and set the debt to zero of `cdp`.
-    function wipeAll(address daiJoin, uint256 cdp) external onlyRouter {
-        bytes4 funcSig = 0x036a2395; // selector of "wipeAll(address,address,uint256)"
-
-        ApproveHelper._approveMax(daiToken, address(dsProxy), type(uint256).max);
-
-        try dsProxy.execute(proxyActions, abi.encodeWithSelector(funcSig, cdpManager, daiJoin, cdp)) {} catch Error(
-            string memory reason
-        ) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
-
-        ApproveHelper._approveZero(daiToken, address(dsProxy));
-
-        // Transfer remaining token to router
         _transferTokenToRouter(daiToken);
     }
 

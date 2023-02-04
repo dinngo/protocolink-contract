@@ -22,17 +22,9 @@ interface ISpenderMakerAction {
         uint256 wadD
     ) external returns (uint256 cdp);
 
-    function safeLockETH(uint256 value, address ethJoin, uint256 cdp) external payable;
-
-    function safeLockGem(address gemJoin, uint256 cdp, uint256 wad) external;
-
     function freeETH(address ethJoin, uint256 cdp, uint256 wad) external;
 
     function freeGem(address gemJoin, uint256 cdp, uint256 wad) external;
 
     function draw(address daiJoin, uint256 cdp, uint256 wad) external;
-
-    function wipe(address daiJoin, uint256 cdp, uint256 wad) external;
-
-    function wipeAll(address daiJoin, uint256 cdp) external;
 }
