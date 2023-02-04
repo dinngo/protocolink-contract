@@ -41,6 +41,8 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
         _;
     }
 
+    receive() external payable {}
+
     constructor(
         address router_,
         address proxyRegistry_,
