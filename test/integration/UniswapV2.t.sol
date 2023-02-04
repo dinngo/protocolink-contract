@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../../src/Router.sol';
-import {SpenderERC20Approval, ISpenderERC20Approval} from '../../src/SpenderERC20Approval.sol';
+import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
 
 interface IUniswapV2Factory {
     function getPair(address tokenA, address tokenB) external view returns (address pair);
@@ -61,7 +61,7 @@ interface IUniswapV2Router02 {
 }
 
 // Test Uniswap whose Router is not ERC20-compliant token
-contract UniswapV2Test is Test {
+contract UniswapV2Test is Test, SpenderPermitUtils {
     using SafeERC20 for IERC20;
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -73,27 +73,24 @@ contract UniswapV2Test is Test {
     uint256 public constant SKIP = type(uint256).max;
 
     address public user;
+    uint256 public userPrivateKey;
     IRouter public router;
-    ISpenderERC20Approval public spender;
 
     // Empty arrays
     IRouter.Input[] inputsEmpty;
     IRouter.Output[] outputsEmpty;
 
     function setUp() external {
-        user = makeAddr('User');
-
+        (user, userPrivateKey) = makeAddrAndKey('User');
         router = new Router();
-        spender = new SpenderERC20Approval(address(router));
 
-        // User approved spender
-        vm.startPrank(user);
-        USDT.safeApprove(address(spender), type(uint256).max);
-        USDC.safeApprove(address(spender), type(uint256).max);
-        vm.stopPrank();
+        // User permit token
+        spenderSetUp(user, userPrivateKey, router);
+        permitToken(USDT);
+        permitToken(USDC);
 
         vm.label(address(router), 'Router');
-        vm.label(address(spender), 'SpenderERC20Approval');
+        vm.label(address(spender), 'SpenderPermit2ERC20');
         vm.label(NATIVE, 'NATIVE');
         vm.label(address(WRAPPED_NATIVE), 'WrappedNative');
         vm.label(address(USDT), 'USDT');
@@ -128,7 +125,7 @@ contract UniswapV2Test is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
+        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, uint160(amountIn));
         logics[1] = _logicUniswapV2SwapTokenToNative(tokenIn, amountIn, SKIP); // Fixed amount
 
         // Execute
@@ -150,7 +147,7 @@ contract UniswapV2Test is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
+        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, uint160(amountIn));
         logics[1] = _logicUniswapV2Swap(tokenIn, amountIn / BPS_BASE, BPS_BASE, tokenOut);
 
         // Execute
@@ -180,7 +177,7 @@ contract UniswapV2Test is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](5);
-        logics[0] = _logicSpenderERC20Approval(tokenIn0, amountIn0);
+        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn0, uint160(amountIn0));
         logics[1] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1); // Swap 50% amountIn0 to amountIn1
         logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1, tokenOut); // Add liquidity with 50% amountIn0 and all amountIn1
         logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, 0, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity
@@ -198,17 +195,6 @@ contract UniswapV2Test is Test {
         assertEq(tokenIn1.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertApproxEqRel(tokenIn0.balanceOf(user), amountIn0, 0.01 * 1e18);
-    }
-
-    function _logicSpenderERC20Approval(IERC20 tokenIn, uint256 amountIn) public view returns (IRouter.Logic memory) {
-        return
-            IRouter.Logic(
-                address(spender), // to
-                abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
-                inputsEmpty,
-                outputsEmpty,
-                address(0) // callback
-            );
     }
 
     function _logicUniswapV2SwapNativeToToken(
