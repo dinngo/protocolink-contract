@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {ISpenderPermit2ERC20, ISignatureTransfer, IAllowanceTransfer} from './interfaces/ISpenderPermit2ERC20.sol';
 
 /// @title Spender for permit ERC20 token where users can permit use amount
 contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
-    using SafeERC20 for IERC20;
 
     address public immutable router;
     address public immutable permit2;
