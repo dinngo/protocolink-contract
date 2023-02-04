@@ -70,6 +70,7 @@ contract UniswapV2Test is Test {
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     IUniswapV2Router02 public constant uniswapRouter02 = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     uint256 public constant BPS_BASE = 10_000;
+    uint256 public constant SKIP = type(uint256).max;
 
     address public user;
     IRouter public router;
@@ -107,7 +108,7 @@ contract UniswapV2Test is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicUniswapV2SwapNativeToToken(amountIn, BPS_BASE, tokenOut);
+        logics[0] = _logicUniswapV2SwapNativeToToken(amountIn, SKIP, tokenOut); // Fixed amount
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -128,7 +129,7 @@ contract UniswapV2Test is Test {
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
         logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
-        logics[1] = _logicUniswapV2SwapTokenToNative(tokenIn, amountIn, BPS_BASE);
+        logics[1] = _logicUniswapV2SwapTokenToNative(tokenIn, amountIn, SKIP); // Fixed amount
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -181,8 +182,8 @@ contract UniswapV2Test is Test {
         IRouter.Logic[] memory logics = new IRouter.Logic[](5);
         logics[0] = _logicSpenderERC20Approval(tokenIn0, amountIn0);
         logics[1] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1); // Swap 50% amountIn0 to amountIn1
-        logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, tokenIn1, tokenOut); // Add liquidity with 50% amountIn0 and all amountIn1
-        logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity
+        logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1, tokenOut); // Add liquidity with 50% amountIn0 and all amountIn1
+        logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, 0, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity
         logics[4] = _logicUniswapV2Swap(tokenIn1, amountIn0Half, BPS_BASE, tokenIn0); // 100% balance of tokenIn
 
         // Execute
@@ -233,7 +234,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].amountBps = amountBps;
-        inputs[0].amountOffset = type(uint256).max;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = SKIP;
         inputs[0].doApprove = false;
 
         // Encode outputs
@@ -275,7 +277,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = amountBps;
-        inputs[0].amountOffset = 0;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = 0;
         inputs[0].doApprove = true;
 
         // Encode outputs
@@ -319,7 +322,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = amountBps;
-        inputs[0].amountOffset = 0;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = 0;
         inputs[0].doApprove = true;
 
         // Encode outputs
@@ -340,6 +344,7 @@ contract UniswapV2Test is Test {
     function _logicUniswapV2AddLiquidity(
         IERC20 tokenIn0,
         uint256 amountIn0,
+        uint256 amountIn1,
         IERC20 tokenIn1,
         IERC20 tokenOut
     ) public view returns (IRouter.Logic memory) {
@@ -365,8 +370,10 @@ contract UniswapV2Test is Test {
         inputs[1].token = address(tokenIn1);
         inputs[0].amountBps = BPS_BASE;
         inputs[1].amountBps = BPS_BASE;
-        inputs[0].amountOffset = 0x40;
-        inputs[1].amountOffset = 0x60;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn0;
+        else inputs[0].amountOrOffset = 0x40;
+        if (inputs[1].amountBps == SKIP) inputs[1].amountOrOffset = amountIn1;
+        else inputs[1].amountOrOffset = 0x60;
         inputs[0].doApprove = true;
         inputs[1].doApprove = true;
 
@@ -387,6 +394,7 @@ contract UniswapV2Test is Test {
 
     function _logicUniswapV2RemoveLiquidity(
         IERC20 tokenIn,
+        uint256 amountIn,
         IERC20 tokenOut0,
         uint256 amountOut0,
         IERC20 tokenOut1
@@ -410,7 +418,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = BPS_BASE;
-        inputs[0].amountOffset = 0x40;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = 0x40;
         inputs[0].doApprove = true;
 
         // Encode outputs

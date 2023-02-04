@@ -24,8 +24,11 @@ interface IRouter {
 
     struct Input {
         address token;
-        uint256 amountBps; // 7_000 means that the amount is 70% of the token balance
-        uint256 amountOffset; // The byte offset of amount in Logic.data that will be replaced with the calculated token amount by bps
+        // 7_000 means the replacing amount is 70% of token balance. Set type(uint256).max to skip bps calculation so simply use amountOrOffset as amount
+        uint256 amountBps;
+        // If amountBps is skip, can simply read amountOrOffset as amount
+        // If amountBps is not skip, amountOrOffset is byte offset of amount in Logic.data used for replacement. Set type(uint256).max to skip if don't need to replace.
+        uint256 amountOrOffset;
         bool doApprove;
     }
 
