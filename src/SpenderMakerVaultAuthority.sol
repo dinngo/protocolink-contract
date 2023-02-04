@@ -5,11 +5,11 @@ import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ut
 import {IRouter} from './interfaces/IRouter.sol';
 import {IDSProxy, IDSProxyRegistry} from './interfaces/maker/IDSProxy.sol';
 import {IMakerManager, IMakerGemJoin} from './interfaces/maker/IMaker.sol';
-import {ISpenderMakerAction} from './interfaces/ISpenderMakerAction.sol';
+import {ISpenderMakerVaultAuthority} from './interfaces/ISpenderMakerVaultAuthority.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 ///@title Spender for Maker which user can interact with Maker
-contract SpenderMakerAction is ISpenderMakerAction {
+contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
     using SafeERC20 for IERC20;
 
     address public constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -22,7 +22,7 @@ contract SpenderMakerAction is ISpenderMakerAction {
     address public immutable daiToken;
     address public immutable jug;
 
-    // SpenderMaker's DSProxy
+    // SpenderMakerVaultAuthority's DSProxy
     IDSProxy public immutable dsProxy;
 
     modifier onlyRouter() {
