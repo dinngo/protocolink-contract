@@ -207,6 +207,7 @@ contract UniswapV2Test is Test {
                 abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
                 inputsEmpty,
                 outputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -236,7 +237,6 @@ contract UniswapV2Test is Test {
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = SKIP;
-        inputs[0].doApprove = false;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](1);
@@ -249,6 +249,7 @@ contract UniswapV2Test is Test {
                 data,
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -279,7 +280,6 @@ contract UniswapV2Test is Test {
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
-        inputs[0].doApprove = true;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](1);
@@ -292,6 +292,7 @@ contract UniswapV2Test is Test {
                 data,
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -324,7 +325,6 @@ contract UniswapV2Test is Test {
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
-        inputs[0].doApprove = true;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](1);
@@ -337,6 +337,7 @@ contract UniswapV2Test is Test {
                 data,
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -374,8 +375,6 @@ contract UniswapV2Test is Test {
         else inputs[0].amountOrOffset = 0x40;
         if (inputs[1].amountBps == SKIP) inputs[1].amountOrOffset = amountIn1;
         else inputs[1].amountOrOffset = 0x60;
-        inputs[0].doApprove = true;
-        inputs[1].doApprove = true;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](1);
@@ -388,6 +387,7 @@ contract UniswapV2Test is Test {
                 data,
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -420,7 +420,6 @@ contract UniswapV2Test is Test {
         inputs[0].amountBps = BPS_BASE;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0x40;
-        inputs[0].doApprove = true;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](2);
@@ -435,6 +434,7 @@ contract UniswapV2Test is Test {
                 data,
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }

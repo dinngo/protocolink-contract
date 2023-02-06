@@ -12,6 +12,7 @@ contract RouterTest is Test {
     using SafeERC20 for IERC20;
 
     uint256 public constant BPS_BASE = 10_000;
+    uint256 public constant SKIP = type(uint256).max;
 
     address public user;
     IRouter public router;
@@ -23,6 +24,8 @@ contract RouterTest is Test {
     address[] tokensReturnEmpty;
     IRouter.Input[] inputsEmpty;
     IRouter.Output[] outputsEmpty;
+
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 
     function setUp() external {
         user = makeAddr('User');
@@ -53,6 +56,7 @@ contract RouterTest is Test {
             abi.encodeWithSignature('dummy()'),
             inputsEmpty,
             outputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
         bytes memory data = abi.encodeWithSelector(IRouter.execute.selector, callbacks, tokensReturnEmpty);
@@ -62,7 +66,8 @@ contract RouterTest is Test {
             abi.encodeWithSelector(ICallback.callback.selector, data),
             inputsEmpty,
             outputsEmpty,
-            address(router)
+            address(0), // approveTo
+            address(router) // callback
         );
         vm.expectRevert(IRouter.InvalidCallback.selector);
         router.execute(logics, tokensReturnEmpty);
@@ -75,6 +80,7 @@ contract RouterTest is Test {
             abi.encodeWithSelector(IERC20.approve.selector, user, 0),
             inputsEmpty,
             outputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
 
@@ -89,6 +95,7 @@ contract RouterTest is Test {
             abi.encodeWithSelector(IERC20.transferFrom.selector, user, 0),
             inputsEmpty,
             outputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
 
@@ -104,14 +111,14 @@ contract RouterTest is Test {
         inputs[0] = IRouter.Input(
             address(0),
             0, // amountBps
-            0, // amountOrOffset
-            false // doApprove
+            0 // amountOrOffset
         );
         logics[0] = IRouter.Logic(
             address(0), // to
             '',
             inputs,
             outputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
         vm.expectRevert(IRouter.InvalidBps.selector);
@@ -121,14 +128,14 @@ contract RouterTest is Test {
         inputs[0] = IRouter.Input(
             address(0),
             BPS_BASE + 1, // amountBps
-            0, // amountOrOffset
-            false // doApprove
+            0 // amountOrOffset
         );
         logics[0] = IRouter.Logic(
             address(0), // to
             '',
             inputs,
             outputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
         vm.expectRevert(IRouter.InvalidBps.selector);
@@ -142,6 +149,7 @@ contract RouterTest is Test {
             abi.encodeWithSignature('dummy()'),
             inputsEmpty,
             outputsEmpty,
+            address(0), // approveTo
             address(router) // callback
         );
         vm.expectRevert(IRouter.UnresetCallback.selector);
@@ -165,6 +173,7 @@ contract RouterTest is Test {
             abi.encodeWithSignature('dummy()'),
             inputsEmpty,
             outputs,
+            address(0), // approveTo
             address(0) // callback
         );
 
@@ -173,5 +182,64 @@ contract RouterTest is Test {
         tokensReturn[0] = address(tokenOut);
         vm.expectRevert(abi.encodeWithSelector(IRouter.InsufficientBalance.selector, address(tokenOut), amountMin, 0));
         router.execute(logics, tokensReturn);
+    }
+
+    function testApproveToIsDefault(uint256 amountIn) external {
+        vm.assume(amountIn > 0);
+
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+
+        inputs[0] = IRouter.Input(
+            address(mockERC20),
+            SKIP, // amountBps
+            amountIn // amountOrOffset
+        );
+        logics[0] = IRouter.Logic(
+            address(mockERC20), // to
+            abi.encodeWithSignature('dummy()'),
+            inputs,
+            outputsEmpty,
+            address(0), // approveTo
+            address(0) // callback
+        );
+
+        // Execute
+        vm.expectEmit(true, true, true, true, address(mockERC20));
+        emit Approval(address(router), address(mockERC20), amountIn);
+        vm.expectEmit(true, true, true, true, address(mockERC20));
+        emit Approval(address(router), address(mockERC20), 0);
+        vm.prank(user);
+        router.execute(logics, tokensReturnEmpty);
+    }
+
+    function testApproveToIsSet(uint256 amountIn, address approveTo) external {
+        vm.assume(amountIn > 0);
+        vm.assume(approveTo != address(0));
+
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+
+        inputs[0] = IRouter.Input(
+            address(mockERC20),
+            SKIP, // amountBps
+            amountIn // amountOrOffset
+        );
+        logics[0] = IRouter.Logic(
+            address(mockERC20), // to
+            abi.encodeWithSignature('dummy()'),
+            inputs,
+            outputsEmpty,
+            approveTo, // approveTo
+            address(0) // callback
+        );
+
+        // Execute
+        vm.expectEmit(true, true, true, true, address(mockERC20));
+        emit Approval(address(router), approveTo, amountIn);
+        vm.expectEmit(true, true, true, true, address(mockERC20));
+        emit Approval(address(router), approveTo, 0);
+        vm.prank(user);
+        router.execute(logics, tokensReturnEmpty);
     }
 }
