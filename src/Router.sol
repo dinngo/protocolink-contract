@@ -63,8 +63,8 @@ contract Router is IRouter {
             address approveTo = logics[i].approveTo;
             address callback = logics[i].callback;
 
-            // Revert approve sig for soft avoiding giving approval from Router
-            // Revert transferFrom sig for avoiding exploiting user's approval to Router by mistake
+            // Revert approve sig to prevent Router from approving arbitrary address
+            // Revert transferFrom sig to prevent user from mistakenly approving Router and being exploited
             bytes4 sig = bytes4(data);
             if (sig == IERC20.approve.selector || sig == IERC20.transferFrom.selector) {
                 revert InvalidERC20Sig();
@@ -104,10 +104,10 @@ contract Router is IRouter {
                     }
                 }
 
-                // Set native token value or approve ERC20
+                // Set native token value or approve ERC20 if `to` isn't the token self
                 if (token == _NATIVE) {
                     value = amount;
-                } else {
+                } else if (token != approveTo) {
                     ApproveHelper._approve(token, approveTo, amount);
                 }
 
@@ -139,7 +139,7 @@ contract Router is IRouter {
             // Reset approval
             for (uint256 j = 0; j < inputsLength; ) {
                 address token = inputs[j].token;
-                if (token != _NATIVE) {
+                if (token != _NATIVE && token != approveTo) {
                     ApproveHelper._approveZero(token, approveTo);
                 }
 
