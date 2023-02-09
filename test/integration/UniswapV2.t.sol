@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {Router, IRouter} from '../../src/Router.sol';
 import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
 
@@ -63,6 +64,7 @@ interface IUniswapV2Router02 {
 // Test Uniswap whose Router is not ERC20-compliant token
 contract UniswapV2Test is Test, SpenderPermitUtils {
     using SafeERC20 for IERC20;
+    using SafeCast160 for uint256;
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     IERC20 public constant WRAPPED_NATIVE = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
@@ -125,7 +127,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, uint160(amountIn));
+        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
         logics[1] = _logicUniswapV2SwapTokenToNative(tokenIn, amountIn, SKIP); // Fixed amount
 
         // Execute
@@ -147,7 +149,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, uint160(amountIn));
+        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
         logics[1] = _logicUniswapV2Swap(tokenIn, amountIn / BPS_BASE, BPS_BASE, tokenOut);
 
         // Execute
@@ -177,7 +179,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](5);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn0, uint160(amountIn0));
+        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn0, amountIn0.toUint160());
         logics[1] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1); // Swap 50% amountIn0 to amountIn1
         logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1, tokenOut); // Add liquidity with 50% amountIn0 and all amountIn1
         logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, 0, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity

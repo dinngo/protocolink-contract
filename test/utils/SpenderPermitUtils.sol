@@ -5,7 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../../src/Router.sol';
 import {SpenderPermit2ERC20, ISpenderPermit2ERC20, ISignatureTransfer, IAllowanceTransfer} from '../../src/SpenderPermit2ERC20.sol';
-import {PermitSignature} from "./PermitSignature.sol";
+import {PermitSignature} from './PermitSignature.sol';
 import {EIP712} from 'permit2/EIP712.sol';
 
 contract SpenderPermitUtils is Test, PermitSignature {
@@ -44,16 +44,22 @@ contract SpenderPermitUtils is Test, PermitSignature {
     }
 
     function logicSpenderPermit2ERC20PermitToken(IERC20 token) internal view returns (IRouter.Logic memory) {
-
         // Create signed permit
         uint48 defaultNonce = 0;
         uint48 defaultExpiration = uint48(block.timestamp + 5);
-        IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(address(token), type(uint160).max, address(spender), defaultExpiration, defaultNonce);
+        IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(
+            address(token),
+            type(uint160).max,
+            address(spender),
+            defaultExpiration,
+            defaultNonce
+        );
         bytes memory sig = getPermitSignature(permit, _userPrivateKey, DOMAIN_SEPARATOR);
 
         IRouter.Input[] memory inputsEmpty;
         IRouter.Output[] memory outputsEmpty;
-        return IRouter.Logic(
+        return
+            IRouter.Logic(
                 address(spender), // to
                 abi.encodeWithSelector(spender.permitToken.selector, permit, sig),
                 inputsEmpty,
@@ -61,7 +67,11 @@ contract SpenderPermitUtils is Test, PermitSignature {
                 address(0) // callback
             );
     }
-    function logicSpenderPermit2ERC20PullToken(IERC20 token, uint160 amount) internal view returns (IRouter.Logic memory) {
+
+    function logicSpenderPermit2ERC20PullToken(
+        IERC20 token,
+        uint160 amount
+    ) internal view returns (IRouter.Logic memory) {
         IRouter.Input[] memory inputsEmpty;
         IRouter.Output[] memory outputsEmpty;
 

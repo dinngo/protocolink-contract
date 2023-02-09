@@ -6,7 +6,6 @@ import {ISpenderPermit2ERC20, ISignatureTransfer, IAllowanceTransfer} from './in
 
 /// @title Spender for permit ERC20 token where users can permit use amount
 contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
-
     address public immutable router;
     address public immutable permit2;
 
@@ -17,7 +16,11 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
 
     /// @notice Router asks to permit transfer tokens from the user
     /// @dev Router must guarantee that the public user is msg.sender who called Router.
-    function permitPullToken(ISignatureTransfer.PermitTransferFrom memory permit, ISignatureTransfer.SignatureTransferDetails calldata transferDetails, bytes calldata signature) external {
+    function permitPullToken(
+        ISignatureTransfer.PermitTransferFrom memory permit,
+        ISignatureTransfer.SignatureTransferDetails calldata transferDetails,
+        bytes calldata signature
+    ) external {
         if (msg.sender != router) revert InvalidRouter();
         address user = IRouter(router).user();
 
@@ -26,16 +29,20 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         ISignatureTransfer(permit2).permitTransferFrom(permit, transferDetails, user, signature);
     }
 
-    function permitPullTokens(ISignatureTransfer.PermitBatchTransferFrom memory permit, ISignatureTransfer.SignatureTransferDetails[] calldata transferDetails, bytes calldata signature) external {
+    function permitPullTokens(
+        ISignatureTransfer.PermitBatchTransferFrom memory permit,
+        ISignatureTransfer.SignatureTransferDetails[] calldata transferDetails,
+        bytes calldata signature
+    ) external {
         if (msg.sender != router) revert InvalidRouter();
         address user = IRouter(router).user();
 
         uint256 permittedLength = permit.permitted.length;
-        if (permittedLength != transferDetails.length) revert LengthMismatch(); // permitTransferFrom will check length again
-
-        for (uint256 i = 0; i < permittedLength; ){
+        for (uint256 i = 0; i < permittedLength; ) {
             if (transferDetails[i].to != router) revert InvalidTransferTo();
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         ISignatureTransfer(permit2).permitTransferFrom(permit, transferDetails, user, signature);
@@ -55,9 +62,11 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         address user = IRouter(router).user();
 
         uint256 permittedLength = permitBatch.details.length;
-        for (uint256 i = 0; i < permittedLength; ){
+        for (uint256 i = 0; i < permittedLength; ) {
             if (permitBatch.spender != address(this)) revert InvalidSpender();
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         IAllowanceTransfer(permit2).permit(user, permitBatch, signature);
@@ -74,11 +83,13 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         if (msg.sender != router) revert InvalidRouter();
         address user = IRouter(router).user();
 
-        uint256 tokensLength = transferDetails.length;
-        for (uint256 i = 0; i < tokensLength; ) {
+        uint256 detailsLength = transferDetails.length;
+        for (uint256 i = 0; i < detailsLength; ) {
             if (transferDetails[i].from != user) revert InvalidTransferFrom();
             if (transferDetails[i].to != router) revert InvalidTransferTo();
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
 
         IAllowanceTransfer(permit2).transferFrom(transferDetails);

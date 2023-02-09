@@ -10,7 +10,6 @@ interface ISpenderPermit2ERC20 {
     error InvalidSpender();
     error InvalidTransferFrom();
     error InvalidTransferTo();
-    error LengthMismatch();
 
     ///=================================================================
     /// ISignatureTransfer way
@@ -23,13 +22,21 @@ interface ISpenderPermit2ERC20 {
     /// @param permit The permit data signed over by the owner
     /// @param transferDetails The spender's requested transfer details for the permitted token
     /// @param signature The signature to verify
-    function permitPullToken(ISignatureTransfer.PermitTransferFrom memory permit, ISignatureTransfer.SignatureTransferDetails calldata transferDetails, bytes calldata signature) external;
+    function permitPullToken(
+        ISignatureTransfer.PermitTransferFrom memory permit,
+        ISignatureTransfer.SignatureTransferDetails calldata transferDetails,
+        bytes calldata signature
+    ) external;
 
     /// @notice Pull multiple tokens from user to router using a signed permit message
     /// @param permit The permit data signed over by the owner
     /// @param transferDetails Specifies the recipient and requested amount for the token transfer
     /// @param signature The signature to verify
-    function permitPullTokens(ISignatureTransfer.PermitBatchTransferFrom memory permit, ISignatureTransfer.SignatureTransferDetails[] calldata transferDetails, bytes calldata signature) external;
+    function permitPullTokens(
+        ISignatureTransfer.PermitBatchTransferFrom memory permit,
+        ISignatureTransfer.SignatureTransferDetails[] calldata transferDetails,
+        bytes calldata signature
+    ) external;
 
     ///=================================================================
     /// IAllowanceTransfer way

@@ -6,7 +6,7 @@ import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ut
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {Router, IRouter} from '../src/Router.sol';
 import {SpenderPermit2ERC20, ISpenderPermit2ERC20, ISignatureTransfer, IAllowanceTransfer} from '../src/SpenderPermit2ERC20.sol';
-import {PermitSignature} from "./utils/PermitSignature.sol";
+import {PermitSignature} from './utils/PermitSignature.sol';
 import {EIP712} from 'permit2/EIP712.sol';
 
 contract SpenderPermit2ERC20Test is Test, PermitSignature {
@@ -51,86 +51,93 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
 
     function testPermitPullToken(uint256 amountIn) external {
         IERC20 tokenIn = mockERC20;
-        IERC20 tokenOut = mockERC20;
         amountIn = bound(amountIn, 1e1, 1e12);
         deal(address(tokenIn), user, amountIn);
 
         // Create signed permit
         uint256 nonce = 0;
-        ISignatureTransfer.PermitTransferFrom memory permit = defaultERC20PermitTransfer(address(tokenIn), amountIn, nonce);
+        ISignatureTransfer.PermitTransferFrom memory permit = defaultERC20PermitTransfer(
+            address(tokenIn),
+            amountIn,
+            nonce
+        );
         bytes memory sig = getPermitTransferSignature(permit, address(spender), userPrivateKey, DOMAIN_SEPARATOR);
 
         // Create transfer details
-        ISignatureTransfer.SignatureTransferDetails memory transferDetails = _getTransferDetails(address(router), amountIn);
+        ISignatureTransfer.SignatureTransferDetails memory transferDetails = _getTransferDetails(
+            address(router),
+            amountIn
+        );
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
         logics[0] = _logicSpenderPermit2ERC20PermitPullToken(permit, transferDetails, sig);
 
         // Encode execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturnEmpty);
 
-        assertEq(tokenIn.balanceOf(address(router)), 0);
-        assertEq(tokenOut.balanceOf(address(router)), 0);
-        assertGt(tokenOut.balanceOf(address(user)), 0);
+        assertEq(tokenIn.balanceOf(address(router)), amountIn);
     }
 
     function testPermitPullTokenInvalidUser() external {
         IERC20 tokenIn = mockERC20;
-        IERC20 tokenOut = mockERC20;
         deal(address(tokenIn), user, defaultSignatureAmount);
 
         // Create signed permit
         uint256 nonce = 0;
-        ISignatureTransfer.PermitTransferFrom memory permit = defaultERC20PermitTransfer(address(tokenIn), defaultSignatureAmount, nonce);
+        ISignatureTransfer.PermitTransferFrom memory permit = defaultERC20PermitTransfer(
+            address(tokenIn),
+            defaultSignatureAmount,
+            nonce
+        );
         bytes memory sig = getPermitTransferSignature(permit, address(spender), userPrivateKey, DOMAIN_SEPARATOR);
 
         // Create transfer details
-        ISignatureTransfer.SignatureTransferDetails memory transferDetails = _getTransferDetails(address(router), defaultSignatureAmount);
+        ISignatureTransfer.SignatureTransferDetails memory transferDetails = _getTransferDetails(
+            address(router),
+            defaultSignatureAmount
+        );
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
         logics[0] = _logicSpenderPermit2ERC20PermitPullToken(permit, transferDetails, sig);
 
         // Encode execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(tokenOut);
-
-        vm.expectRevert("ERROR_ROUTER_EXECUTE");
-        router.execute(logics, tokensReturn);
+        vm.expectRevert('ERROR_ROUTER_EXECUTE');
+        router.execute(logics, tokensReturnEmpty);
     }
 
-     function testPermitPullTokenInvalidTransferTo() external {
+    function testPermitPullTokenInvalidTransferTo() external {
         IERC20 tokenIn = mockERC20;
-        IERC20 tokenOut = mockERC20;
         deal(address(tokenIn), user, defaultSignatureAmount);
 
         // Create signed permit
         uint256 nonce = 0;
-        ISignatureTransfer.PermitTransferFrom memory permit = defaultERC20PermitTransfer(address(tokenIn), defaultSignatureAmount, nonce);
+        ISignatureTransfer.PermitTransferFrom memory permit = defaultERC20PermitTransfer(
+            address(tokenIn),
+            defaultSignatureAmount,
+            nonce
+        );
         bytes memory sig = getPermitTransferSignature(permit, address(spender), userPrivateKey, DOMAIN_SEPARATOR);
 
         // Create transfer details
-        ISignatureTransfer.SignatureTransferDetails memory transferDetails = _getTransferDetails(address(1), defaultSignatureAmount);
+        ISignatureTransfer.SignatureTransferDetails memory transferDetails = _getTransferDetails(
+            address(1),
+            defaultSignatureAmount
+        );
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
         logics[0] = _logicSpenderPermit2ERC20PermitPullToken(permit, transferDetails, sig);
 
         // Encode execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(tokenOut);
-
         vm.expectRevert(ISpenderPermit2ERC20.InvalidTransferTo.selector);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturnEmpty);
     }
 
     function testPermitPullTokens(uint256 amountIn) external {
         IERC20 tokenIn = mockERC20;
-        IERC20 tokenOut = mockERC20;
         amountIn = bound(amountIn, 1e1, 1e12);
         deal(address(tokenIn), user, amountIn);
 
@@ -144,7 +151,8 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         bytes memory sig = getPermitBatchTransferSignature(permit, address(spender), userPrivateKey, DOMAIN_SEPARATOR);
 
         // Create transfer details
-        ISignatureTransfer.SignatureTransferDetails[] memory transferDetails = new ISignatureTransfer.SignatureTransferDetails[](1);
+        ISignatureTransfer.SignatureTransferDetails[]
+            memory transferDetails = new ISignatureTransfer.SignatureTransferDetails[](1);
         transferDetails[0] = _getTransferDetails(address(router), amountIn);
 
         // Encode logics
@@ -152,50 +160,21 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         logics[0] = _logicSpenderPermit2ERC20PermitPullTokens(permit, transferDetails, sig);
 
         // Encode execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturnEmpty);
 
-        assertEq(tokenIn.balanceOf(address(router)), 0);
-        assertEq(tokenOut.balanceOf(address(router)), 0);
-        assertGt(tokenOut.balanceOf(address(user)), 0);
-    }
-
-    function testPermitPullTokensLengthMismatch() external {
-        IERC20 tokenIn = mockERC20;
-        IERC20 tokenOut = mockERC20;
-        deal(address(tokenIn), user, defaultSignatureAmount);
-
-        // Create signed permit
-        uint256 nonce = 0;
-        address[] memory tokens = new address[](2);
-        uint256[] memory amounts = new uint256[](2);
-        tokens[0] = address(tokenIn);
-        tokens[1] = address(tokenIn);
-        amounts[0] = defaultSignatureAmount;
-        amounts[1] = defaultSignatureAmount;
-        ISignatureTransfer.PermitBatchTransferFrom memory permit = defaultERC20PermitMultiple(tokens, amounts, nonce);
-        bytes memory sig = getPermitBatchTransferSignature(permit, address(spender), userPrivateKey, DOMAIN_SEPARATOR);
-
-        // Create transfer details
-        ISignatureTransfer.SignatureTransferDetails[] memory transferDetails = new ISignatureTransfer.SignatureTransferDetails[](1);
-        transferDetails[0] = _getTransferDetails(address(router), defaultSignatureAmount);
-
-        // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicSpenderPermit2ERC20PermitPullTokens(permit, transferDetails, sig);
-
-        // Encode execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(tokenOut);
-        vm.expectRevert(ISpenderPermit2ERC20.LengthMismatch.selector);
-        router.execute(logics, tokensReturn);
+        assertEq(tokenIn.balanceOf(address(router)), amountIn);
     }
 
     function testPermitToken(uint160 amount) external {
         // Create signed permit
-        IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(address(mockERC20), amount, address(spender), defaultExpiration, defaultNonce);
+        IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(
+            address(mockERC20),
+            amount,
+            address(spender),
+            defaultExpiration,
+            defaultNonce
+        );
         bytes memory sig = getPermitSignature(permit, userPrivateKey, DOMAIN_SEPARATOR);
 
         // Encode logics
@@ -206,7 +185,11 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         vm.prank(user);
         router.execute(logics, tokensReturnEmpty);
 
-        (uint160 allowanceAmount, uint48 expiration, uint48 nonce) = IAllowanceTransfer(permit2Addr).allowance(address(user), address(mockERC20), address(spender));
+        (uint160 allowanceAmount, uint48 expiration, uint48 nonce) = IAllowanceTransfer(permit2Addr).allowance(
+            address(user),
+            address(mockERC20),
+            address(spender)
+        );
         assertEq(allowanceAmount, amount);
         assertEq(expiration, defaultExpiration);
         assertEq(nonce, 1);
@@ -214,7 +197,13 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
 
     function testPermitTokenInvalidSpender() external {
         // Create signed permit
-        IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(address(mockERC20), defaultAllowanceAmount, address(1), defaultExpiration, defaultNonce);
+        IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(
+            address(mockERC20),
+            defaultAllowanceAmount,
+            address(1),
+            defaultExpiration,
+            defaultNonce
+        );
         bytes memory sig = getPermitSignature(permit, userPrivateKey, DOMAIN_SEPARATOR);
 
         // Encode logics
@@ -233,7 +222,13 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         amounts[0] = amount;
 
         // Create signed permit
-        IAllowanceTransfer.PermitBatch memory permit = defaultERC20PermitBatchAllowance(tokens, amounts, address(spender), defaultExpiration, defaultNonce);
+        IAllowanceTransfer.PermitBatch memory permit = defaultERC20PermitBatchAllowance(
+            tokens,
+            amounts,
+            address(spender),
+            defaultExpiration,
+            defaultNonce
+        );
         bytes memory sig = getPermitBatchSignature(permit, userPrivateKey, DOMAIN_SEPARATOR);
 
         // Encode logics
@@ -244,7 +239,11 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         vm.prank(user);
         router.execute(logics, tokensReturnEmpty);
 
-        (uint160 allowanceAmount, uint48 expiration, uint48 nonce) = IAllowanceTransfer(permit2Addr).allowance(address(user), address(mockERC20), address(spender));
+        (uint160 allowanceAmount, uint48 expiration, uint48 nonce) = IAllowanceTransfer(permit2Addr).allowance(
+            address(user),
+            address(mockERC20),
+            address(spender)
+        );
         assertEq(allowanceAmount, amount);
         assertEq(expiration, defaultExpiration);
         assertEq(nonce, 1);
@@ -257,7 +256,13 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         amounts[0] = defaultAllowanceAmount;
 
         // Create signed permit
-        IAllowanceTransfer.PermitBatch memory permit = defaultERC20PermitBatchAllowance(tokens, amounts, address(1), defaultExpiration, defaultNonce);
+        IAllowanceTransfer.PermitBatch memory permit = defaultERC20PermitBatchAllowance(
+            tokens,
+            amounts,
+            address(1),
+            defaultExpiration,
+            defaultNonce
+        );
         bytes memory sig = getPermitBatchSignature(permit, userPrivateKey, DOMAIN_SEPARATOR);
 
         // Encode logics
@@ -271,12 +276,17 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
 
     function testPullToken(uint160 amountIn) external {
         IERC20 tokenIn = mockERC20;
-        IERC20 tokenOut = mockERC20;
         amountIn = uint160(bound(uint256(amountIn), 1e1, 1e12));
         deal(address(tokenIn), user, amountIn);
 
         // Create signed permit
-        IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(address(tokenIn), type(uint160).max, address(spender), defaultExpiration, defaultNonce);
+        IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(
+            address(tokenIn),
+            type(uint160).max,
+            address(spender),
+            defaultExpiration,
+            defaultNonce
+        );
         bytes memory sig = getPermitSignature(permit, userPrivateKey, DOMAIN_SEPARATOR);
 
         // Encode logics
@@ -285,29 +295,36 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         logics[1] = _logicSpenderPermit2ERC20PullToken(address(tokenIn), amountIn);
 
         // Encode execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturnEmpty);
 
-        assertEq(tokenIn.balanceOf(address(router)), 0);
-        assertEq(tokenOut.balanceOf(address(router)), 0);
-        assertGt(tokenOut.balanceOf(user), 0);
+        assertEq(tokenIn.balanceOf(address(router)), amountIn);
     }
 
     function testPullTokens(uint160 amountIn) external {
         IERC20 tokenIn = mockERC20;
-        IERC20 tokenOut = mockERC20;
         amountIn = uint160(bound(uint256(amountIn), 1e1, 1e12));
         deal(address(tokenIn), user, amountIn);
 
         // Create signed permit
-        IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(address(tokenIn), type(uint160).max, address(spender), defaultExpiration, defaultNonce);
+        IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(
+            address(tokenIn),
+            type(uint160).max,
+            address(spender),
+            defaultExpiration,
+            defaultNonce
+        );
         bytes memory sig = getPermitSignature(permit, userPrivateKey, DOMAIN_SEPARATOR);
 
         // Create allowance transfer details
-        IAllowanceTransfer.AllowanceTransferDetails[] memory transferDetails = new IAllowanceTransfer.AllowanceTransferDetails[](1);
-        transferDetails[0] = IAllowanceTransfer.AllowanceTransferDetails({from: address(user), to: address(router), amount: amountIn, token: address(tokenIn)});
+        IAllowanceTransfer.AllowanceTransferDetails[]
+            memory transferDetails = new IAllowanceTransfer.AllowanceTransferDetails[](1);
+        transferDetails[0] = IAllowanceTransfer.AllowanceTransferDetails({
+            from: address(user),
+            to: address(router),
+            amount: amountIn,
+            token: address(tokenIn)
+        });
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
@@ -315,20 +332,22 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         logics[1] = _logicSpenderPermit2ERC20PullTokens(transferDetails);
 
         // Encode execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturnEmpty);
 
-        assertEq(tokenIn.balanceOf(address(router)), 0);
-        assertEq(tokenOut.balanceOf(address(router)), 0);
-        assertGt(tokenOut.balanceOf(user), 0);
+        assertEq(tokenIn.balanceOf(address(router)), amountIn);
     }
 
     function testPullTokensInvalidTransferFrom() external {
         // Create allowance transfer details
-        IAllowanceTransfer.AllowanceTransferDetails[] memory transferDetails = new IAllowanceTransfer.AllowanceTransferDetails[](1);
-        transferDetails[0] = IAllowanceTransfer.AllowanceTransferDetails({from: address(1), to: address(router), amount: defaultAllowanceAmount, token: address(mockERC20)});
+        IAllowanceTransfer.AllowanceTransferDetails[]
+            memory transferDetails = new IAllowanceTransfer.AllowanceTransferDetails[](1);
+        transferDetails[0] = IAllowanceTransfer.AllowanceTransferDetails({
+            from: address(1),
+            to: address(router),
+            amount: defaultAllowanceAmount,
+            token: address(mockERC20)
+        });
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
@@ -341,8 +360,14 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
 
     function testPullTokensInvalidTransferTo() external {
         // Create allowance transfer details
-        IAllowanceTransfer.AllowanceTransferDetails[] memory transferDetails = new IAllowanceTransfer.AllowanceTransferDetails[](1);
-        transferDetails[0] = IAllowanceTransfer.AllowanceTransferDetails({from: address(this), to: address(1), amount: defaultAllowanceAmount, token: address(mockERC20)});
+        IAllowanceTransfer.AllowanceTransferDetails[]
+            memory transferDetails = new IAllowanceTransfer.AllowanceTransferDetails[](1);
+        transferDetails[0] = IAllowanceTransfer.AllowanceTransferDetails({
+            from: address(this),
+            to: address(1),
+            amount: defaultAllowanceAmount,
+            token: address(mockERC20)
+        });
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
@@ -355,7 +380,6 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
 
     // Cannot call spender directly
     function testCannotBeCalledByNonRouter() external {
-        vm.startPrank(user);
         {
             vm.expectRevert(ISpenderPermit2ERC20.InvalidRouter.selector);
             ISignatureTransfer.PermitTransferFrom memory permit;
@@ -391,33 +415,59 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
             IAllowanceTransfer.AllowanceTransferDetails[] memory transferDetails;
             spender.pullTokens(transferDetails);
         }
-        vm.stopPrank();
     }
 
-    function _getTransferDetails(address to, uint256 amount) private pure returns (ISignatureTransfer.SignatureTransferDetails memory) {
+    function _getTransferDetails(
+        address to,
+        uint256 amount
+    ) private pure returns (ISignatureTransfer.SignatureTransferDetails memory) {
         return ISignatureTransfer.SignatureTransferDetails({to: to, requestedAmount: amount});
     }
 
-    function _logicSpenderPermit2ERC20PermitPullToken(ISignatureTransfer.PermitTransferFrom memory permit, ISignatureTransfer.SignatureTransferDetails memory transferDetails, bytes memory signature) public view returns (IRouter.Logic memory) {
-        return _logicBuilder(abi.encodeWithSelector(spender.permitPullToken.selector, permit, transferDetails, signature));
+    function _logicSpenderPermit2ERC20PermitPullToken(
+        ISignatureTransfer.PermitTransferFrom memory permit,
+        ISignatureTransfer.SignatureTransferDetails memory transferDetails,
+        bytes memory signature
+    ) public view returns (IRouter.Logic memory) {
+        return
+            _logicBuilder(abi.encodeWithSelector(spender.permitPullToken.selector, permit, transferDetails, signature));
     }
 
-    function _logicSpenderPermit2ERC20PermitPullTokens(ISignatureTransfer.PermitBatchTransferFrom memory permit, ISignatureTransfer.SignatureTransferDetails[] memory transferDetails, bytes memory signature) public view returns (IRouter.Logic memory) {
-        return _logicBuilder(abi.encodeWithSelector(spender.permitPullTokens.selector, permit, transferDetails, signature));
+    function _logicSpenderPermit2ERC20PermitPullTokens(
+        ISignatureTransfer.PermitBatchTransferFrom memory permit,
+        ISignatureTransfer.SignatureTransferDetails[] memory transferDetails,
+        bytes memory signature
+    ) public view returns (IRouter.Logic memory) {
+        return
+            _logicBuilder(
+                abi.encodeWithSelector(spender.permitPullTokens.selector, permit, transferDetails, signature)
+            );
     }
-    function _logicSpenderPermit2ERC20PermitToken(IAllowanceTransfer.PermitSingle memory permitSingle, bytes memory signature) public view returns (IRouter.Logic memory) {
+
+    function _logicSpenderPermit2ERC20PermitToken(
+        IAllowanceTransfer.PermitSingle memory permitSingle,
+        bytes memory signature
+    ) public view returns (IRouter.Logic memory) {
         return _logicBuilder(abi.encodeWithSelector(spender.permitToken.selector, permitSingle, signature));
     }
 
-    function _logicSpenderPermit2ERC20PermitTokens(IAllowanceTransfer.PermitBatch memory permitBatch, bytes memory signature) public view returns (IRouter.Logic memory) {
+    function _logicSpenderPermit2ERC20PermitTokens(
+        IAllowanceTransfer.PermitBatch memory permitBatch,
+        bytes memory signature
+    ) public view returns (IRouter.Logic memory) {
         return _logicBuilder(abi.encodeWithSelector(spender.permitTokens.selector, permitBatch, signature));
     }
 
-    function _logicSpenderPermit2ERC20PullToken(address token, uint160 amount) public view returns (IRouter.Logic memory) {
+    function _logicSpenderPermit2ERC20PullToken(
+        address token,
+        uint160 amount
+    ) public view returns (IRouter.Logic memory) {
         return _logicBuilder(abi.encodeWithSelector(spender.pullToken.selector, token, amount));
     }
 
-    function _logicSpenderPermit2ERC20PullTokens(IAllowanceTransfer.AllowanceTransferDetails[] memory transferDetails) public view returns (IRouter.Logic memory) {
+    function _logicSpenderPermit2ERC20PullTokens(
+        IAllowanceTransfer.AllowanceTransferDetails[] memory transferDetails
+    ) public view returns (IRouter.Logic memory) {
         return _logicBuilder(abi.encodeWithSelector(spender.pullTokens.selector, transferDetails));
     }
 
