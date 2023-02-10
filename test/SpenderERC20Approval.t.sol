@@ -81,6 +81,7 @@ contract SpenderERC20ApprovalTest is Test {
                 abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
                 inputsEmpty,
                 outputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }

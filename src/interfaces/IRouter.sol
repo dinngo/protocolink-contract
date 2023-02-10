@@ -19,6 +19,8 @@ interface IRouter {
         bytes data;
         Input[] inputs;
         Output[] outputs;
+        // Approve to another contract instead of `to` since some protocols use spender contract to pull tokens from user
+        address approveTo;
         address callback;
     }
 
@@ -29,7 +31,6 @@ interface IRouter {
         // If amountBps is skip, can simply read amountOrOffset as amount
         // If amountBps is not skip, amountOrOffset is byte offset of amount in Logic.data used for replacement. Set type(uint256).max to skip if don't need to replace.
         uint256 amountOrOffset;
-        bool doApprove;
     }
 
     struct Output {

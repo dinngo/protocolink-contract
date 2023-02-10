@@ -75,6 +75,7 @@ contract YearnV2Test is Test {
                 abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
                 inputsEmpty,
                 outputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -94,7 +95,6 @@ contract YearnV2Test is Test {
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
-        inputs[0].doApprove = true;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](1);
@@ -107,6 +107,7 @@ contract YearnV2Test is Test {
                 abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
