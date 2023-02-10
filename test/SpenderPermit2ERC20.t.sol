@@ -179,7 +179,7 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicSpenderPermit2ERC20PermitToken(permit, sig);
+        logics[0] = _logicPermitToken(user, permit, sig);
 
         // Encode execute
         vm.prank(user);
@@ -193,26 +193,6 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         assertEq(allowanceAmount, amount);
         assertEq(expiration, defaultExpiration);
         assertEq(nonce, 1);
-    }
-
-    function testPermitTokenInvalidSpender() external {
-        // Create signed permit
-        IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(
-            address(mockERC20),
-            defaultAllowanceAmount,
-            address(1),
-            defaultExpiration,
-            defaultNonce
-        );
-        bytes memory sig = getPermitSignature(permit, userPrivateKey, DOMAIN_SEPARATOR);
-
-        // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicSpenderPermit2ERC20PermitToken(permit, sig);
-
-        // Encode execute
-        vm.expectRevert(ISpenderPermit2ERC20.InvalidSpender.selector);
-        router.execute(logics, tokensReturnEmpty);
     }
 
     function testPermitTokens(uint160 amount) external {
@@ -233,7 +213,7 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicSpenderPermit2ERC20PermitTokens(permit, sig);
+        logics[0] = _logicPermitTokens(user, permit, sig);
 
         // Encode execute
         vm.prank(user);
@@ -247,31 +227,6 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         assertEq(allowanceAmount, amount);
         assertEq(expiration, defaultExpiration);
         assertEq(nonce, 1);
-    }
-
-    function testPermitTokensInvalidSpender() external {
-        address[] memory tokens = new address[](1);
-        uint160[] memory amounts = new uint160[](1);
-        tokens[0] = address(mockERC20);
-        amounts[0] = defaultAllowanceAmount;
-
-        // Create signed permit
-        IAllowanceTransfer.PermitBatch memory permit = defaultERC20PermitBatchAllowance(
-            tokens,
-            amounts,
-            address(1),
-            defaultExpiration,
-            defaultNonce
-        );
-        bytes memory sig = getPermitBatchSignature(permit, userPrivateKey, DOMAIN_SEPARATOR);
-
-        // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicSpenderPermit2ERC20PermitTokens(permit, sig);
-
-        // Encode execute
-        vm.expectRevert(ISpenderPermit2ERC20.InvalidSpender.selector);
-        router.execute(logics, tokensReturnEmpty);
     }
 
     function testPullToken(uint160 amountIn) external {
@@ -291,7 +246,7 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = _logicSpenderPermit2ERC20PermitToken(permit, sig);
+        logics[0] = _logicPermitToken(user, permit, sig);
         logics[1] = _logicSpenderPermit2ERC20PullToken(address(tokenIn), amountIn);
 
         // Encode execute
@@ -328,7 +283,7 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = _logicSpenderPermit2ERC20PermitToken(permit, sig);
+        logics[0] = _logicPermitToken(user, permit, sig);
         logics[1] = _logicSpenderPermit2ERC20PullTokens(transferDetails);
 
         // Encode execute
@@ -396,18 +351,6 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         }
         {
             vm.expectRevert(ISpenderPermit2ERC20.InvalidRouter.selector);
-            IAllowanceTransfer.PermitSingle memory permitSingle;
-            bytes memory signature;
-            spender.permitToken(permitSingle, signature);
-        }
-        {
-            vm.expectRevert(ISpenderPermit2ERC20.InvalidRouter.selector);
-            IAllowanceTransfer.PermitBatch memory permitBatch;
-            bytes memory signature;
-            spender.permitTokens(permitBatch, signature);
-        }
-        {
-            vm.expectRevert(ISpenderPermit2ERC20.InvalidRouter.selector);
             spender.pullToken(address(mockERC20), 0);
         }
         {
@@ -430,7 +373,9 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         bytes memory signature
     ) public view returns (IRouter.Logic memory) {
         return
-            _logicBuilder(abi.encodeWithSelector(spender.permitPullToken.selector, permit, transferDetails, signature));
+            _logicBuilderToSpender(
+                abi.encodeWithSelector(spender.permitPullToken.selector, permit, transferDetails, signature)
+            );
     }
 
     function _logicSpenderPermit2ERC20PermitPullTokens(
@@ -439,42 +384,72 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         bytes memory signature
     ) public view returns (IRouter.Logic memory) {
         return
-            _logicBuilder(
+            _logicBuilderToSpender(
                 abi.encodeWithSelector(spender.permitPullTokens.selector, permit, transferDetails, signature)
             );
-    }
-
-    function _logicSpenderPermit2ERC20PermitToken(
-        IAllowanceTransfer.PermitSingle memory permitSingle,
-        bytes memory signature
-    ) public view returns (IRouter.Logic memory) {
-        return _logicBuilder(abi.encodeWithSelector(spender.permitToken.selector, permitSingle, signature));
-    }
-
-    function _logicSpenderPermit2ERC20PermitTokens(
-        IAllowanceTransfer.PermitBatch memory permitBatch,
-        bytes memory signature
-    ) public view returns (IRouter.Logic memory) {
-        return _logicBuilder(abi.encodeWithSelector(spender.permitTokens.selector, permitBatch, signature));
     }
 
     function _logicSpenderPermit2ERC20PullToken(
         address token,
         uint160 amount
     ) public view returns (IRouter.Logic memory) {
-        return _logicBuilder(abi.encodeWithSelector(spender.pullToken.selector, token, amount));
+        return _logicBuilderToSpender(abi.encodeWithSelector(spender.pullToken.selector, token, amount));
     }
 
     function _logicSpenderPermit2ERC20PullTokens(
         IAllowanceTransfer.AllowanceTransferDetails[] memory transferDetails
     ) public view returns (IRouter.Logic memory) {
-        return _logicBuilder(abi.encodeWithSelector(spender.pullTokens.selector, transferDetails));
+        return _logicBuilderToSpender(abi.encodeWithSelector(spender.pullTokens.selector, transferDetails));
     }
 
-    function _logicBuilder(bytes memory data) public view returns (IRouter.Logic memory) {
+    function _logicPermitToken(
+        address owner,
+        IAllowanceTransfer.PermitSingle memory permitSingle,
+        bytes memory signature
+    ) public view returns (IRouter.Logic memory) {
+        /// The permit selector is not unique and must be specified using encodeWithSignature
+        /// abi.encodeWithSelector(permit2.permit.selector, owner, permitSingle, signature)
+        return
+            _logicBuilderToPermit2(
+                abi.encodeWithSignature(
+                    'permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)',
+                    owner,
+                    permitSingle,
+                    signature
+                )
+            );
+    }
+
+    function _logicPermitTokens(
+        address owner,
+        IAllowanceTransfer.PermitBatch memory permitBatch,
+        bytes memory signature
+    ) public view returns (IRouter.Logic memory) {
+        /// The permit selector is not unique and must be specified using encodeWithSignature
+        /// abi.encodeWithSelector(permit2.permit.selector, owner, PermitBatch, signature)
+        return
+            _logicBuilderToPermit2(
+                abi.encodeWithSignature(
+                    'permit(address,((address,uint160,uint48,uint48)[],address,uint256),bytes)',
+                    owner,
+                    permitBatch,
+                    signature
+                )
+            );
+    }
+
+    function _logicBuilderToSpender(bytes memory data) public view returns (IRouter.Logic memory) {
+        return _logicBuilder(address(spender), data);
+    }
+
+    function _logicBuilderToPermit2(bytes memory data) public view returns (IRouter.Logic memory) {
+        return _logicBuilder(permit2Addr, data);
+    }
+
+    function _logicBuilder(address to, bytes memory data) public view returns (IRouter.Logic memory) {
         return
             IRouter.Logic(
-                address(spender), // to
+                to, // to
                 data,
                 inputsEmpty,
                 outputsEmpty,

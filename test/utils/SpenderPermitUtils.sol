@@ -60,8 +60,13 @@ contract SpenderPermitUtils is Test, PermitSignature {
         IRouter.Output[] memory outputsEmpty;
         return
             IRouter.Logic(
-                address(spender), // to
-                abi.encodeWithSelector(spender.permitToken.selector, permit, sig),
+                address(permit2Addr), // to
+                abi.encodeWithSignature(
+                    'permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)',
+                    _user,
+                    permit,
+                    sig
+                ),
                 inputsEmpty,
                 outputsEmpty,
                 address(0) // callback

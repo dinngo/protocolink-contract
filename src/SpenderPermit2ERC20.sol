@@ -48,30 +48,6 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         ISignatureTransfer(permit2).permitTransferFrom(permit, transferDetails, user, signature);
     }
 
-    function permitToken(IAllowanceTransfer.PermitSingle memory permitSingle, bytes calldata signature) external {
-        if (msg.sender != router) revert InvalidRouter();
-        address user = IRouter(router).user();
-
-        if (permitSingle.spender != address(this)) revert InvalidSpender();
-
-        IAllowanceTransfer(permit2).permit(user, permitSingle, signature);
-    }
-
-    function permitTokens(IAllowanceTransfer.PermitBatch memory permitBatch, bytes calldata signature) external {
-        if (msg.sender != router) revert InvalidRouter();
-        address user = IRouter(router).user();
-
-        uint256 permittedLength = permitBatch.details.length;
-        for (uint256 i = 0; i < permittedLength; ) {
-            if (permitBatch.spender != address(this)) revert InvalidSpender();
-            unchecked {
-                ++i;
-            }
-        }
-
-        IAllowanceTransfer(permit2).permit(user, permitBatch, signature);
-    }
-
     function pullToken(address token, uint160 amount) external {
         if (msg.sender != router) revert InvalidRouter();
         address user = IRouter(router).user();

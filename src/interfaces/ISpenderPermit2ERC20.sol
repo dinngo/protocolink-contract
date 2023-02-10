@@ -7,7 +7,6 @@ import {IAllowanceTransfer} from './permit2/IAllowanceTransfer.sol';
 /// @dev Users must approve Permit2 before calling any of the transfer functions.
 interface ISpenderPermit2ERC20 {
     error InvalidRouter();
-    error InvalidSpender();
     error InvalidTransferFrom();
     error InvalidTransferTo();
 
@@ -43,18 +42,6 @@ interface ISpenderPermit2ERC20 {
     /// The user can permit the token to a third party with an allowance for an additional period,
     /// which can then be used directly.
     ///=================================================================
-
-    /// @notice Permit a spender to a given amount of the user token via the user's EIP-712 signature
-    /// @dev May fail if the owner's nonce was invalidated in-flight by invalidateNonce
-    /// @param permitSingle Data signed over by the owner specifying the terms of approval
-    /// @param signature The owner's signature over the permit data
-    function permitToken(IAllowanceTransfer.PermitSingle memory permitSingle, bytes calldata signature) external;
-
-    /// @notice Permit a spender to the signed amounts of the users tokens via the user's EIP-712 signature
-    /// @dev May fail if the owner's nonce was invalidated in-flight by invalidateNonce
-    /// @param permitBatch Data signed over by the owner specifying the terms of approval
-    /// @param signature The owner's signature over the permit data
-    function permitTokens(IAllowanceTransfer.PermitBatch memory permitBatch, bytes calldata signature) external;
 
     /// @notice Pull approved tokens from user to router
     /// @param token The token address to transfer
