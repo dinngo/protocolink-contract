@@ -64,7 +64,6 @@ contract WETHTest is Test {
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = SKIP; // data don't have amount parameter
-        inputs[0].doApprove = false;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](1);
@@ -77,6 +76,7 @@ contract WETHTest is Test {
                 abi.encodeWithSelector(IWETH.deposit.selector),
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }

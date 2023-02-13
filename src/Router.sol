@@ -60,13 +60,19 @@ contract Router is IRouter {
             bytes memory data = logics[i].data;
             Input[] memory inputs = logics[i].inputs;
             Output[] memory outputs = logics[i].outputs;
+            address approveTo = logics[i].approveTo;
             address callback = logics[i].callback;
 
-            // Revert approve sig for soft avoiding giving approval from Router
-            // Revert transferFrom sig for avoiding exploiting user's approval to Router by mistake
+            // Revert approve sig to prevent Router from approving arbitrary address
+            // Revert transferFrom sig to prevent user from mistakenly approving Router and being exploited
             bytes4 sig = bytes4(data);
             if (sig == IERC20.approve.selector || sig == IERC20.transferFrom.selector) {
                 revert InvalidERC20Sig();
+            }
+
+            // Default `approveTo` is same as `to` unless `approveTo` is set
+            if (approveTo == address(0)) {
+                approveTo = to;
             }
 
             // Execute each input if need to modify the amount or do approve
@@ -98,9 +104,12 @@ contract Router is IRouter {
                     }
                 }
 
-                // Approve ERC20 or set native token value
-                if (inputs[j].doApprove) ApproveHelper._approve(token, to, amount);
-                else if (token == _NATIVE) value = amount;
+                // Set native token value or approve ERC20 if `to` isn't the token self
+                if (token == _NATIVE) {
+                    value = amount;
+                } else if (token != approveTo) {
+                    ApproveHelper._approve(token, approveTo, amount);
+                }
 
                 unchecked {
                     j++;
@@ -129,7 +138,10 @@ contract Router is IRouter {
 
             // Reset approval
             for (uint256 j = 0; j < inputsLength; ) {
-                if (inputs[j].doApprove) ApproveHelper._approveZero(inputs[j].token, to);
+                address token = inputs[j].token;
+                if (token != _NATIVE && token != approveTo) {
+                    ApproveHelper._approveZero(token, approveTo);
+                }
 
                 unchecked {
                     j++;

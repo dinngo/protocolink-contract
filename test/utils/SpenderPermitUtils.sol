@@ -69,6 +69,7 @@ contract SpenderPermitUtils is Test, PermitSignature {
                 ),
                 inputsEmpty,
                 outputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -86,6 +87,7 @@ contract SpenderPermitUtils is Test, PermitSignature {
                 abi.encodeWithSelector(spender.pullToken.selector, address(token), amount),
                 inputsEmpty,
                 outputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
