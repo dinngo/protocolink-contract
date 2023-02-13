@@ -207,7 +207,7 @@ contract RouterTest is Test {
 
     function testApproveToIsSet(uint256 amountIn, address approveTo) external {
         vm.assume(amountIn > 0);
-        vm.assume(approveTo != address(0) && approveTo != mockTo);
+        vm.assume(approveTo != address(0) && approveTo != mockTo && approveTo != address(mockERC20));
 
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
