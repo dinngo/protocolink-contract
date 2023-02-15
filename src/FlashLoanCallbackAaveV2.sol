@@ -58,8 +58,8 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
             address asset = assets[i];
             uint256 amountOwing = amounts[i] + premiums[i];
 
-            // Check no excess balance
-            if (IERC20(asset).balanceOf(address(this)) != initBalances[i] + amountOwing) revert ExcessBalance(asset);
+            // Check balance is valid
+            if (IERC20(asset).balanceOf(address(this)) != initBalances[i] + amountOwing) revert InvalidBalance(asset);
 
             // Save gas by only the first user does approve. It's safe since this callback don't hold any asset
             ApproveHelper._approveMax(asset, pool, amountOwing);

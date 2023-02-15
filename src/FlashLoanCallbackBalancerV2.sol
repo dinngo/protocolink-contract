@@ -48,8 +48,8 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
             address token = tokens[i];
             IERC20(token).safeTransfer(balancerV2Vault, amounts[i] + feeAmounts[i]);
 
-            // Check no excess balance
-            if (IERC20(token).balanceOf(address(this)) != initBalances[i]) revert ExcessBalance(token);
+            // Check balance is valid
+            if (IERC20(token).balanceOf(address(this)) != initBalances[i]) revert InvalidBalance(token);
 
             unchecked {
                 i++;

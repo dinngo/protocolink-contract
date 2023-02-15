@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 interface IFlashLoanCallbackBalancerV2 {
     error InvalidCaller();
 
-    error ExcessBalance(address token);
+    error InvalidBalance(address token);
 
     function receiveFlashLoan(
         address[] memory tokens,

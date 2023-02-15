@@ -2,11 +2,11 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
+import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../src/Router.sol';
 import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from '../src/FlashLoanCallbackBalancerV2.sol';
 import {IBalancerV2Vault} from '../src/interfaces/balancerV2/IBalancerV2Vault.sol';
-import {MockERC20} from './mocks/MockERC20.sol';
 
 contract FlashLoanCallbackBalancerV2Test is Test {
     IBalancerV2Vault public constant balancerV2Vault = IBalancerV2Vault(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
@@ -26,7 +26,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
 
         router = new Router();
         flashLoanCallback = new FlashLoanCallbackBalancerV2(address(router), address(balancerV2Vault));
-        mockERC20 = new MockERC20('Mock ERC20', 'mERC20');
+        mockERC20 = new ERC20('mockERC20', 'mock');
 
         vm.label(address(router), 'Router');
         vm.label(address(flashLoanCallback), 'FlashLoanCallbackBalancerV2');
@@ -47,7 +47,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
         vm.stopPrank();
     }
 
-    function testCannotHaveExcessBalance() external {
+    function testCannotHaveInvalidBalance() external {
         address[] memory tokens = new address[](1);
         uint256[] memory amounts = new uint256[](1);
         uint256[] memory feeAmounts = new uint256[](1);
@@ -68,6 +68,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
             abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[0] + feeExcess),
             inputsEmpty,
             outputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
 
@@ -76,7 +77,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
 
         // Execute
         vm.startPrank(address(balancerV2Vault));
-        vm.expectRevert(abi.encodeWithSelector(IFlashLoanCallbackBalancerV2.ExcessBalance.selector, tokens[0]));
+        vm.expectRevert(abi.encodeWithSelector(IFlashLoanCallbackBalancerV2.InvalidBalance.selector, tokens[0]));
         flashLoanCallback.receiveFlashLoan(tokens, amounts, feeAmounts, userData);
         vm.stopPrank();
     }
