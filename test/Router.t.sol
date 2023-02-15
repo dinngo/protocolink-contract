@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
+import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../src/Router.sol';
 import {MockBlank} from './mocks/MockBlank.sol';
 import {ICallback, MockCallback} from './mocks/MockCallback.sol';
@@ -39,6 +39,8 @@ contract RouterTest is Test {
         vm.mockCall(mockTo, 0, abi.encodeWithSignature('dummy()'), new bytes(0));
 
         vm.label(address(router), 'Router');
+        vm.label(address(mockERC20), 'mERC20');
+        vm.label(address(mockCallback), 'mCallback');
     }
 
     function testCannotExecuteByInvalidCallback() external {
