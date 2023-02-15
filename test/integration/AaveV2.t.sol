@@ -136,6 +136,7 @@ contract SpenderAaveV2DelegationTest is Test {
                 abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode),
                 inputsEmpty,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -166,6 +167,7 @@ contract SpenderAaveV2DelegationTest is Test {
                 ),
                 inputsEmpty,
                 outputsEmpty,
+                address(0), // approveTo
                 address(flashLoanCallback) // callback
             );
     }
@@ -184,6 +186,7 @@ contract SpenderAaveV2DelegationTest is Test {
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
                 inputsEmpty,
                 outputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
         }

@@ -15,6 +15,7 @@ contract Router is IRouter {
     address private constant _INIT_CALLBACK = address(2);
     address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     uint256 private constant _BPS_BASE = 10_000;
+    uint256 private constant _SKIP = type(uint256).max;
 
     address public user;
     address private _callback;
@@ -59,40 +60,67 @@ contract Router is IRouter {
             bytes memory data = logics[i].data;
             Input[] memory inputs = logics[i].inputs;
             Output[] memory outputs = logics[i].outputs;
+            address approveTo = logics[i].approveTo;
             address callback = logics[i].callback;
 
-            // Revert approve sig for soft avoiding giving approval from Router
-            // Revert transferFrom sig for avoiding exploiting user's approval to Router by mistake
+            // Revert approve sig to prevent Router from approving arbitrary address
+            // Revert transferFrom sig to prevent user from mistakenly approving Router and being exploited
             bytes4 sig = bytes4(data);
             if (sig == IERC20.approve.selector || sig == IERC20.transferFrom.selector) {
                 revert InvalidERC20Sig();
             }
 
-            // Execute each input
+            // Default `approveTo` is same as `to` unless `approveTo` is set
+            if (approveTo == address(0)) {
+                approveTo = to;
+            }
+
+            // Execute each input if need to modify the amount or do approve
             uint256 value;
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength; ) {
                 address token = inputs[j].token;
-                uint256 amountOffset = inputs[j].amountOffset;
                 uint256 amountBps = inputs[j].amountBps;
 
-                if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
+                // Calculate native or token amount
+                // 1. if amountBps is skip: read amountOrOffset as amount
+                // 2. if amountBps isn't skip: balance multiplied by amountBps as amount
+                // 3. if amountBps isn't skip and amountOrOffset isn't skip:
+                //    => replace the amount at offset equal to amountOrOffset with the calculated amount
+                uint256 amount;
+                if (amountBps == _SKIP) {
+                    amount = inputs[j].amountOrOffset;
+                } else {
+                    if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
+                    amount = (_getBalance(token) * amountBps) / _BPS_BASE;
 
-                // Calculate amount by bps
-                uint256 balance = _getBalance(token);
-                uint256 amount = (balance * amountBps) / _BPS_BASE;
-
-                // Replace amount in data if offset is valid
-                if (amountOffset != type(uint256).max) {
-                    assembly {
-                        let loc := add(add(data, 0x24), amountOffset) // 0x24 = 0x20(length) + 0x4(sig)
-                        mstore(loc, amount)
+                    // Skip if don't need to replace, e.g., most protocols set native amount in call value
+                    uint256 offset = inputs[j].amountOrOffset;
+                    if (offset != _SKIP) {
+                        assembly {
+                            let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
+                            mstore(loc, amount)
+                        }
                     }
                 }
 
-                // Approve ERC20 or set native token value
-                if (inputs[j].doApprove) ApproveHelper._approve(token, to, amount);
-                else if (token == _NATIVE) value = amount;
+                // Set native token value or approve ERC20 if `to` isn't the token self
+                if (token == _NATIVE) {
+                    value = amount;
+                } else if (token != approveTo) {
+                    ApproveHelper._approve(token, approveTo, amount);
+                }
+
+                unchecked {
+                    j++;
+                }
+            }
+
+            // Store initial output token balances
+            uint256 outputsLength = outputs.length;
+            uint256[] memory outputInitBalances = new uint256[](outputsLength);
+            for (uint256 j = 0; j < outputsLength; ) {
+                outputInitBalances[j] = _getBalance(outputs[j].token);
 
                 unchecked {
                     j++;
@@ -110,7 +138,10 @@ contract Router is IRouter {
 
             // Reset approval
             for (uint256 j = 0; j < inputsLength; ) {
-                if (inputs[j].doApprove) ApproveHelper._approveZero(inputs[j].token, to);
+                address token = inputs[j].token;
+                if (token != _NATIVE && token != approveTo) {
+                    ApproveHelper._approveZero(token, approveTo);
+                }
 
                 unchecked {
                     j++;
@@ -118,11 +149,10 @@ contract Router is IRouter {
             }
 
             // Execute each output to hard check the min amounts are expected
-            uint256 outputsLength = outputs.length;
             for (uint256 j = 0; j < outputsLength; ) {
                 address token = outputs[j].token;
                 uint256 amountMin = outputs[j].amountMin;
-                uint256 balance = _getBalance(token);
+                uint256 balance = _getBalance(token) - outputInitBalances[j];
 
                 // Check min amount
                 if (balance < amountMin) revert InsufficientBalance(address(token), amountMin, balance);

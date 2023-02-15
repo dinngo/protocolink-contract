@@ -3,8 +3,9 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {Router, IRouter} from '../../src/Router.sol';
-import {SpenderERC20Approval, ISpenderERC20Approval} from '../../src/SpenderERC20Approval.sol';
+import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
 
 interface IUniswapV2Factory {
     function getPair(address tokenA, address tokenB) external view returns (address pair);
@@ -61,8 +62,9 @@ interface IUniswapV2Router02 {
 }
 
 // Test Uniswap whose Router is not ERC20-compliant token
-contract UniswapV2Test is Test {
+contract UniswapV2Test is Test, SpenderPermitUtils {
     using SafeERC20 for IERC20;
+    using SafeCast160 for uint256;
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     IERC20 public constant WRAPPED_NATIVE = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
@@ -70,29 +72,27 @@ contract UniswapV2Test is Test {
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     IUniswapV2Router02 public constant uniswapRouter02 = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     uint256 public constant BPS_BASE = 10_000;
+    uint256 public constant SKIP = type(uint256).max;
 
     address public user;
+    uint256 public userPrivateKey;
     IRouter public router;
-    ISpenderERC20Approval public spender;
 
     // Empty arrays
     IRouter.Input[] inputsEmpty;
     IRouter.Output[] outputsEmpty;
 
     function setUp() external {
-        user = makeAddr('User');
-
+        (user, userPrivateKey) = makeAddrAndKey('User');
         router = new Router();
-        spender = new SpenderERC20Approval(address(router));
 
-        // User approved spender
-        vm.startPrank(user);
-        USDT.safeApprove(address(spender), type(uint256).max);
-        USDC.safeApprove(address(spender), type(uint256).max);
-        vm.stopPrank();
+        // User permit token
+        spenderSetUp(user, userPrivateKey, router);
+        permitToken(USDT);
+        permitToken(USDC);
 
         vm.label(address(router), 'Router');
-        vm.label(address(spender), 'SpenderERC20Approval');
+        vm.label(address(spender), 'SpenderPermit2ERC20');
         vm.label(NATIVE, 'NATIVE');
         vm.label(address(WRAPPED_NATIVE), 'WrappedNative');
         vm.label(address(USDT), 'USDT');
@@ -107,7 +107,7 @@ contract UniswapV2Test is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicUniswapV2SwapNativeToToken(amountIn, BPS_BASE, tokenOut);
+        logics[0] = _logicUniswapV2SwapNativeToToken(amountIn, SKIP, tokenOut); // Fixed amount
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -127,8 +127,8 @@ contract UniswapV2Test is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
-        logics[1] = _logicUniswapV2SwapTokenToNative(tokenIn, amountIn, BPS_BASE);
+        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
+        logics[1] = _logicUniswapV2SwapTokenToNative(tokenIn, amountIn, SKIP); // Fixed amount
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -149,7 +149,7 @@ contract UniswapV2Test is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
+        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
         logics[1] = _logicUniswapV2Swap(tokenIn, amountIn / BPS_BASE, BPS_BASE, tokenOut);
 
         // Execute
@@ -179,10 +179,10 @@ contract UniswapV2Test is Test {
 
         // Encode logics
         IRouter.Logic[] memory logics = new IRouter.Logic[](5);
-        logics[0] = _logicSpenderERC20Approval(tokenIn0, amountIn0);
+        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn0, amountIn0.toUint160());
         logics[1] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1); // Swap 50% amountIn0 to amountIn1
-        logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, tokenIn1, tokenOut); // Add liquidity with 50% amountIn0 and all amountIn1
-        logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity
+        logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1, tokenOut); // Add liquidity with 50% amountIn0 and all amountIn1
+        logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, 0, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity
         logics[4] = _logicUniswapV2Swap(tokenIn1, amountIn0Half, BPS_BASE, tokenIn0); // 100% balance of tokenIn
 
         // Execute
@@ -197,17 +197,6 @@ contract UniswapV2Test is Test {
         assertEq(tokenIn1.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertApproxEqRel(tokenIn0.balanceOf(user), amountIn0, 0.01 * 1e18);
-    }
-
-    function _logicSpenderERC20Approval(IERC20 tokenIn, uint256 amountIn) public view returns (IRouter.Logic memory) {
-        return
-            IRouter.Logic(
-                address(spender), // to
-                abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
-                inputsEmpty,
-                outputsEmpty,
-                address(0) // callback
-            );
     }
 
     function _logicUniswapV2SwapNativeToToken(
@@ -233,8 +222,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].amountBps = amountBps;
-        inputs[0].amountOffset = type(uint256).max;
-        inputs[0].doApprove = false;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = SKIP;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](1);
@@ -247,6 +236,7 @@ contract UniswapV2Test is Test {
                 data,
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -275,8 +265,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = amountBps;
-        inputs[0].amountOffset = 0;
-        inputs[0].doApprove = true;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = 0;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](1);
@@ -289,6 +279,7 @@ contract UniswapV2Test is Test {
                 data,
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -319,8 +310,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = amountBps;
-        inputs[0].amountOffset = 0;
-        inputs[0].doApprove = true;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = 0;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](1);
@@ -333,6 +324,7 @@ contract UniswapV2Test is Test {
                 data,
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -340,6 +332,7 @@ contract UniswapV2Test is Test {
     function _logicUniswapV2AddLiquidity(
         IERC20 tokenIn0,
         uint256 amountIn0,
+        uint256 amountIn1,
         IERC20 tokenIn1,
         IERC20 tokenOut
     ) public view returns (IRouter.Logic memory) {
@@ -365,10 +358,10 @@ contract UniswapV2Test is Test {
         inputs[1].token = address(tokenIn1);
         inputs[0].amountBps = BPS_BASE;
         inputs[1].amountBps = BPS_BASE;
-        inputs[0].amountOffset = 0x40;
-        inputs[1].amountOffset = 0x60;
-        inputs[0].doApprove = true;
-        inputs[1].doApprove = true;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn0;
+        else inputs[0].amountOrOffset = 0x40;
+        if (inputs[1].amountBps == SKIP) inputs[1].amountOrOffset = amountIn1;
+        else inputs[1].amountOrOffset = 0x60;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](1);
@@ -381,12 +374,14 @@ contract UniswapV2Test is Test {
                 data,
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
 
     function _logicUniswapV2RemoveLiquidity(
         IERC20 tokenIn,
+        uint256 amountIn,
         IERC20 tokenOut0,
         uint256 amountOut0,
         IERC20 tokenOut1
@@ -410,8 +405,8 @@ contract UniswapV2Test is Test {
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = BPS_BASE;
-        inputs[0].amountOffset = 0x40;
-        inputs[0].doApprove = true;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = 0x40;
 
         // Encode outputs
         IRouter.Output[] memory outputs = new IRouter.Output[](2);
@@ -426,6 +421,7 @@ contract UniswapV2Test is Test {
                 data,
                 inputs,
                 outputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
