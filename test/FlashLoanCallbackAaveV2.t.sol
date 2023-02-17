@@ -5,6 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../src/Router.sol';
+import {IParam} from '../src/interfaces/IParam.sol';
 import {FlashLoanCallbackAaveV2, IFlashLoanCallbackAaveV2, IAaveV2Provider} from '../src/FlashLoanCallbackAaveV2.sol';
 
 contract FlashLoanCallbackAaveV2Test is Test {
@@ -17,8 +18,8 @@ contract FlashLoanCallbackAaveV2Test is Test {
 
     // Empty arrays
     address[] tokensReturnEmpty;
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
+    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -61,8 +62,8 @@ contract FlashLoanCallbackAaveV2Test is Test {
         deal(assets[0], address(router), premiumExcess);
 
         // Encode a logic which transfers asset + excess premium to callback
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
             address(assets[0]), // to
             abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[0] + premiumExcess),
             inputsEmpty,

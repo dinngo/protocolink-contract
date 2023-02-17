@@ -25,6 +25,7 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
         bytes calldata userData
     ) external {
         if (msg.sender != balancerV2Vault) revert InvalidCaller();
+        address agent = IRouter(router).getAgent();
 
         // Transfer tokens to Router and record initial balances
         uint256 tokensLength = tokens.length;
@@ -32,7 +33,7 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
         for (uint256 i = 0; i < tokensLength; ) {
             address token = tokens[i];
 
-            IERC20(token).safeTransfer(router, amounts[i]);
+            IERC20(token).safeTransfer(agent, amounts[i]);
             initBalances[i] = IERC20(token).balanceOf(address(this));
 
             unchecked {
@@ -40,8 +41,8 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
             }
         }
 
-        // Call Router::execute
-        router.functionCall(userData, 'ERROR_BALANCER_V2_FLASH_LOAN_CALLBACK');
+        // Call Agent::execute
+        agent.functionCall(userData, 'ERROR_BALANCER_V2_FLASH_LOAN_CALLBACK');
 
         // Repay tokens to Vault
         for (uint256 i = 0; i < tokensLength; ) {

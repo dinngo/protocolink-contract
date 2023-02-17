@@ -5,6 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {Router, IRouter} from '../../src/Router.sol';
+import {IParam} from '../../src/interfaces/IParam.sol';
 import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
 
 interface IUniswapV2Factory {
@@ -79,8 +80,8 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
     IRouter public router;
 
     // Empty arrays
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
+    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
@@ -106,7 +107,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         deal(user, amountIn);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicUniswapV2SwapNativeToToken(amountIn, SKIP, tokenOut); // Fixed amount
 
         // Execute
@@ -126,7 +127,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
         logics[1] = _logicUniswapV2SwapTokenToNative(tokenIn, amountIn, SKIP); // Fixed amount
 
@@ -148,7 +149,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
         logics[1] = _logicUniswapV2Swap(tokenIn, amountIn / BPS_BASE, BPS_BASE, tokenOut);
 
@@ -178,7 +179,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         deal(address(tokenIn0), user, amountIn0);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](5);
+        IParam.Logic[] memory logics = new IParam.Logic[](5);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn0, amountIn0.toUint160());
         logics[1] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1); // Swap 50% amountIn0 to amountIn1
         logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1, tokenOut); // Add liquidity with 50% amountIn0 and all amountIn1
@@ -203,7 +204,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         uint256 amountIn,
         uint256 amountBps,
         IERC20 tokenOut
-    ) public view returns (IRouter.Logic memory) {
+    ) public view returns (IParam.Logic memory) {
         // Encode data
         address[] memory path = new address[](2);
         path[0] = address(WRAPPED_NATIVE);
@@ -219,19 +220,19 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         );
 
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = SKIP;
 
         // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        IParam.Output[] memory outputs = new IParam.Output[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amountMin = amountMin;
 
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
@@ -245,7 +246,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         IERC20 tokenIn,
         uint256 amountIn,
         uint256 amountBps
-    ) public view returns (IRouter.Logic memory) {
+    ) public view returns (IParam.Logic memory) {
         // Encode data
         address[] memory path = new address[](2);
         path[0] = address(tokenIn);
@@ -262,19 +263,19 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         );
 
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
 
         // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        IParam.Output[] memory outputs = new IParam.Output[](1);
         outputs[0].token = NATIVE;
         outputs[0].amountMin = amountMin;
 
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
@@ -289,7 +290,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         uint256 amountIn,
         uint256 amountBps,
         IERC20 tokenOut
-    ) public view returns (IRouter.Logic memory) {
+    ) public view returns (IParam.Logic memory) {
         // At least get 99% tokenIn since both are stablecoins
         uint256 amountMin = (amountIn * 9_900) / BPS_BASE;
 
@@ -307,19 +308,19 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         );
 
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
 
         // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        IParam.Output[] memory outputs = new IParam.Output[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amountMin = amountMin;
 
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
@@ -335,7 +336,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         uint256 amountIn1,
         IERC20 tokenIn1,
         IERC20 tokenOut
-    ) public view returns (IRouter.Logic memory) {
+    ) public view returns (IParam.Logic memory) {
         // At least adds 98% token0 to liquidity
         uint256 amountIn0Min = (amountIn0 * 9_800) / BPS_BASE;
 
@@ -353,7 +354,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         );
 
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](2);
+        IParam.Input[] memory inputs = new IParam.Input[](2);
         inputs[0].token = address(tokenIn0);
         inputs[1].token = address(tokenIn1);
         inputs[0].amountBps = BPS_BASE;
@@ -364,12 +365,12 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         else inputs[1].amountOrOffset = 0x60;
 
         // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        IParam.Output[] memory outputs = new IParam.Output[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amountMin = 1; // FIXME: should calculate the expected min amount
 
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
@@ -385,7 +386,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         IERC20 tokenOut0,
         uint256 amountOut0,
         IERC20 tokenOut1
-    ) public view returns (IRouter.Logic memory) {
+    ) public view returns (IParam.Logic memory) {
         // At least returns 98% token0 from liquidity
         uint256 amountOut0Min = (amountOut0 * 9_800) / BPS_BASE;
 
@@ -402,21 +403,21 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         );
 
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = BPS_BASE;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0x40;
 
         // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](2);
+        IParam.Output[] memory outputs = new IParam.Output[](2);
         outputs[0].token = address(tokenOut0);
         outputs[1].token = address(tokenOut1);
         outputs[0].amountMin = amountOut0Min;
         outputs[0].amountMin = 1; // FIXME: should calculate the expected min amount
 
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,

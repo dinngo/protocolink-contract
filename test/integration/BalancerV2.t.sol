@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../../src/Router.sol';
+import {IParam} from '../../src/interfaces/IParam.sol';
 import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from '../../src/FlashLoanCallbackBalancerV2.sol';
 import {IBalancerV2Vault} from '../../src/interfaces/balancerV2/IBalancerV2Vault.sol';
 
@@ -19,8 +20,8 @@ contract FlashLoanCallbackBalancerV2Test is Test {
 
     // Empty arrays
     address[] tokensReturnEmpty;
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
+    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -47,7 +48,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
         amounts[0] = amountIn;
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicBalancerV2FlashLoan(tokens, amounts);
 
         // Execute
@@ -62,13 +63,13 @@ contract FlashLoanCallbackBalancerV2Test is Test {
     function _logicBalancerV2FlashLoan(
         address[] memory tokens,
         uint256[] memory amounts
-    ) public view returns (IRouter.Logic memory) {
+    ) public view returns (IParam.Logic memory) {
         // Encode logic
         address receiver = address(flashLoanCallback);
         bytes memory userData = _encodeExecute(tokens, amounts);
 
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(balancerV2Vault), // to
                 abi.encodeWithSelector(IBalancerV2Vault.flashLoan.selector, receiver, tokens, amounts, userData),
                 inputsEmpty,
@@ -80,10 +81,10 @@ contract FlashLoanCallbackBalancerV2Test is Test {
 
     function _encodeExecute(address[] memory tokens, uint256[] memory amounts) public view returns (bytes memory) {
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](tokens.length);
+        IParam.Logic[] memory logics = new IParam.Logic[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             // Encode transfering token to the flash loan callback
-            logics[i] = IRouter.Logic(
+            logics[i] = IParam.Logic(
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i]),
                 inputsEmpty,

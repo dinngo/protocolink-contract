@@ -5,6 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {Router, IRouter} from '../src/Router.sol';
+import {IParam} from '../src/interfaces/IParam.sol';
 import {SpenderERC20Approval, ISpenderERC20Approval} from '../src/SpenderERC20Approval.sol';
 
 contract SpenderERC20ApprovalTest is Test {
@@ -15,8 +16,8 @@ contract SpenderERC20ApprovalTest is Test {
     ISpenderERC20Approval public spender;
     IERC20 public mockERC20;
 
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
+    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -42,7 +43,7 @@ contract SpenderERC20ApprovalTest is Test {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
 
         // Execute
@@ -62,10 +63,10 @@ contract SpenderERC20ApprovalTest is Test {
         deal(address(mockERC20), user, amount);
 
         vm.startPrank(user);
-        vm.expectRevert(ISpenderERC20Approval.InvalidRouter.selector);
+        vm.expectRevert(ISpenderERC20Approval.InvalidAgent.selector);
         spender.pullToken(address(mockERC20), amount);
 
-        vm.expectRevert(ISpenderERC20Approval.InvalidRouter.selector);
+        vm.expectRevert(ISpenderERC20Approval.InvalidAgent.selector);
         address[] memory tokens = new address[](1);
         uint256[] memory amounts = new uint256[](1);
         tokens[0] = address(mockERC20);
@@ -74,9 +75,9 @@ contract SpenderERC20ApprovalTest is Test {
         vm.stopPrank();
     }
 
-    function _logicSpenderERC20Approval(IERC20 tokenIn, uint256 amountIn) public view returns (IRouter.Logic memory) {
+    function _logicSpenderERC20Approval(IERC20 tokenIn, uint256 amountIn) public view returns (IParam.Logic memory) {
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(spender), // to
                 abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
                 inputsEmpty,

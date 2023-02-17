@@ -9,6 +9,11 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
     address public immutable router;
     address public immutable permit2;
 
+    modifier isAgent() {
+        if (msg.sender != IRouter(router).getAgent()) revert InvalidAgent();
+        _;
+    }
+
     constructor(address router_, address permit2_) {
         router = router_;
         permit2 = permit2_;
@@ -20,11 +25,10 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         ISignatureTransfer.PermitTransferFrom memory permit,
         ISignatureTransfer.SignatureTransferDetails calldata transferDetails,
         bytes calldata signature
-    ) external {
-        if (msg.sender != router) revert InvalidRouter();
+    ) external isAgent {
         address user = IRouter(router).user();
 
-        if (transferDetails.to != router) revert InvalidTransferTo();
+        if (transferDetails.to != msg.sender) revert InvalidTransferTo();
 
         ISignatureTransfer(permit2).permitTransferFrom(permit, transferDetails, user, signature);
     }
@@ -33,13 +37,12 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         ISignatureTransfer.PermitBatchTransferFrom memory permit,
         ISignatureTransfer.SignatureTransferDetails[] calldata transferDetails,
         bytes calldata signature
-    ) external {
-        if (msg.sender != router) revert InvalidRouter();
+    ) external isAgent {
         address user = IRouter(router).user();
 
         uint256 permittedLength = permit.permitted.length;
         for (uint256 i = 0; i < permittedLength; ) {
-            if (transferDetails[i].to != router) revert InvalidTransferTo();
+            if (transferDetails[i].to != msg.sender) revert InvalidTransferTo();
             unchecked {
                 ++i;
             }
@@ -48,21 +51,19 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         ISignatureTransfer(permit2).permitTransferFrom(permit, transferDetails, user, signature);
     }
 
-    function pullToken(address token, uint160 amount) external {
-        if (msg.sender != router) revert InvalidRouter();
+    function pullToken(address token, uint160 amount) external isAgent {
         address user = IRouter(router).user();
 
-        IAllowanceTransfer(permit2).transferFrom(user, router, amount, token);
+        IAllowanceTransfer(permit2).transferFrom(user, msg.sender, amount, token);
     }
 
-    function pullTokens(IAllowanceTransfer.AllowanceTransferDetails[] calldata transferDetails) external {
-        if (msg.sender != router) revert InvalidRouter();
+    function pullTokens(IAllowanceTransfer.AllowanceTransferDetails[] calldata transferDetails) external isAgent {
         address user = IRouter(router).user();
 
         uint256 detailsLength = transferDetails.length;
         for (uint256 i = 0; i < detailsLength; ) {
             if (transferDetails[i].from != user) revert InvalidTransferFrom();
-            if (transferDetails[i].to != router) revert InvalidTransferTo();
+            if (transferDetails[i].to != msg.sender) revert InvalidTransferTo();
             unchecked {
                 i++;
             }

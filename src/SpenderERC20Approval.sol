@@ -11,21 +11,24 @@ contract SpenderERC20Approval is ISpenderERC20Approval {
 
     address public immutable router;
 
+    modifier isAgent() {
+        if (msg.sender != IRouter(router).getAgent()) revert InvalidAgent();
+        _;
+    }
+
     constructor(address router_) {
         router = router_;
     }
 
     /// @notice Router asks to transfer tokens from the user
     /// @dev Router must guarantee that the public user is msg.sender who called Router.
-    function pullToken(address token, uint256 amount) external {
-        if (msg.sender != router) revert InvalidRouter();
+    function pullToken(address token, uint256 amount) external isAgent {
         address user = IRouter(router).user();
 
         _pull(token, amount, user);
     }
 
-    function pullTokens(address[] calldata tokens, uint256[] calldata amounts) external {
-        if (msg.sender != router) revert InvalidRouter();
+    function pullTokens(address[] calldata tokens, uint256[] calldata amounts) external isAgent {
         address user = IRouter(router).user();
 
         uint256 tokensLength = tokens.length;
@@ -40,6 +43,6 @@ contract SpenderERC20Approval is ISpenderERC20Approval {
     }
 
     function _pull(address token, uint256 amount, address user) private {
-        IERC20(token).safeTransferFrom(user, router, amount);
+        IERC20(token).safeTransferFrom(user, msg.sender, amount);
     }
 }

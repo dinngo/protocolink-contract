@@ -5,6 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../src/Router.sol';
+import {IParam} from '../src/interfaces/IParam.sol';
 import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from '../src/FlashLoanCallbackBalancerV2.sol';
 import {IBalancerV2Vault} from '../src/interfaces/balancerV2/IBalancerV2Vault.sol';
 
@@ -18,8 +19,8 @@ contract FlashLoanCallbackBalancerV2Test is Test {
 
     // Empty arrays
     address[] tokensReturnEmpty;
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
+    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -62,8 +63,8 @@ contract FlashLoanCallbackBalancerV2Test is Test {
         deal(tokens[0], address(router), feeExcess);
 
         // Encode a logic which transfers token + excess fee to callback
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
             address(tokens[0]), // to
             abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[0] + feeExcess),
             inputsEmpty,

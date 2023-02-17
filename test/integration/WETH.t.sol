@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../../src/Router.sol';
+import {IParam} from '../../src/interfaces/IParam.sol';
 
 interface IWETH {
     function deposit() external payable;
@@ -37,7 +38,7 @@ contract WETHTest is Test {
         deal(user, amountIn + 1 ether);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicWETHDeposit(amountIn, BPS_BASE / 2, tokenOut); // 50% amount
 
         // Execute
@@ -57,21 +58,21 @@ contract WETHTest is Test {
         uint256 amountIn,
         uint256 amountBps,
         IERC20 tokenOut
-    ) public pure returns (IRouter.Logic memory) {
+    ) public pure returns (IParam.Logic memory) {
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = SKIP; // data don't have amount parameter
 
         // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        IParam.Output[] memory outputs = new IParam.Output[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amountMin = (amountIn * amountBps) / BPS_BASE;
 
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(WETH), // to
                 abi.encodeWithSelector(IWETH.deposit.selector),
                 inputs,

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../../src/Router.sol';
+import {IParam} from '../../src/interfaces/IParam.sol';
 import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
 
 interface IYVault {
@@ -26,8 +27,8 @@ contract YearnV2Test is Test, SpenderPermitUtils {
     IRouter public router;
 
     // Empty arrays
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
+    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
@@ -50,7 +51,7 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, uint160(amountIn));
         logics[1] = _logicYearn(tokenIn, amountIn, BPS_BASE, tokenOut);
 
@@ -70,24 +71,24 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         uint256 amountIn,
         uint256 amountBps,
         IERC20 tokenOut
-    ) public pure returns (IRouter.Logic memory) {
+    ) public pure returns (IParam.Logic memory) {
         // FIXME: it's relaxed amountMin = amountIn * 90%
         uint256 amountMin = (amountIn * 9_000) / BPS_BASE;
 
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
 
         // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        IParam.Output[] memory outputs = new IParam.Output[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amountMin = amountMin;
 
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(yVault), // to
                 abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
                 inputs,

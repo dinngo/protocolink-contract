@@ -50,7 +50,7 @@ contract SpenderAaveV2DelegationTest is Test {
         deal(address(mockERC20Debt), user, amount);
 
         vm.startPrank(user);
-        vm.expectRevert(ISpenderAaveV2Delegation.InvalidRouter.selector);
+        vm.expectRevert(ISpenderAaveV2Delegation.InvalidAgent.selector);
         spender.borrow(address(mockERC20Debt), amount, uint256(InterestRateMode.VARIABLE));
         vm.stopPrank();
     }

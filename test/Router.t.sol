@@ -4,7 +4,9 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {Agent, IAgent} from '../src/Agent.sol';
 import {Router, IRouter} from '../src/Router.sol';
+import {IParam} from '../src/interfaces/IParam.sol';
 import {ICallback, MockCallback} from './mocks/MockCallback.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
 
@@ -22,8 +24,8 @@ contract RouterTest is Test {
 
     // Empty arrays
     address[] tokensReturnEmpty;
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
+    IParam.Output[] outputsEmpty;
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
@@ -42,8 +44,8 @@ contract RouterTest is Test {
     }
 
     function testCannotExecuteByInvalidCallback() external {
-        IRouter.Logic[] memory callbacks = new IRouter.Logic[](1);
-        callbacks[0] = IRouter.Logic(
+        IParam.Logic[] memory callbacks = new IParam.Logic[](1);
+        callbacks[0] = IParam.Logic(
             address(mockFallback), // to
             '',
             inputsEmpty,
@@ -52,8 +54,8 @@ contract RouterTest is Test {
             address(0) // callback
         );
         bytes memory data = abi.encodeWithSelector(IRouter.execute.selector, callbacks, tokensReturnEmpty);
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
             address(mockCallback),
             abi.encodeWithSelector(ICallback.callback.selector, data),
             inputsEmpty,
@@ -61,13 +63,13 @@ contract RouterTest is Test {
             address(0), // approveTo
             address(router) // callback
         );
-        vm.expectRevert(IRouter.InvalidCallback.selector);
+        vm.expectRevert(IAgent.InvalidCallback.selector);
         router.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotEncodeApproveSig() external {
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
             address(mockERC20), // to
             abi.encodeWithSelector(IERC20.approve.selector, user, 0),
             inputsEmpty,
@@ -76,13 +78,13 @@ contract RouterTest is Test {
             address(0) // callback
         );
 
-        vm.expectRevert(IRouter.InvalidERC20Sig.selector);
+        vm.expectRevert(IAgent.InvalidERC20Sig.selector);
         router.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotEncodeTransferFromSig() external {
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
             address(mockERC20), // to
             abi.encodeWithSelector(IERC20.transferFrom.selector, user, 0),
             inputsEmpty,
@@ -91,21 +93,21 @@ contract RouterTest is Test {
             address(0) // callback
         );
 
-        vm.expectRevert(IRouter.InvalidERC20Sig.selector);
+        vm.expectRevert(IAgent.InvalidERC20Sig.selector);
         router.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotBeInvalidBps() external {
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
 
         // Revert if amountBps = 0
-        inputs[0] = IRouter.Input(
+        inputs[0] = IParam.Input(
             address(0),
             0, // amountBps
             0 // amountOrOffset
         );
-        logics[0] = IRouter.Logic(
+        logics[0] = IParam.Logic(
             address(0), // to
             '',
             inputs,
@@ -113,16 +115,16 @@ contract RouterTest is Test {
             address(0), // approveTo
             address(0) // callback
         );
-        vm.expectRevert(IRouter.InvalidBps.selector);
+        vm.expectRevert(IAgent.InvalidBps.selector);
         router.execute(logics, tokensReturnEmpty);
 
         // Revert if amountBps = BPS_BASE + 1
-        inputs[0] = IRouter.Input(
+        inputs[0] = IParam.Input(
             address(0),
             BPS_BASE + 1, // amountBps
             0 // amountOrOffset
         );
-        logics[0] = IRouter.Logic(
+        logics[0] = IParam.Logic(
             address(0), // to
             '',
             inputs,
@@ -130,13 +132,13 @@ contract RouterTest is Test {
             address(0), // approveTo
             address(0) // callback
         );
-        vm.expectRevert(IRouter.InvalidBps.selector);
+        vm.expectRevert(IAgent.InvalidBps.selector);
         router.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotUnresetCallback() external {
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
             address(mockFallback), // to
             '',
             inputsEmpty,
@@ -144,25 +146,24 @@ contract RouterTest is Test {
             address(0), // approveTo
             address(router) // callback
         );
-        vm.expectRevert(IRouter.UnresetCallback.selector);
+        vm.expectRevert(IAgent.UnresetCallback.selector);
         router.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotReceiveLessOutputToken() external {
         IERC20 tokenOut = mockERC20;
         uint256 amountMin = 1 ether;
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Output[] memory outputs = new IParam.Output[](1);
 
         // Output token already exists in router
         deal(address(tokenOut), address(router), 10 ether);
 
-        outputs[0] = IRouter.Output(address(tokenOut), amountMin);
+        outputs[0] = IParam.Output(address(tokenOut), amountMin);
 
         // Receive 0 output token
-        logics[0] = IRouter.Logic(
+        logics[0] = IParam.Logic(
             address(mockFallback), // to
-            '',
             inputsEmpty,
             outputs,
             address(0), // approveTo
@@ -172,22 +173,22 @@ contract RouterTest is Test {
         // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
-        vm.expectRevert(abi.encodeWithSelector(IRouter.InsufficientBalance.selector, address(tokenOut), amountMin, 0));
+        vm.expectRevert(abi.encodeWithSelector(IAgent.InsufficientBalance.selector, address(tokenOut), amountMin, 0));
         router.execute(logics, tokensReturn);
     }
 
     function testApproveToIsDefault(uint256 amountIn) external {
         vm.assume(amountIn > 0);
 
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
 
-        inputs[0] = IRouter.Input(
+        inputs[0] = IParam.Input(
             address(mockERC20),
             SKIP, // amountBps
             amountIn // amountOrOffset
         );
-        logics[0] = IRouter.Logic(
+        logics[0] = IParam.Logic(
             address(mockFallback), // to
             '',
             inputs,
@@ -209,15 +210,15 @@ contract RouterTest is Test {
         vm.assume(amountIn > 0);
         vm.assume(approveTo != address(0) && approveTo != mockFallback && approveTo != address(mockERC20));
 
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
 
-        inputs[0] = IRouter.Input(
+        inputs[0] = IParam.Input(
             address(mockERC20),
             SKIP, // amountBps
             amountIn // amountOrOffset
         );
-        logics[0] = IRouter.Logic(
+        logics[0] = IParam.Logic(
             address(mockFallback), // to
             '',
             inputs,
