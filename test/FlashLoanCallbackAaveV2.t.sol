@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {Router, IRouter} from '../src/Router.sol';
+import {IAgent} from '../src/interfaces/IAgent.sol';
 import {IParam} from '../src/interfaces/IParam.sol';
 import {FlashLoanCallbackAaveV2, IFlashLoanCallbackAaveV2, IAaveV2Provider} from '../src/FlashLoanCallbackAaveV2.sol';
 
@@ -12,7 +12,8 @@ contract FlashLoanCallbackAaveV2Test is Test {
     IAaveV2Provider public constant aaveV2Provider = IAaveV2Provider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
 
     address public user;
-    IRouter public router;
+    address public router;
+    address public agent;
     IFlashLoanCallbackAaveV2 public flashLoanCallback;
     IERC20 public mockERC20;
 
@@ -23,12 +24,17 @@ contract FlashLoanCallbackAaveV2Test is Test {
 
     function setUp() external {
         user = makeAddr('User');
+        // Setup router and agent mock
+        router = makeAddr('Router');
+        vm.etch(router, 'code');
+        agent = makeAddr('Agent');
+        vm.etch(agent, 'code');
 
-        router = new Router();
-        flashLoanCallback = new FlashLoanCallbackAaveV2(address(router), address(aaveV2Provider));
+        flashLoanCallback = new FlashLoanCallbackAaveV2(router, address(aaveV2Provider));
         mockERC20 = new ERC20('mockERC20', 'mock');
 
-        vm.label(address(router), 'Router');
+        // Return activated agent from router
+        vm.mockCall(router, 0, abi.encodeWithSignature('getAgent()'), abi.encode(agent));
         vm.label(address(flashLoanCallback), 'FlashLoanCallbackAaveV2');
         vm.label(address(aaveV2Provider), 'AaveV2Provider');
         vm.label(address(mockERC20), 'mERC20');
@@ -59,7 +65,7 @@ contract FlashLoanCallbackAaveV2Test is Test {
 
         // Airdrop asset and excess premium to Router
         deal(assets[0], address(flashLoanCallback), amounts[0] + 10); // Assume someone deliberately donates 10 assets to callback in advanced
-        deal(assets[0], address(router), premiumExcess);
+        deal(assets[0], agent, premiumExcess);
 
         // Encode a logic which transfers asset + excess premium to callback
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -73,7 +79,7 @@ contract FlashLoanCallbackAaveV2Test is Test {
         );
 
         // Encode execute data
-        bytes memory params = abi.encodeWithSelector(IRouter.execute.selector, logics, tokensReturnEmpty);
+        bytes memory params = abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty);
 
         // Execute
         vm.startPrank(aaveV2Provider.getLendingPool());
