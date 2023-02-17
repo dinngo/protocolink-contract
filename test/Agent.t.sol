@@ -10,14 +10,15 @@ import {IParam} from '../src/interfaces/IParam.sol';
 import {ICallback, MockCallback} from './mocks/MockCallback.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
 
-contract RouterTest is Test {
+contract AgentTest is Test {
     using SafeERC20 for IERC20;
 
     uint256 public constant BPS_BASE = 10_000;
     uint256 public constant SKIP = type(uint256).max;
 
     address public user;
-    IRouter public router;
+    address public router;
+    IAgent public agent;
     IERC20 public mockERC20;
     ICallback public mockCallback;
     address public mockFallback;
@@ -31,13 +32,15 @@ contract RouterTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
+        router = makeAddr('Router');
 
-        router = new Router();
+        vm.prank(router);
+        agent = new Agent();
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockCallback = new MockCallback();
         mockFallback = address(new MockFallback());
 
-        vm.label(address(router), 'Router');
+        vm.label(address(agent), 'Agent');
         vm.label(address(mockERC20), 'mERC20');
         vm.label(address(mockCallback), 'mCallback');
         vm.label(address(mockFallback), 'mFallback');
@@ -64,7 +67,8 @@ contract RouterTest is Test {
             address(router) // callback
         );
         vm.expectRevert(IAgent.InvalidCallback.selector);
-        router.execute(logics, tokensReturnEmpty);
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotEncodeApproveSig() external {
@@ -79,7 +83,8 @@ contract RouterTest is Test {
         );
 
         vm.expectRevert(IAgent.InvalidERC20Sig.selector);
-        router.execute(logics, tokensReturnEmpty);
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotEncodeTransferFromSig() external {
@@ -94,7 +99,8 @@ contract RouterTest is Test {
         );
 
         vm.expectRevert(IAgent.InvalidERC20Sig.selector);
-        router.execute(logics, tokensReturnEmpty);
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotBeInvalidBps() external {
@@ -116,7 +122,8 @@ contract RouterTest is Test {
             address(0) // callback
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
-        router.execute(logics, tokensReturnEmpty);
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
 
         // Revert if amountBps = BPS_BASE + 1
         inputs[0] = IParam.Input(
@@ -133,7 +140,8 @@ contract RouterTest is Test {
             address(0) // callback
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
-        router.execute(logics, tokensReturnEmpty);
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotUnresetCallback() external {
@@ -144,10 +152,11 @@ contract RouterTest is Test {
             inputsEmpty,
             outputsEmpty,
             address(0), // approveTo
-            address(router) // callback
+            address(mockCallback) // callback
         );
         vm.expectRevert(IAgent.UnresetCallback.selector);
-        router.execute(logics, tokensReturnEmpty);
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotReceiveLessOutputToken() external {
@@ -174,7 +183,8 @@ contract RouterTest is Test {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.expectRevert(abi.encodeWithSelector(IAgent.InsufficientBalance.selector, address(tokenOut), amountMin, 0));
-        router.execute(logics, tokensReturn);
+        vm.prank(router);
+        agent.execute(logics, tokensReturn);
     }
 
     function testApproveToIsDefault(uint256 amountIn) external {
@@ -199,11 +209,11 @@ contract RouterTest is Test {
 
         // Execute
         vm.expectEmit(true, true, true, true, address(mockERC20));
-        emit Approval(address(router), address(mockFallback), amountIn);
+        emit Approval(address(agent), address(mockFallback), amountIn);
         vm.expectEmit(true, true, true, true, address(mockERC20));
-        emit Approval(address(router), address(mockFallback), 0);
-        vm.prank(user);
-        router.execute(logics, tokensReturnEmpty);
+        emit Approval(address(agent), address(mockFallback), 0);
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
     }
 
     function testApproveToIsSet(uint256 amountIn, address approveTo) external {
@@ -229,10 +239,10 @@ contract RouterTest is Test {
 
         // Execute
         vm.expectEmit(true, true, true, true, address(mockERC20));
-        emit Approval(address(router), approveTo, amountIn);
+        emit Approval(address(agent), approveTo, amountIn);
         vm.expectEmit(true, true, true, true, address(mockERC20));
-        emit Approval(address(router), approveTo, 0);
-        vm.prank(user);
-        router.execute(logics, tokensReturnEmpty);
+        emit Approval(address(agent), approveTo, 0);
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
     }
 }
