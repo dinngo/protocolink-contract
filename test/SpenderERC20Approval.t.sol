@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
-import {Router, IRouter} from '../src/Router.sol';
+import {IAgent} from '../src/interfaces/IAgent.sol';
 import {IParam} from '../src/interfaces/IParam.sol';
 import {SpenderERC20Approval, ISpenderERC20Approval} from '../src/SpenderERC20Approval.sol';
 
@@ -12,7 +12,8 @@ contract SpenderERC20ApprovalTest is Test {
     using SafeERC20 for IERC20;
 
     address public user;
-    IRouter public router;
+    address public router;
+    address public agent;
     ISpenderERC20Approval public spender;
     IERC20 public mockERC20;
 
@@ -21,9 +22,13 @@ contract SpenderERC20ApprovalTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
+        // Setup router and agent mock
+        router = makeAddr('Router');
+        vm.etch(router, 'code');
+        agent = makeAddr('Agent');
+        vm.etch(agent, 'code');
 
-        router = new Router();
-        spender = new SpenderERC20Approval(address(router));
+        spender = new SpenderERC20Approval(router);
         mockERC20 = new ERC20('Mock ERC20', 'mERC20');
 
         // User approved spender
@@ -31,30 +36,23 @@ contract SpenderERC20ApprovalTest is Test {
         mockERC20.safeApprove(address(spender), type(uint256).max);
         vm.stopPrank();
 
-        vm.label(address(router), 'Router');
+        // Return activated agent from router
+        vm.mockCall(router, 0, abi.encodeWithSignature('user()'), abi.encode(user));
+        vm.mockCall(router, 0, abi.encodeWithSignature('getAgent()'), abi.encode(agent));
         vm.label(address(spender), 'SpenderERC20Approval');
         vm.label(address(mockERC20), 'mERC20');
     }
 
     function testPullToken(uint256 amountIn) external {
         IERC20 tokenIn = mockERC20;
-        IERC20 tokenOut = mockERC20;
         amountIn = bound(amountIn, 1e1, 1e12);
         deal(address(tokenIn), user, amountIn);
+        vm.prank(agent);
+        spender.pullToken(address(tokenIn), amountIn);
 
-        // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicSpenderERC20Approval(tokenIn, amountIn);
-
-        // Execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(tokenOut);
-        vm.prank(user);
-        router.execute(logics, tokensReturn);
-
+        assertEq(tokenIn.balanceOf(address(spender)), 0);
         assertEq(tokenIn.balanceOf(address(router)), 0);
-        assertEq(tokenOut.balanceOf(address(router)), 0);
-        assertGt(tokenOut.balanceOf(user), 0);
+        assertEq(tokenIn.balanceOf(address(agent)), amountIn);
     }
 
     // Cannot call spender directly
