@@ -5,8 +5,8 @@ import {Test} from 'forge-std/Test.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../src/Router.sol';
-import {MockBlank} from './mocks/MockBlank.sol';
 import {ICallback, MockCallback} from './mocks/MockCallback.sol';
+import {MockFallback} from './mocks/MockFallback.sol';
 
 contract RouterTest is Test {
     using SafeERC20 for IERC20;
@@ -18,7 +18,7 @@ contract RouterTest is Test {
     IRouter public router;
     IERC20 public mockERC20;
     ICallback public mockCallback;
-    address public mockTo;
+    address public mockFallback;
 
     // Empty arrays
     address[] tokensReturnEmpty;
@@ -33,21 +33,19 @@ contract RouterTest is Test {
         router = new Router();
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockCallback = new MockCallback();
-        mockTo = address(new MockBlank());
-
-        // Mock `Logic.to`
-        vm.mockCall(mockTo, 0, abi.encodeWithSignature('dummy()'), new bytes(0));
+        mockFallback = address(new MockFallback());
 
         vm.label(address(router), 'Router');
         vm.label(address(mockERC20), 'mERC20');
         vm.label(address(mockCallback), 'mCallback');
+        vm.label(address(mockFallback), 'mFallback');
     }
 
     function testCannotExecuteByInvalidCallback() external {
         IRouter.Logic[] memory callbacks = new IRouter.Logic[](1);
         callbacks[0] = IRouter.Logic(
-            address(mockTo), // to
-            abi.encodeWithSignature('dummy()'),
+            address(mockFallback), // to
+            '',
             inputsEmpty,
             outputsEmpty,
             address(0), // approveTo
@@ -139,8 +137,8 @@ contract RouterTest is Test {
     function testCannotUnresetCallback() external {
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
         logics[0] = IRouter.Logic(
-            address(mockTo), // to
-            abi.encodeWithSignature('dummy()'),
+            address(mockFallback), // to
+            '',
             inputsEmpty,
             outputsEmpty,
             address(0), // approveTo
@@ -163,8 +161,8 @@ contract RouterTest is Test {
 
         // Receive 0 output token
         logics[0] = IRouter.Logic(
-            address(mockTo), // to
-            abi.encodeWithSignature('dummy()'),
+            address(mockFallback), // to
+            '',
             inputsEmpty,
             outputs,
             address(0), // approveTo
@@ -190,8 +188,8 @@ contract RouterTest is Test {
             amountIn // amountOrOffset
         );
         logics[0] = IRouter.Logic(
-            address(mockTo), // to
-            abi.encodeWithSignature('dummy()'),
+            address(mockFallback), // to
+            '',
             inputs,
             outputsEmpty,
             address(0), // approveTo
@@ -200,16 +198,16 @@ contract RouterTest is Test {
 
         // Execute
         vm.expectEmit(true, true, true, true, address(mockERC20));
-        emit Approval(address(router), address(mockTo), amountIn);
+        emit Approval(address(router), address(mockFallback), amountIn);
         vm.expectEmit(true, true, true, true, address(mockERC20));
-        emit Approval(address(router), address(mockTo), 0);
+        emit Approval(address(router), address(mockFallback), 0);
         vm.prank(user);
         router.execute(logics, tokensReturnEmpty);
     }
 
     function testApproveToIsSet(uint256 amountIn, address approveTo) external {
         vm.assume(amountIn > 0);
-        vm.assume(approveTo != address(0) && approveTo != mockTo && approveTo != address(mockERC20));
+        vm.assume(approveTo != address(0) && approveTo != mockFallback && approveTo != address(mockERC20));
 
         IRouter.Logic[] memory logics = new IRouter.Logic[](1);
         IRouter.Input[] memory inputs = new IRouter.Input[](1);
@@ -220,8 +218,8 @@ contract RouterTest is Test {
             amountIn // amountOrOffset
         );
         logics[0] = IRouter.Logic(
-            address(mockTo), // to
-            abi.encodeWithSignature('dummy()'),
+            address(mockFallback), // to
+            '',
             inputs,
             outputsEmpty,
             approveTo, // approveTo
