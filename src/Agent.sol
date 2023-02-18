@@ -30,8 +30,8 @@ contract Agent is IAgent {
 
     modifier checkCaller() {
         if (_caller != msg.sender) revert InvalidCallback();
+        else if (_caller != router) _caller = router;
         _;
-        _caller = router;
     }
 
     /// @notice Execute logics and return tokens to user
