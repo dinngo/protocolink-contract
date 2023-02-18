@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
+import {Agent, IAgent} from '../../src/Agent.sol';
 import {Router, IRouter} from '../../src/Router.sol';
 import {IParam} from '../../src/interfaces/IParam.sol';
 import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
@@ -78,6 +79,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
     address public user;
     uint256 public userPrivateKey;
     IRouter public router;
+    IAgent public agent;
 
     // Empty arrays
     IParam.Input[] inputsEmpty;
@@ -86,6 +88,8 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
         router = new Router();
+        vm.prank(user);
+        agent = IAgent(router.newAgent());
 
         // User permit token
         spenderSetUp(user, userPrivateKey, router);
@@ -93,6 +97,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         permitToken(USDC);
 
         vm.label(address(router), 'Router');
+        vm.label(address(agent), 'Agent');
         vm.label(address(spender), 'SpenderPermit2ERC20');
         vm.label(NATIVE, 'NATIVE');
         vm.label(address(WRAPPED_NATIVE), 'WrappedNative');
@@ -215,7 +220,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
             uniswapRouter02.swapExactETHForTokens.selector,
             amountMin, // amountOutMin
             path, // path
-            address(router), // to
+            address(agent), // to
             block.timestamp // deadline
         );
 
@@ -258,7 +263,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
             amountIn, // amountIn
             amountMin, // amountOutMin
             path, // path
-            address(router), // to
+            address(agent), // to
             block.timestamp // deadline
         );
 
@@ -303,7 +308,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
             0, // amountIn -> will be replaced with balance
             amountMin, // amountOutMin
             path, // path
-            address(router), // to
+            address(agent), // to
             block.timestamp // deadline
         );
 
@@ -349,7 +354,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
             0, // amountBDesired -> will be replaced with balance
             amountIn0Min, //  amountAMin
             1, // amountBMin
-            address(router), // to
+            address(agent), // to
             block.timestamp // deadline
         );
 
@@ -398,7 +403,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
             0, // liquidity -> will be replaced with balance
             amountOut0Min, //  amountAMin
             1, //  amountBMin
-            address(router), // to
+            address(agent), // to
             block.timestamp // deadline
         );
 
