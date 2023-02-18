@@ -45,7 +45,7 @@ contract Router is IRouter {
             agent = Agent(newAgent());
         }
 
-        agent.execute(logics, tokensReturn);
+        agent.execute{value: msg.value}(logics, tokensReturn);
     }
 
     function getAgent() external view returns (address) {
