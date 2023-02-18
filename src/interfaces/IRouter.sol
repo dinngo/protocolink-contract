@@ -8,7 +8,7 @@ interface IRouter {
 
     function getAgent() external view returns (address);
 
-    function newAgent() external returns (address);
+    function newAgent() external returns (address payable);
 
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 }
