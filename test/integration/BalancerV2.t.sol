@@ -8,7 +8,7 @@ import {IParam} from '../../src/interfaces/IParam.sol';
 import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from '../../src/FlashLoanCallbackBalancerV2.sol';
 import {IBalancerV2Vault} from '../../src/interfaces/balancerV2/IBalancerV2Vault.sol';
 
-contract FlashLoanCallbackBalancerV2Test is Test {
+contract BalancerV2IntegrationTest is Test {
     using SafeERC20 for IERC20;
 
     IBalancerV2Vault public constant balancerV2Vault = IBalancerV2Vault(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
