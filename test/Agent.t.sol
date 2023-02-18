@@ -173,6 +173,7 @@ contract AgentTest is Test {
         // Receive 0 output token
         logics[0] = IParam.Logic(
             address(mockFallback), // to
+            '',
             inputsEmpty,
             outputs,
             address(0), // approveTo

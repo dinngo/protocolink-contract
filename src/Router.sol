@@ -7,7 +7,7 @@ import {IRouter} from './interfaces/IRouter.sol';
 
 /// @title Router executes arbitrary logics
 contract Router is IRouter {
-    mapping(address => Agent) internal agents;
+    mapping(address => Agent) public agents;
     address public user;
 
     address private constant _INIT_USER = address(1);
@@ -28,9 +28,13 @@ contract Router is IRouter {
 
     function newAgent() public returns (address payable) {
         // TODO: Check if new user
-        Agent agent = new Agent();
-        agents[msg.sender] = agent;
-        return payable(address(agent));
+        if (address(agents[msg.sender]) != address(0)) {
+            revert();
+        } else {
+            Agent agent = new Agent();
+            agents[msg.sender] = agent;
+            return payable(address(agent));
+        }
     }
 
     /// @notice Execute logics and return tokens to user
@@ -46,5 +50,9 @@ contract Router is IRouter {
 
     function getAgent() external view returns (address) {
         return address(agents[user]);
+    }
+
+    function getAgent(address owner) external view returns (address) {
+        return address(agents[owner]);
     }
 }
