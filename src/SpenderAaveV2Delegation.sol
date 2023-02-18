@@ -34,6 +34,6 @@ contract SpenderAaveV2Delegation is ISpenderAaveV2Delegation {
         address pool = IAaveV2Provider(aaveV2Provider).getLendingPool();
         IAaveV2Pool(pool).borrow(asset, amount, interestRateMode, _REFERRAL_CODE, user);
 
-        IERC20(asset).safeTransfer(router, IERC20(asset).balanceOf(address(this)));
+        IERC20(asset).safeTransfer(msg.sender, IERC20(asset).balanceOf(address(this)));
     }
 }
