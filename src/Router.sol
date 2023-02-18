@@ -31,7 +31,7 @@ contract Router is IRouter {
         if (address(agents[msg.sender]) != address(0)) {
             revert();
         } else {
-            Agent agent = new Agent();
+            Agent agent = new Agent(msg.sender);
             agents[msg.sender] = agent;
             return payable(address(agent));
         }

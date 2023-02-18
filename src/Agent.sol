@@ -17,11 +17,12 @@ contract Agent is IAgent {
     uint256 private constant _SKIP = type(uint256).max;
 
     address public immutable router;
-    address public user;
+    address public immutable user;
     address private _caller;
 
-    constructor() {
+    constructor(address user_) {
         router = msg.sender;
+        user = user_;
         _caller = router;
     }
 
