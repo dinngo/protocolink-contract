@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {AgentImplementation as Agent} from './AgentImplementation.sol';
+import {AgentImplementation} from './AgentImplementation.sol';
+import {IAgent, Agent} from './Agent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 
 /// @title Router executes arbitrary logics
 contract Router is IRouter {
-    mapping(address => Agent) public agents;
+    mapping(address => IAgent) public agents;
     address public user;
 
     address private constant _INIT_USER = address(1);
+
+    address public immutable agentImplementation;
 
     modifier checkCaller() {
         if (user == _INIT_USER) {
@@ -24,14 +27,15 @@ contract Router is IRouter {
 
     constructor() {
         user = _INIT_USER;
+        agentImplementation = address(new AgentImplementation());
     }
 
     function newAgent() public returns (address payable) {
-        // TODO: Check if new user
         if (address(agents[msg.sender]) != address(0)) {
             revert();
         } else {
-            Agent agent = new Agent(msg.sender);
+            IAgent agent = IAgent(address(new Agent()));
+            agent.initialize(msg.sender);
             agents[msg.sender] = agent;
             return payable(address(agent));
         }
@@ -39,10 +43,10 @@ contract Router is IRouter {
 
     /// @notice Execute logics and return tokens to user
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable checkCaller {
-        Agent agent = agents[user];
+        IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
-            agent = Agent(newAgent());
+            agent = IAgent(newAgent());
         }
 
         agent.execute{value: msg.value}(logics, tokensReturn);

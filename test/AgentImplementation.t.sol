@@ -35,7 +35,8 @@ contract AgentImplementationTest is Test {
         router = makeAddr('Router');
 
         vm.prank(router);
-        agent = new AgentImplementation(user);
+        agent = new AgentImplementation();
+        agent.initialize(user);
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockCallback = new MockCallback();
         mockFallback = address(new MockFallback());
