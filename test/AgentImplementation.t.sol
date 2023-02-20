@@ -4,13 +4,13 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {Agent, IAgent} from '../src/Agent.sol';
+import {AgentImplementation, IAgent} from '../src/AgentImplementation.sol';
 import {Router, IRouter} from '../src/Router.sol';
 import {IParam} from '../src/interfaces/IParam.sol';
 import {ICallback, MockCallback} from './mocks/MockCallback.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
 
-contract AgentTest is Test {
+contract AgentImplementationTest is Test {
     using SafeERC20 for IERC20;
 
     uint256 public constant BPS_BASE = 10_000;
@@ -35,7 +35,7 @@ contract AgentTest is Test {
         router = makeAddr('Router');
 
         vm.prank(router);
-        agent = new Agent(user);
+        agent = new AgentImplementation(user);
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockCallback = new MockCallback();
         mockFallback = address(new MockFallback());

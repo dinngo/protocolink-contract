@@ -7,7 +7,7 @@ import {IAgent} from './interfaces/IAgent.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 /// @title Router executes arbitrary logics
-contract Agent is IAgent {
+contract AgentImplementation is IAgent {
     using SafeERC20 for IERC20;
     using Address for address;
     using Address for address payable;
