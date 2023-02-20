@@ -34,9 +34,10 @@ contract Router is IRouter {
         if (address(agents[msg.sender]) != address(0)) {
             revert();
         } else {
-            IAgent agent = IAgent(address(new Agent()));
-            agent.initialize(msg.sender);
-            agents[msg.sender] = agent;
+            address owner = msg.sender;
+            IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20((uint160(owner))))}(agentImplementation)));
+            agent.initialize(owner);
+            agents[owner] = agent;
             return payable(address(agent));
         }
     }
@@ -58,5 +59,23 @@ contract Router is IRouter {
 
     function getAgent(address owner) external view returns (address) {
         return address(agents[owner]);
+    }
+
+    function calcAgent(address owner) external view returns (address) {
+        address result = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            bytes1(0xff),
+                            address(this),
+                            bytes32(bytes20((uint160(owner)))),
+                            keccak256(abi.encodePacked(type(Agent).creationCode, abi.encode(agentImplementation)))
+                        )
+                    )
+                )
+            )
+        );
+        return result;
     }
 }

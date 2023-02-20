@@ -11,8 +11,8 @@ import {ApproveHelper} from './libraries/ApproveHelper.sol';
 contract Agent {
     address private immutable _implementation;
 
-    constructor() {
-        _implementation = IRouter(msg.sender).agentImplementation();
+    constructor(address implementation) {
+        _implementation = implementation;
     }
 
     receive() external payable {}
