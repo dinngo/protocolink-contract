@@ -20,7 +20,6 @@ contract FlashLoanCallbackAaveV2Test is Test {
     // Empty arrays
     address[] tokensReturnEmpty;
     IParam.Input[] inputsEmpty;
-    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -73,7 +72,6 @@ contract FlashLoanCallbackAaveV2Test is Test {
             address(assets[0]), // to
             abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[0] + premiumExcess),
             inputsEmpty,
-            outputsEmpty,
             address(0) // callback
         );
 

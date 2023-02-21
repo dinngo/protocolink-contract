@@ -42,7 +42,6 @@ contract AaveV2IntegrationTest is Test {
     // Empty arrays
     address[] tokensReturnEmpty;
     IParam.Input[] inputsEmpty;
-    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -135,14 +134,12 @@ contract AaveV2IntegrationTest is Test {
         // Encode outputs
         IParam.Output[] memory outputs = new IParam.Output[](1);
         outputs[0].token = address(token);
-        outputs[0].amountMin = amount;
 
         return
             IParam.Logic(
                 address(spender), // to
                 abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode),
                 inputsEmpty,
-                outputs,
                 address(0) // callback
             );
     }
@@ -172,7 +169,6 @@ contract AaveV2IntegrationTest is Test {
                     referralCode
                 ),
                 inputsEmpty,
-                outputsEmpty,
                 address(flashLoanCallback) // callback
             );
     }
@@ -190,7 +186,6 @@ contract AaveV2IntegrationTest is Test {
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
                 inputsEmpty,
-                outputsEmpty,
                 address(0) // callback
             );
         }

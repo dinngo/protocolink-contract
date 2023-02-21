@@ -83,7 +83,6 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
 
     // Empty arrays
     IParam.Input[] inputsEmpty;
-    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
@@ -191,7 +190,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         logics[1] = _logicTokenApproval(tokenIn0, address(uniswapRouter02), amountIn0, SKIP);
         logics[2] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1); // Swap 50% amountIn0 to amountIn1
         logics[3] = _logicTokenApproval(tokenIn1, address(uniswapRouter02), 0, BPS_BASE);
-        logics[4] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1, tokenOut); // Add liquidity with 50% amountIn0 and all amountIn1
+        logics[4] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1); // Add liquidity with 50% amountIn0 and all amountIn1
         logics[5] = _logicTokenApproval(tokenOut, address(uniswapRouter02), 0, BPS_BASE);
         logics[6] = _logicUniswapV2RemoveLiquidity(tokenOut, 0, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity
         logics[7] = _logicTokenApproval(tokenIn1, address(uniswapRouter02), 0, BPS_BASE);
@@ -216,7 +215,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         address spender,
         uint256 amount,
         uint256 amountBps
-    ) internal view returns (IParam.Logic memory) {
+    ) internal pure returns (IParam.Logic memory) {
         // Encode data
         bytes memory data = abi.encodeCall(IERC20.approve, (spender, amount));
         IParam.Input[] memory inputs = new IParam.Input[](1);
@@ -228,7 +227,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
             inputs[0].amountOrOffset = 0x20;
         }
 
-        return IParam.Logic(address(token), data, inputs, outputsEmpty, address(0));
+        return IParam.Logic(address(token), data, inputs, address(0));
     }
 
     function _logicUniswapV2SwapNativeToToken(
@@ -257,17 +256,11 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = SKIP;
 
-        // Encode outputs
-        IParam.Output[] memory outputs = new IParam.Output[](1);
-        outputs[0].token = address(tokenOut);
-        outputs[0].amountMin = amountMin;
-
         return
             IParam.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
-                outputs,
                 address(0) // callback
             );
     }
@@ -299,17 +292,11 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
 
-        // Encode outputs
-        IParam.Output[] memory outputs = new IParam.Output[](1);
-        outputs[0].token = NATIVE;
-        outputs[0].amountMin = amountMin;
-
         return
             IParam.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
-                outputs,
                 address(0) // callback
             );
     }
@@ -343,17 +330,11 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
 
-        // Encode outputs
-        IParam.Output[] memory outputs = new IParam.Output[](1);
-        outputs[0].token = address(tokenOut);
-        outputs[0].amountMin = amountMin;
-
         return
             IParam.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
-                outputs,
                 address(0) // callback
             );
     }
@@ -362,8 +343,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         IERC20 tokenIn0,
         uint256 amountIn0,
         uint256 amountIn1,
-        IERC20 tokenIn1,
-        IERC20 tokenOut
+        IERC20 tokenIn1
     ) public view returns (IParam.Logic memory) {
         // At least adds 98% token0 to liquidity
         uint256 amountIn0Min = (amountIn0 * 9_800) / BPS_BASE;
@@ -392,17 +372,11 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         if (inputs[1].amountBps == SKIP) inputs[1].amountOrOffset = amountIn1;
         else inputs[1].amountOrOffset = 0x60;
 
-        // Encode outputs
-        IParam.Output[] memory outputs = new IParam.Output[](1);
-        outputs[0].token = address(tokenOut);
-        outputs[0].amountMin = 1; // FIXME: should calculate the expected min amount
-
         return
             IParam.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
-                outputs,
                 address(0) // callback
             );
     }
@@ -436,19 +410,11 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0x40;
 
-        // Encode outputs
-        IParam.Output[] memory outputs = new IParam.Output[](2);
-        outputs[0].token = address(tokenOut0);
-        outputs[1].token = address(tokenOut1);
-        outputs[0].amountMin = amountOut0Min;
-        outputs[0].amountMin = 1; // FIXME: should calculate the expected min amount
-
         return
             IParam.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
-                outputs,
                 address(0) // callback
             );
     }

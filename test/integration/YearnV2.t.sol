@@ -28,7 +28,6 @@ contract YearnV2Test is Test, SpenderPermitUtils {
 
     // Empty arrays
     IParam.Input[] inputsEmpty;
-    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
@@ -54,7 +53,7 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         IParam.Logic[] memory logics = new IParam.Logic[](3);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, uint160(amountIn));
         logics[1] = _logicTokenApproval(tokenIn, address(yVault), amountIn, SKIP);
-        logics[2] = _logicYearn(tokenIn, amountIn, BPS_BASE, tokenOut);
+        logics[2] = _logicYearn(tokenIn, amountIn, BPS_BASE);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -72,7 +71,7 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         address spender,
         uint256 amount,
         uint256 amountBps
-    ) internal view returns (IParam.Logic memory) {
+    ) internal pure returns (IParam.Logic memory) {
         // Encode data
         bytes memory data = abi.encodeCall(IERC20.approve, (spender, amount));
         IParam.Input[] memory inputs = new IParam.Input[](1);
@@ -84,18 +83,14 @@ contract YearnV2Test is Test, SpenderPermitUtils {
             inputs[0].amountOrOffset = 0x20;
         }
 
-        return IParam.Logic(address(token), data, inputs, outputsEmpty, address(0));
+        return IParam.Logic(address(token), data, inputs, address(0));
     }
 
     function _logicYearn(
         IERC20 tokenIn,
         uint256 amountIn,
-        uint256 amountBps,
-        IERC20 tokenOut
+        uint256 amountBps
     ) public pure returns (IParam.Logic memory) {
-        // FIXME: it's relaxed amountMin = amountIn * 90%
-        uint256 amountMin = (amountIn * 9_000) / BPS_BASE;
-
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
@@ -103,17 +98,11 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
 
-        // Encode outputs
-        IParam.Output[] memory outputs = new IParam.Output[](1);
-        outputs[0].token = address(tokenOut);
-        outputs[0].amountMin = amountMin;
-
         return
             IParam.Logic(
                 address(yVault), // to
                 abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
                 inputs,
-                outputs,
                 address(0) // callback
             );
     }

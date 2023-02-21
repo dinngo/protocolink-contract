@@ -21,7 +21,6 @@ contract BalancerV2IntegrationTest is Test {
     // Empty arrays
     address[] tokensReturnEmpty;
     IParam.Input[] inputsEmpty;
-    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -73,7 +72,6 @@ contract BalancerV2IntegrationTest is Test {
                 address(balancerV2Vault), // to
                 abi.encodeWithSelector(IBalancerV2Vault.flashLoan.selector, receiver, tokens, amounts, userData),
                 inputsEmpty,
-                outputsEmpty,
                 address(flashLoanCallback) // callback
             );
     }
@@ -87,7 +85,6 @@ contract BalancerV2IntegrationTest is Test {
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i]),
                 inputsEmpty,
-                outputsEmpty,
                 address(0) // callback
             );
         }

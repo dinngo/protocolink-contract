@@ -58,7 +58,6 @@ contract SpenderPermitUtils is Test, PermitSignature {
         bytes memory sig = getPermitSignature(permit, _userPrivateKey, DOMAIN_SEPARATOR);
 
         IParam.Input[] memory inputsEmpty;
-        IParam.Output[] memory outputsEmpty;
         return
             IParam.Logic(
                 address(permit2Addr), // to
@@ -69,7 +68,6 @@ contract SpenderPermitUtils is Test, PermitSignature {
                     sig
                 ),
                 inputsEmpty,
-                outputsEmpty,
                 address(0) // callback
             );
     }
@@ -79,14 +77,12 @@ contract SpenderPermitUtils is Test, PermitSignature {
         uint160 amount
     ) internal view returns (IParam.Logic memory) {
         IParam.Input[] memory inputsEmpty;
-        IParam.Output[] memory outputsEmpty;
 
         return
             IParam.Logic(
                 address(spender), // to
                 abi.encodeWithSelector(spender.pullToken.selector, address(token), amount),
                 inputsEmpty,
-                outputsEmpty,
                 address(0) // callback
             );
     }

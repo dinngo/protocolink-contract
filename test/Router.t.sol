@@ -23,7 +23,6 @@ contract RouterTest is Test {
     // Empty arrays
     address[] tokensReturnEmpty;
     IParam.Input[] inputsEmpty;
-    IParam.Output[] outputsEmpty;
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
@@ -66,7 +65,6 @@ contract RouterTest is Test {
             address(mockTo), // to
             abi.encodeWithSignature('dummy()'),
             inputsEmpty,
-            outputsEmpty,
             address(0) // callback
         );
         assertEq(router.getAgent(user), address(0));
@@ -81,7 +79,6 @@ contract RouterTest is Test {
             address(mockTo), // to
             abi.encodeWithSignature('dummy()'),
             inputsEmpty,
-            outputsEmpty,
             address(0) // callback
         );
         vm.startPrank(user);
@@ -97,7 +94,6 @@ contract RouterTest is Test {
             address(mockTo), // to
             abi.encodeWithSignature('dummy()'),
             inputsEmpty,
-            outputsEmpty,
             address(0) // callback
         );
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -105,7 +101,6 @@ contract RouterTest is Test {
             address(router), // to
             abi.encodeCall(IRouter.execute, (callback, tokensReturnEmpty)),
             inputsEmpty,
-            outputsEmpty,
             address(0) // callback
         );
         vm.startPrank(user);
@@ -124,7 +119,6 @@ contract RouterTest is Test {
             address(this), // to
             abi.encodeCall(this.checkExecutingAgent, (agent)),
             inputsEmpty,
-            outputsEmpty,
             address(0) // callback
         );
         vm.prank(user);

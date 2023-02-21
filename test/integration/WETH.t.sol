@@ -39,7 +39,7 @@ contract WETHTest is Test {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicWETHDeposit(amountIn, BPS_BASE / 2, tokenOut); // 50% amount
+        logics[0] = _logicWETHDeposit(amountIn, BPS_BASE / 2); // 50% amount
 
         // Execute
         address[] memory tokensReturn = new address[](2);
@@ -54,11 +54,7 @@ contract WETHTest is Test {
         assertGt(tokenOut.balanceOf(user), 0);
     }
 
-    function _logicWETHDeposit(
-        uint256 amountIn,
-        uint256 amountBps,
-        IERC20 tokenOut
-    ) public pure returns (IParam.Logic memory) {
+    function _logicWETHDeposit(uint256 amountIn, uint256 amountBps) public pure returns (IParam.Logic memory) {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
@@ -66,17 +62,11 @@ contract WETHTest is Test {
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = SKIP; // data don't have amount parameter
 
-        // Encode outputs
-        IParam.Output[] memory outputs = new IParam.Output[](1);
-        outputs[0].token = address(tokenOut);
-        outputs[0].amountMin = (amountIn * amountBps) / BPS_BASE;
-
         return
             IParam.Logic(
                 address(WETH), // to
                 abi.encodeWithSelector(IWETH.deposit.selector),
                 inputs,
-                outputs,
                 address(0) // callback
             );
     }

@@ -6,7 +6,6 @@ interface IParam {
         address to;
         bytes data;
         Input[] inputs;
-        Output[] outputs;
         address callback;
     }
 

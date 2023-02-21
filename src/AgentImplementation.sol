@@ -50,7 +50,6 @@ contract AgentImplementation is IAgent {
             address to = logics[i].to;
             bytes memory data = logics[i].data;
             IParam.Input[] memory inputs = logics[i].inputs;
-            IParam.Output[] memory outputs = logics[i].outputs;
             address callback = logics[i].callback;
 
             // Execute each input if need to modify the amount or do approve
@@ -92,17 +91,6 @@ contract AgentImplementation is IAgent {
                 }
             }
 
-            // Store initial output token balances
-            uint256 outputsLength = outputs.length;
-            uint256[] memory outputInitBalances = new uint256[](outputsLength);
-            for (uint256 j = 0; j < outputsLength; ) {
-                outputInitBalances[j] = _getBalance(outputs[j].token);
-
-                unchecked {
-                    j++;
-                }
-            }
-
             // Set _callback who should enter one-time execute
             if (callback != address(0)) _caller = callback;
 
@@ -111,20 +99,6 @@ contract AgentImplementation is IAgent {
 
             // Revert if the previous call didn't enter execute
             if (_caller != router) revert UnresetCallback();
-
-            // Execute each output to hard check the min amounts are expected
-            for (uint256 j = 0; j < outputsLength; ) {
-                address token = outputs[j].token;
-                uint256 amountMin = outputs[j].amountMin;
-                uint256 balance = _getBalance(token) - outputInitBalances[j];
-
-                // Check min amount
-                if (balance < amountMin) revert InsufficientBalance(address(token), amountMin, balance);
-
-                unchecked {
-                    j++;
-                }
-            }
 
             unchecked {
                 i++;

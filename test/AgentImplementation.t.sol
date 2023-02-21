@@ -26,7 +26,6 @@ contract AgentImplementationTest is Test {
     // Empty arrays
     address[] tokensReturnEmpty;
     IParam.Input[] inputsEmpty;
-    IParam.Output[] outputsEmpty;
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
@@ -53,7 +52,6 @@ contract AgentImplementationTest is Test {
             address(mockFallback), // to
             '',
             inputsEmpty,
-            outputsEmpty,
             address(0) // callback
         );
         bytes memory data = abi.encodeWithSelector(IRouter.execute.selector, callbacks, tokensReturnEmpty);
@@ -62,7 +60,6 @@ contract AgentImplementationTest is Test {
             address(mockCallback),
             abi.encodeWithSelector(ICallback.callback.selector, data),
             inputsEmpty,
-            outputsEmpty,
             address(router) // callback
         );
         vm.expectRevert(IAgent.InvalidCallback.selector);
@@ -84,7 +81,6 @@ contract AgentImplementationTest is Test {
             address(0), // to
             '',
             inputs,
-            outputsEmpty,
             address(0) // callback
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
@@ -101,7 +97,6 @@ contract AgentImplementationTest is Test {
             address(0), // to
             '',
             inputs,
-            outputsEmpty,
             address(0) // callback
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
@@ -115,39 +110,10 @@ contract AgentImplementationTest is Test {
             address(mockFallback), // to
             '',
             inputsEmpty,
-            outputsEmpty,
             address(mockCallback) // callback
         );
         vm.expectRevert(IAgent.UnresetCallback.selector);
         vm.prank(router);
         agent.execute(logics, tokensReturnEmpty);
-    }
-
-    function testCannotReceiveLessOutputToken() external {
-        IERC20 tokenOut = mockERC20;
-        uint256 amountMin = 1 ether;
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        IParam.Output[] memory outputs = new IParam.Output[](1);
-
-        // Output token already exists in router
-        deal(address(tokenOut), address(router), 10 ether);
-
-        outputs[0] = IParam.Output(address(tokenOut), amountMin);
-
-        // Receive 0 output token
-        logics[0] = IParam.Logic(
-            address(mockFallback), // to
-            '',
-            inputsEmpty,
-            outputs,
-            address(0) // callback
-        );
-
-        // Execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(tokenOut);
-        vm.expectRevert(abi.encodeWithSelector(IAgent.InsufficientBalance.selector, address(tokenOut), amountMin, 0));
-        vm.prank(router);
-        agent.execute(logics, tokensReturn);
     }
 }
