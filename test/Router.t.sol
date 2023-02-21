@@ -67,7 +67,6 @@ contract RouterTest is Test {
             abi.encodeWithSignature('dummy()'),
             inputsEmpty,
             outputsEmpty,
-            address(0), // approveTo
             address(0) // callback
         );
         assertEq(router.getAgent(user), address(0));
@@ -83,7 +82,6 @@ contract RouterTest is Test {
             abi.encodeWithSignature('dummy()'),
             inputsEmpty,
             outputsEmpty,
-            address(0), // approveTo
             address(0) // callback
         );
         vm.startPrank(user);
@@ -100,7 +98,6 @@ contract RouterTest is Test {
             abi.encodeWithSignature('dummy()'),
             inputsEmpty,
             outputsEmpty,
-            address(0), // approveTo
             address(0) // callback
         );
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -109,7 +106,6 @@ contract RouterTest is Test {
             abi.encodeCall(IRouter.execute, (callback, tokensReturnEmpty)),
             inputsEmpty,
             outputsEmpty,
-            address(0), // approveTo
             address(0) // callback
         );
         vm.startPrank(user);
@@ -129,7 +125,6 @@ contract RouterTest is Test {
             abi.encodeCall(this.checkExecutingAgent, (agent)),
             inputsEmpty,
             outputsEmpty,
-            address(0), // approveTo
             address(0) // callback
         );
         vm.prank(user);

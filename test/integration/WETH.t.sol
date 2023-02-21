@@ -77,7 +77,6 @@ contract WETHTest is Test {
                 abi.encodeWithSelector(IWETH.deposit.selector),
                 inputs,
                 outputs,
-                address(0), // approveTo
                 address(0) // callback
             );
     }

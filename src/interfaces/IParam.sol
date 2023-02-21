@@ -7,8 +7,6 @@ interface IParam {
         bytes data;
         Input[] inputs;
         Output[] outputs;
-        // Approve to another contract instead of `to` since some protocols use spender contract to pull tokens from user
-        address approveTo;
         address callback;
     }
 

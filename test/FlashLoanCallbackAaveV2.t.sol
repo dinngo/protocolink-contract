@@ -74,7 +74,6 @@ contract FlashLoanCallbackAaveV2Test is Test {
             abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[0] + premiumExcess),
             inputsEmpty,
             outputsEmpty,
-            address(0), // approveTo
             address(0) // callback
         );
 

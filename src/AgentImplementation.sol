@@ -51,20 +51,7 @@ contract AgentImplementation is IAgent {
             bytes memory data = logics[i].data;
             IParam.Input[] memory inputs = logics[i].inputs;
             IParam.Output[] memory outputs = logics[i].outputs;
-            address approveTo = logics[i].approveTo;
             address callback = logics[i].callback;
-
-            // Revert approve sig to prevent Router from approving arbitrary address
-            // Revert transferFrom sig to prevent user from mistakenly approving Router and being exploited
-            bytes4 sig = bytes4(data);
-            if (sig == IERC20.approve.selector || sig == IERC20.transferFrom.selector) {
-                revert InvalidERC20Sig();
-            }
-
-            // Default `approveTo` is same as `to` unless `approveTo` is set
-            if (approveTo == address(0)) {
-                approveTo = to;
-            }
 
             // Execute each input if need to modify the amount or do approve
             uint256 value;
@@ -98,8 +85,6 @@ contract AgentImplementation is IAgent {
                 // Set native token value or approve ERC20 if `to` isn't the token self
                 if (token == _NATIVE) {
                     value = amount;
-                } else if (token != approveTo) {
-                    ApproveHelper._approve(token, approveTo, amount);
                 }
 
                 unchecked {
@@ -126,18 +111,6 @@ contract AgentImplementation is IAgent {
 
             // Revert if the previous call didn't enter execute
             if (_caller != router) revert UnresetCallback();
-
-            // Reset approval
-            for (uint256 j = 0; j < inputsLength; ) {
-                address token = inputs[j].token;
-                if (token != _NATIVE && token != approveTo) {
-                    ApproveHelper._approveZero(token, approveTo);
-                }
-
-                unchecked {
-                    j++;
-                }
-            }
 
             // Execute each output to hard check the min amounts are expected
             for (uint256 j = 0; j < outputsLength; ) {
