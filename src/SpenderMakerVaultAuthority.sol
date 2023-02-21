@@ -62,68 +62,6 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
         dsProxy = IDSProxy(IDSProxyRegistry(proxyRegistry).build());
     }
 
-    /// @notice Creates a cdp for the user(for a specific `ilk`), deposits `value` amount of ETH in `ethJoin`
-    /// and exits `wad` amount of DAI token from `daiJoin` adapter.
-    function openLockETHAndDraw(
-        uint256 value,
-        address ethJoin,
-        address daiJoin,
-        bytes32 ilk,
-        uint256 wadD
-    ) external payable onlyRouter returns (uint256 cdp) {
-        bytes4 funcSig = 0xe685cc04; // selector of "openLockETHAndDraw(address,address,address,address,bytes32,uint256)"
-
-        try
-            dsProxy.execute{value: value}(
-                proxyActions,
-                abi.encodeWithSelector(funcSig, cdpManager, jug, ethJoin, daiJoin, ilk, wadD)
-            )
-        returns (bytes32 ret) {
-            cdp = uint256(ret);
-        } catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
-
-        _transferTokenToRouter(daiToken);
-        _transferCdp(cdp);
-    }
-
-    /// @notice Creates a cdp for the user(for a specific `ilk`), deposits `wadC` amount of collateral in `gemJoin`
-    /// and exits `wadD` amount of DAI token from `daiJoin` adapter.
-    function openLockGemAndDraw(
-        address gemJoin,
-        address daiJoin,
-        bytes32 ilk,
-        uint256 wadC,
-        uint256 wadD
-    ) external onlyRouter returns (uint256 cdp) {
-        // Get collateral token
-        address token = IMakerGemJoin(gemJoin).gem();
-        bytes4 funcSig = 0xdb802a32; // selector of "openLockGemAndDraw(address,address,address,address,bytes32,uint256,uint256,bool)"
-
-        ApproveHelper._approve(token, address(dsProxy), wadC);
-
-        try
-            dsProxy.execute(
-                proxyActions,
-                abi.encodeWithSelector(funcSig, cdpManager, jug, gemJoin, daiJoin, ilk, wadC, wadD, true)
-            )
-        returns (bytes32 ret) {
-            cdp = uint256(ret);
-        } catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
-
-        ApproveHelper._approveZero(token, address(dsProxy));
-
-        _transferTokenToRouter(daiToken);
-        _transferCdp(cdp);
-    }
-
     /// @notice Decrease locked value of `cdp` and withdraws `wad` amount of ETH from `ethJoin` adapter.
     function freeETH(address ethJoin, uint256 cdp, uint256 wad) external onlyRouter cdpAllowed(cdp) {
         bytes4 funcSig = 0x7b5a3b43; // selector of "freeETH(address,address,uint256,uint256)"
@@ -169,24 +107,6 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
         }
 
         _transferTokenToRouter(daiToken);
-    }
-
-    /// @notice Get `user`'s DSProxy.
-    function _getProxy(address user) internal view returns (address) {
-        return IDSProxyRegistry(proxyRegistry).proxies(user);
-    }
-
-    function _transferCdp(uint256 cdp) internal {
-        address user = IRouter(router).user();
-        bytes4 funcSig = 0x493c2049; // selector of "giveToProxy(address,address,uint256,address)"
-
-        try
-            dsProxy.execute(proxyActions, abi.encodeWithSelector(funcSig, proxyRegistry, cdpManager, cdp, user))
-        {} catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
     }
 
     function _transferTokenToRouter(address token) internal {

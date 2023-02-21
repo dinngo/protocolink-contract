@@ -21,10 +21,9 @@ contract Router is IRouter {
     address public user;
     address private _callback;
 
-    constructor(address makerProxyRegistry_) {
+    constructor() {
         user = _INIT_USER;
         _callback = _INIT_CALLBACK;
-        IDSProxyRegistry(makerProxyRegistry_).build();
     }
 
     receive() external payable {}
