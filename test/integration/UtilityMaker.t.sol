@@ -3,16 +3,16 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {SpenderMakerAction, ISpenderMakerAction} from '../../src/SpenderMakerAction.sol';
+import {UtilityMaker, IUtilityMaker} from '../../src/utility/UtilityMaker.sol';
 import {Router, IRouter} from '../../src/Router.sol';
 import {IDSProxy, IDSProxyRegistry} from '../../src/interfaces/maker/IDSProxy.sol';
 import 'forge-std/console.sol';
 
 interface IMakerVat {
-    function ilks(bytes32) external view returns (uint, uint, uint, uint, uint);
+    function ilks(bytes32) external view returns (uint256 art, uint256 rate, uint256 spot, uint256 line, uint256 dust);
 }
 
-contract SpenderMakerActionTest is Test {
+contract UtilityMakerTest is Test {
     using SafeERC20 for IERC20;
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -32,7 +32,7 @@ contract SpenderMakerActionTest is Test {
 
     address public user;
     IRouter public router;
-    ISpenderMakerAction public spenderMaker;
+    IUtilityMaker public utilityMaker;
 
     // Empty arrays
     address[] tokensReturnEmpty;
@@ -43,18 +43,11 @@ contract SpenderMakerActionTest is Test {
         user = makeAddr('User');
 
         router = new Router();
-        spenderMaker = new SpenderMakerAction(
-            address(router),
-            PROXY_REGISTRY,
-            CDP_MANAGER,
-            PROXY_ACTIONS,
-            DAI_TOKEN,
-            JUG
-        );
+        utilityMaker = new UtilityMaker(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
 
         // Label
         vm.label(address(router), 'Router');
-        vm.label(address(spenderMaker), 'SpenderMakerAction');
+        vm.label(address(utilityMaker), 'UtilityMaker');
 
         vm.label(PROXY_REGISTRY, 'PROXY_REGISTRY');
         vm.label(CDP_MANAGER, 'CDP_MANAGER');
@@ -66,17 +59,13 @@ contract SpenderMakerActionTest is Test {
         vm.label(DAI_JOIN, 'DAI_JOIN');
     }
 
-    function testAAA() external {
-        console.log('Succ!!!');
-    }
-
     function testOpenLockETHAndDraw(uint256 ethLockAmount, uint256 daiDrawAmount) external {
         console.log('init router balance:', address(router).balance);
 
         // Calculate minimum collateral amount of ETH and drawing minimum and maximum amount of DAI
         bytes32 ilkETH = bytes32(bytes(ETH_JOIN_NAME));
         IMakerVat vat = IMakerVat(VAT);
-        (uint256 art, uint256 rate, uint256 spot, uint256 line, uint256 dust) = vat.ilks(ilkETH);
+        (, uint256 rate, uint256 spot, , uint256 dust) = vat.ilks(ilkETH);
         (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust);
 
         ethLockAmount = bound(ethLockAmount, minCollateral, 1e22);
@@ -97,7 +86,7 @@ contract SpenderMakerActionTest is Test {
         console.log('Succ!!!');
     }
 
-    function _getDAIDrawMinAndMinCollateral(uint256 spot, uint256 dust) internal returns (uint256, uint256) {
+    function _getDAIDrawMinAndMinCollateral(uint256 spot, uint256 dust) internal pure returns (uint256, uint256) {
         uint256 daiDrawMin = dust / 1000000000 ether; // at least draw this much DAI
         uint256 minCollateral = (((daiDrawMin * 1000000000 ether) / spot) * 105) / 100;
         return (daiDrawMin, minCollateral);
@@ -108,7 +97,7 @@ contract SpenderMakerActionTest is Test {
         uint256 daiDrawMin,
         uint256 spot,
         uint256 rate
-    ) internal returns (uint256) {
+    ) internal pure returns (uint256) {
         uint256 daiDrawMax = (ilkAmount * spot) / rate;
         return daiDrawMax > daiDrawMin ? daiDrawMax : daiDrawMin;
     }
@@ -117,13 +106,9 @@ contract SpenderMakerActionTest is Test {
         uint256 value,
         uint256 amountOutMin
     ) public view returns (IRouter.Logic[] memory) {
-        // Step 0: transfer ETH to SpenderMaker
-        // Step 1: call OpenLockETHAndDraw in SpenderMaker
-
-        // Encode data
-        bytes memory data0; // 0x
-        bytes memory data1 = abi.encodeWithSelector(
-            ISpenderMakerAction.openLockETHAndDraw.selector,
+        // Data for openLockETHAndDraw
+        bytes memory data = abi.encodeWithSelector(
+            IUtilityMaker.openLockETHAndDraw.selector,
             value,
             ETH_JOIN,
             DAI_JOIN,
@@ -131,28 +116,26 @@ contract SpenderMakerActionTest is Test {
             amountOutMin
         );
 
-        // Encode inputs for step1
-        IRouter.Input[] memory inputs1 = new IRouter.Input[](1);
-        inputs1[0].token = NATIVE;
-        inputs1[0].amountBps = BPS_BASE;
-        inputs1[0].amountOffset = type(uint256).max;
-        inputs1[0].doApprove = false;
+        // Encode inputs
+        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        inputs[0].token = NATIVE;
+        inputs[0].amountBps = type(uint256).max;
+        inputs[0].amountOrOffset = value;
 
-        // Encode outputs for step1
-        IRouter.Output[] memory outputs1 = new IRouter.Output[](1);
-        outputs1[0].token = DAI_TOKEN;
-        outputs1[0].amountMin = amountOutMin;
+        // Encode outputs
+        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        outputs[0].token = DAI_TOKEN;
+        outputs[0].amountMin = amountOutMin;
 
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
         logics[0] = IRouter.Logic(
-            address(spenderMaker),
-            data0,
-            new IRouter.Input[](0),
-            new IRouter.Output[](0),
-            address(0)
+            address(utilityMaker),
+            data,
+            inputs,
+            outputs,
+            address(0), // approveTo,
+            address(0) // callback
         );
-        logics[1] = IRouter.Logic(address(spenderMaker), data1, inputs1, outputs1, address(0));
 
         return logics;
     }
