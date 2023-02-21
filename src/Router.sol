@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IRouter} from './interfaces/IRouter.sol';
-import {IDSProxyRegistry} from './interfaces/maker/IDSProxy.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 /// @title Router executes arbitrary logics

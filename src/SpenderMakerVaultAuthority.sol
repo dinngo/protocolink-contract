@@ -13,15 +13,12 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
     using SafeERC20 for IERC20;
 
     address public constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     address public immutable router;
-
     address public immutable proxyRegistry;
     address public immutable cdpManager;
     address public immutable proxyActions;
     address public immutable daiToken;
     address public immutable jug;
-
     // SpenderMakerVaultAuthority's DSProxy
     IDSProxy public immutable dsProxy;
 
