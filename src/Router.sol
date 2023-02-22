@@ -41,7 +41,6 @@ contract Router is IRouter {
             revert AgentCreated();
         } else {
             IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20((uint160(owner))))}(agentImplementation)));
-            agent.initialize();
             agents[owner] = agent;
             return payable(address(agent));
         }

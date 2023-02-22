@@ -7,6 +7,8 @@ contract Agent {
 
     constructor(address implementation) {
         _implementation = implementation;
+        (bool ok, ) = implementation.delegatecall(abi.encodeWithSignature('initialize()'));
+        require(ok);
     }
 
     receive() external payable {}
