@@ -64,6 +64,10 @@ contract Router is IRouter {
         return address(agents[owner]);
     }
 
+    function getUserAgent() external view returns (address, address) {
+        return (user, address(agents[user]));
+    }
+
     function calcAgent(address owner) external view returns (address) {
         address result = address(
             uint160(

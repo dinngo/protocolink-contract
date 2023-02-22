@@ -39,6 +39,7 @@ contract SpenderERC20ApprovalTest is Test {
         // Return activated agent from router
         vm.mockCall(router, 0, abi.encodeWithSignature('user()'), abi.encode(user));
         vm.mockCall(router, 0, abi.encodeWithSignature('getAgent()'), abi.encode(agent));
+        vm.mockCall(router, 0, abi.encodeWithSignature('getUserAgent()'), abi.encode(user, agent));
         vm.label(address(spender), 'SpenderERC20Approval');
         vm.label(address(mockERC20), 'mERC20');
     }

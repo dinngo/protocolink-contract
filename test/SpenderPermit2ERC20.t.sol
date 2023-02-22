@@ -51,6 +51,7 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
         // Return activated agent from router
         vm.mockCall(router, 0, abi.encodeWithSignature('user()'), abi.encode(user));
         vm.mockCall(router, 0, abi.encodeWithSignature('getAgent()'), abi.encode(agent));
+        vm.mockCall(router, 0, abi.encodeWithSignature('getUserAgent()'), abi.encode(user, agent));
         vm.label(address(spender), 'SpenderPermit2ERC20');
         vm.label(address(mockERC20), 'mERC20');
         vm.label(permit2Addr, 'Permit2');

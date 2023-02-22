@@ -9,11 +9,6 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
     address public immutable router;
     address public immutable permit2;
 
-    modifier isAgent() {
-        if (msg.sender != IRouter(router).getAgent()) revert InvalidAgent();
-        _;
-    }
-
     constructor(address router_, address permit2_) {
         router = router_;
         permit2 = permit2_;
@@ -25,8 +20,9 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         ISignatureTransfer.PermitTransferFrom memory permit,
         ISignatureTransfer.SignatureTransferDetails calldata transferDetails,
         bytes calldata signature
-    ) external isAgent {
-        address user = IRouter(router).user();
+    ) external {
+        (address user, address agent) = IRouter(router).getUserAgent();
+        if (msg.sender != agent) revert InvalidAgent();
 
         if (transferDetails.to != msg.sender) revert InvalidTransferTo();
 
@@ -37,8 +33,9 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         ISignatureTransfer.PermitBatchTransferFrom memory permit,
         ISignatureTransfer.SignatureTransferDetails[] calldata transferDetails,
         bytes calldata signature
-    ) external isAgent {
-        address user = IRouter(router).user();
+    ) external {
+        (address user, address agent) = IRouter(router).getUserAgent();
+        if (msg.sender != agent) revert InvalidAgent();
 
         uint256 permittedLength = permit.permitted.length;
         for (uint256 i = 0; i < permittedLength; ) {
@@ -51,14 +48,16 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
         ISignatureTransfer(permit2).permitTransferFrom(permit, transferDetails, user, signature);
     }
 
-    function pullToken(address token, uint160 amount) external isAgent {
-        address user = IRouter(router).user();
+    function pullToken(address token, uint160 amount) external {
+        (address user, address agent) = IRouter(router).getUserAgent();
+        if (msg.sender != agent) revert InvalidAgent();
 
         IAllowanceTransfer(permit2).transferFrom(user, msg.sender, amount, token);
     }
 
-    function pullTokens(IAllowanceTransfer.AllowanceTransferDetails[] calldata transferDetails) external isAgent {
-        address user = IRouter(router).user();
+    function pullTokens(IAllowanceTransfer.AllowanceTransferDetails[] calldata transferDetails) external {
+        (address user, address agent) = IRouter(router).getUserAgent();
+        if (msg.sender != agent) revert InvalidAgent();
 
         uint256 detailsLength = transferDetails.length;
         for (uint256 i = 0; i < detailsLength; ) {

@@ -44,7 +44,7 @@ contract SpenderAaveV2DelegationTest is Test {
         );
         // Return activated agent from router
         vm.mockCall(router, 0, abi.encodeWithSignature('getAgent()'), abi.encode(agent));
-
+        vm.mockCall(router, 0, abi.encodeWithSignature('getUserAgent()'), abi.encode(user, agent));
         vm.label(address(spender), 'SpenderAaveV2Delegation');
         vm.label(address(mockERC20Debt), 'mERC20Debt');
         vm.label(address(aaveV2Provider), 'AaveV2Provider');
