@@ -8,18 +8,18 @@ import {IRouter} from './interfaces/IRouter.sol';
 
 /// @title Router executes arbitrary logics
 contract Router is IRouter {
-    mapping(address => IAgent) public agents;
-    address public user;
-
     address private constant _INIT_USER = address(1);
 
     address public immutable agentImplementation;
+
+    mapping(address => IAgent) public agents;
+    address public user;
 
     modifier checkCaller() {
         if (user == _INIT_USER) {
             user = msg.sender;
         } else {
-            revert();
+            revert Reentrancy();
         }
         _;
         user = _INIT_USER;
@@ -30,13 +30,15 @@ contract Router is IRouter {
         agentImplementation = address(new AgentImplementation());
     }
 
+    /// @notice Create an agent for `msg.sender`
     function newAgent() external returns (address payable) {
         return newAgentFor(address(msg.sender));
     }
 
+    /// @notice Create an agent for `owner`
     function newAgentFor(address owner) public returns (address payable) {
         if (address(agents[owner]) != address(0)) {
-            revert();
+            revert AgentCreated();
         } else {
             IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20((uint160(owner))))}(agentImplementation)));
             agent.initialize();
@@ -45,7 +47,7 @@ contract Router is IRouter {
         }
     }
 
-    /// @notice Execute logics and return tokens to user
+    /// @notice Execute logics through user's agent. Create agent for user if not created.
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable checkCaller {
         IAgent agent = agents[user];
 

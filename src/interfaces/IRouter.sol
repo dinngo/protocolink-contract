@@ -4,6 +4,10 @@ pragma solidity ^0.8.0;
 import {IParam} from './IParam.sol';
 
 interface IRouter {
+    error Reentrancy();
+
+    error AgentCreated();
+
     function agentImplementation() external view returns (address);
 
     function user() external view returns (address);
