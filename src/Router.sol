@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {AgentImplementation} from './AgentImplementation.sol';
-import {IAgent, Agent} from './Agent.sol';
+import {IAgent, AgentImplementation} from './AgentImplementation.sol';
+import {Agent} from './Agent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 

@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {IAgent} from './interfaces/IAgent.sol';
-import {IParam} from './interfaces/IParam.sol';
-import {IRouter} from './interfaces/IRouter.sol';
-import {ApproveHelper} from './libraries/ApproveHelper.sol';
-
-/// @title Router executes arbitrary logics
+/// @title Agent executes arbitrary logics
 contract Agent {
     address private immutable _implementation;
 
@@ -17,10 +11,12 @@ contract Agent {
 
     receive() external payable {}
 
+    /// @notice All the function will be delegated to `_implementation`
     fallback() external payable {
         _delegate(_implementation);
     }
 
+    /// @notice Referenced from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.8.1/contracts/proxy/Proxy.sol#L22
     function _delegate(address implementation) internal {
         assembly {
             // Copy msg.data. We take full control of memory in this inline assembly
