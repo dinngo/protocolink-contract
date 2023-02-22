@@ -35,11 +35,12 @@ contract AgentImplementationTest is Test {
 
         vm.prank(router);
         agent = new AgentImplementation();
-        agent.initialize(user);
+        agent.initialize();
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockCallback = new MockCallback();
         mockFallback = address(new MockFallback());
 
+        vm.mockCall(router, 0, abi.encodeWithSignature('user()'), abi.encode(user));
         vm.label(address(agent), 'Agent');
         vm.label(address(mockERC20), 'mERC20');
         vm.label(address(mockCallback), 'mCallback');

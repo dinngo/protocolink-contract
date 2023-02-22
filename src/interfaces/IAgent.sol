@@ -16,7 +16,7 @@ interface IAgent {
 
     error InsufficientBalance(address tokenReturn, uint256 amountOutMin, uint256 balance);
 
-    function initialize(address user) external;
+    function initialize() external;
 
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 }

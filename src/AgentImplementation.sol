@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IAgent} from './interfaces/IAgent.sol';
 import {IParam} from './interfaces/IParam.sol';
+import {IRouter} from './interfaces/IRouter.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 /// @title Router executes arbitrary logics
@@ -18,7 +19,6 @@ contract AgentImplementation is IAgent {
 
     address public immutable router;
 
-    address public user;
     address private _caller;
 
     constructor() {
@@ -31,9 +31,8 @@ contract AgentImplementation is IAgent {
         _;
     }
 
-    function initialize(address user_) external {
-        require(user == address(0));
-        user = user_;
+    function initialize() external {
+        require(_caller == address(0));
         _caller = router;
     }
 
@@ -110,6 +109,7 @@ contract AgentImplementation is IAgent {
         for (uint256 i = 0; i < tokensReturnLength; ) {
             address token = tokensReturn[i];
             uint256 balance = _getBalance(token);
+            address user = IRouter(router).user();
             if (token == _NATIVE) {
                 payable(user).sendValue(balance);
             } else {
