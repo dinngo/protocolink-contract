@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IParam} from './IParam.sol';
 
 interface IAgent {
-    error InvalidCallback();
+    error InvalidCaller();
 
     error LengthMismatch();
 
@@ -13,6 +13,8 @@ interface IAgent {
     error InvalidBps();
 
     error UnresetCallback();
+
+    error Initialized();
 
     error InsufficientBalance(address tokenReturn, uint256 amountOutMin, uint256 balance);
 

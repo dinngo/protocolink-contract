@@ -5,9 +5,8 @@ import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token
 import {IAgent} from './interfaces/IAgent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
-import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
-/// @title Router executes arbitrary logics
+/// @title Implemtation contract of agent logics
 contract AgentImplementation is IAgent {
     using SafeERC20 for IERC20;
     using Address for address;
@@ -26,23 +25,23 @@ contract AgentImplementation is IAgent {
     }
 
     modifier checkCaller() {
-        if (_caller != msg.sender) revert InvalidCallback();
-        else if (_caller != router) _caller = router;
+        if (_caller != msg.sender) {
+            // Only predefined caller can call agent
+            revert InvalidCaller();
+        } else if (_caller != router) {
+            // When the caller is not router, should be reset right away to guarantee one-time usage from callback contracts
+            _caller = router;
+        }
         _;
     }
 
     function initialize() external {
-        require(_caller == address(0));
+        if (_caller != address(0)) revert Initialized();
         _caller = router;
     }
 
     /// @notice Execute logics and return tokens to user
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable checkCaller {
-        _execute(logics, tokensReturn);
-    }
-
-    /// @notice Router executes logics and calls Spenders to consume user's approval, e.g. erc20 and debt tokens
-    function _execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) private {
         // Execute each logic
         uint256 logicsLength = logics.length;
         for (uint256 i = 0; i < logicsLength; ) {
@@ -51,7 +50,7 @@ contract AgentImplementation is IAgent {
             IParam.Input[] memory inputs = logics[i].inputs;
             address callback = logics[i].callback;
 
-            // Execute each input if need to modify the amount or do approve
+            // Execute each input if need to modify the amount
             uint256 value;
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength; ) {
@@ -60,9 +59,7 @@ contract AgentImplementation is IAgent {
 
                 // Calculate native or token amount
                 // 1. if amountBps is skip: read amountOrOffset as amount
-                // 2. if amountBps isn't skip: balance multiplied by amountBps as amount
-                // 3. if amountBps isn't skip and amountOrOffset isn't skip:
-                //    => replace the amount at offset equal to amountOrOffset with the calculated amount
+                // 2. if amountBps isn't skip: balance multiplied by amountBps as amount and replace the amount at offset equal to amountOrOffset with the calculated amount
                 uint256 amount;
                 if (amountBps == _SKIP) {
                     amount = inputs[j].amountOrOffset;
@@ -72,15 +69,13 @@ contract AgentImplementation is IAgent {
 
                     // Skip if don't need to replace, e.g., most protocols set native amount in call value
                     uint256 offset = inputs[j].amountOrOffset;
-                    if (offset != _SKIP) {
-                        assembly {
-                            let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
-                            mstore(loc, amount)
-                        }
+                    assembly {
+                        let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
+                        mstore(loc, amount)
                     }
                 }
 
-                // Set native token value or approve ERC20 if `to` isn't the token self
+                // Set native token value for native token
                 if (token == _NATIVE) {
                     value = amount;
                 }
@@ -111,7 +106,7 @@ contract AgentImplementation is IAgent {
             uint256 balance = _getBalance(token);
             address user = IRouter(router).user();
             if (token == _NATIVE) {
-                payable(user).sendValue(balance);
+                payable(user).sendValue(address(this).balance);
             } else {
                 IERC20(token).safeTransfer(user, balance);
             }

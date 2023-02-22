@@ -63,7 +63,7 @@ contract AgentImplementationTest is Test {
             inputsEmpty,
             address(router) // callback
         );
-        vm.expectRevert(IAgent.InvalidCallback.selector);
+        vm.expectRevert(IAgent.InvalidCaller.selector);
         vm.prank(router);
         agent.execute(logics, tokensReturnEmpty);
     }
