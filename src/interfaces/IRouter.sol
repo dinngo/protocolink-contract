@@ -16,5 +16,7 @@ interface IRouter {
 
     function newAgent() external returns (address payable);
 
+    function newAgentFor(address user) external returns (address payable);
+
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 }

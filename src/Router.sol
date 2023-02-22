@@ -30,11 +30,14 @@ contract Router is IRouter {
         agentImplementation = address(new AgentImplementation());
     }
 
-    function newAgent() public returns (address payable) {
-        if (address(agents[msg.sender]) != address(0)) {
+    function newAgent() external returns (address payable) {
+        return newAgentFor(address(msg.sender));
+    }
+
+    function newAgentFor(address owner) public returns (address payable) {
+        if (address(agents[owner]) != address(0)) {
             revert();
         } else {
-            address owner = msg.sender;
             IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20((uint160(owner))))}(agentImplementation)));
             agent.initialize(owner);
             agents[owner] = agent;
@@ -47,7 +50,7 @@ contract Router is IRouter {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
-            agent = IAgent(newAgent());
+            agent = IAgent(newAgentFor(user));
         }
 
         agent.execute{value: msg.value}(logics, tokensReturn);

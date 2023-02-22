@@ -44,6 +44,11 @@ contract RouterTest is Test {
         assertFalse(router.getAgent(user) == address(0));
     }
 
+    function testNewAgentFor() external {
+        router.newAgentFor(user);
+        assertFalse(router.getAgent(user) == address(0));
+    }
+
     function testCalcAgent() external {
         address predictAddress = router.calcAgent(user);
         vm.prank(user);
