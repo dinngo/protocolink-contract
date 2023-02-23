@@ -44,8 +44,8 @@ contract RouterTest is Test {
         assertFalse(router.getAgent(user) == address(0));
     }
 
-    function testNewAgentFor() external {
-        router.newAgentFor(user);
+    function testNewAgentForUser() external {
+        router.newAgent(user);
         assertFalse(router.getAgent(user) == address(0));
     }
 

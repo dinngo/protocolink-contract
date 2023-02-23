@@ -32,11 +32,11 @@ contract Router is IRouter {
 
     /// @notice Create an agent for `msg.sender`
     function newAgent() external returns (address payable) {
-        return newAgentFor(address(msg.sender));
+        return newAgent(address(msg.sender));
     }
 
     /// @notice Create an agent for `owner`
-    function newAgentFor(address owner) public returns (address payable) {
+    function newAgent(address owner) public returns (address payable) {
         if (address(agents[owner]) != address(0)) {
             revert AgentCreated();
         } else {
@@ -51,7 +51,7 @@ contract Router is IRouter {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
-            agent = IAgent(newAgentFor(user));
+            agent = IAgent(newAgent(user));
         }
 
         agent.execute{value: msg.value}(logics, tokensReturn);
