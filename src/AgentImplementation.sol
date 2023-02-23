@@ -69,9 +69,11 @@ contract AgentImplementation is IAgent {
 
                     // Skip if don't need to replace, e.g., most protocols set native amount in call value
                     uint256 offset = inputs[j].amountOrOffset;
-                    assembly {
-                        let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
-                        mstore(loc, amount)
+                    if (offset != _SKIP) {
+                        assembly {
+                            let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
+                            mstore(loc, amount)
+                        }
                     }
                 }
 
