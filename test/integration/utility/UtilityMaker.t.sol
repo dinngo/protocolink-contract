@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {UtilityMaker, IUtilityMaker} from '../../src/utility/UtilityMaker.sol';
-import {Router, IRouter} from '../../src/Router.sol';
-import {IDSProxy, IDSProxyRegistry} from '../../src/interfaces/maker/IDSProxy.sol';
-import {SpenderERC20Approval, ISpenderERC20Approval} from '../../src/SpenderERC20Approval.sol';
+import {UtilityMaker, IUtilityMaker} from '../../../src/utility/UtilityMaker.sol';
+import {Router, IRouter} from '../../../src/Router.sol';
+import {IDSProxy, IDSProxyRegistry} from '../../../src/interfaces/maker/IDSProxy.sol';
+import {SpenderERC20Approval, ISpenderERC20Approval} from '../../../src/SpenderERC20Approval.sol';
 import 'forge-std/console.sol';
 
 interface IMakerVat {
@@ -33,7 +33,6 @@ contract UtilityMakerTest is Test {
     address public constant GEM = LINK_TOKEN;
     string public constant ETH_JOIN_NAME = 'ETH-A';
     string public constant TOKEN_JOIN_NAME = 'LINK-A';
-    uint256 public constant BPS_BASE = 10_000;
 
     address public user;
     IRouter public router;
