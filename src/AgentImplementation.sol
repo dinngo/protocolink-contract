@@ -109,10 +109,10 @@ contract AgentImplementation is IAgent {
         }
         for (uint256 i = 0; i < tokensReturnLength; ) {
             address token = tokensReturn[i];
-            uint256 balance = _getBalance(token);
             if (token == _NATIVE) {
                 payable(user).sendValue(address(this).balance);
             } else {
+                uint256 balance = IERC20(token).balanceOf(address(this));
                 IERC20(token).safeTransfer(user, balance);
             }
 
