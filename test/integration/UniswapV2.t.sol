@@ -121,7 +121,9 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         router.execute{value: amountIn}(logics, tokensReturn);
 
         assertEq(address(router).balance, 0);
+        assertEq(address(agent).balance, 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
+        assertEq(tokenOut.balanceOf(address(agent)), 0);
         assertGt(tokenOut.balanceOf(user), 0);
     }
 
@@ -143,7 +145,9 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         router.execute(logics, tokensReturn);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
+        assertEq(tokenIn.balanceOf(address(agent)), 0);
         assertEq(address(router).balance, 0);
+        assertEq(address(agent).balance, 0);
         assertGt(user.balance, 0);
     }
 
@@ -166,7 +170,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         router.execute(logics, tokensReturn);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
-        assertEq(tokenOut.balanceOf(address(router)), 0);
+        assertEq(tokenOut.balanceOf(address(agent)), 0);
         assertGt(tokenOut.balanceOf(user), 0);
     }
 
@@ -205,8 +209,11 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         router.execute(logics, tokensReturn);
 
         assertEq(tokenIn0.balanceOf(address(router)), 0);
+        assertEq(tokenIn0.balanceOf(address(agent)), 0);
         assertEq(tokenIn1.balanceOf(address(router)), 0);
+        assertEq(tokenIn1.balanceOf(address(agent)), 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
+        assertEq(tokenOut.balanceOf(address(agent)), 0);
         assertApproxEqRel(tokenIn0.balanceOf(user), amountIn0, 0.01 * 1e18);
     }
 

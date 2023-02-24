@@ -273,7 +273,7 @@ contract SpenderPermit2ERC20Test is Test, PermitSignature {
     }
 
     // Cannot call spender directly
-    function testCannotBeCalledByNonRouter() external {
+    function testCannotBeCalledByNonAgent() external {
         {
             vm.expectRevert(ISpenderPermit2ERC20.InvalidAgent.selector);
             ISignatureTransfer.PermitTransferFrom memory permit;

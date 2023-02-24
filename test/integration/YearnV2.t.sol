@@ -61,8 +61,11 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         vm.prank(user);
         router.execute(logics, tokensReturn);
 
+        address agent = router.getAgent(user);
         assertEq(tokenIn.balanceOf(address(router)), 0);
+        assertEq(tokenIn.balanceOf(address(agent)), 0);
         assertEq(yVault.balanceOf(address(router)), 0);
+        assertEq(yVault.balanceOf(address(agent)), 0);
         assertGt(yVault.balanceOf(user), 0);
     }
 

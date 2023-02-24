@@ -48,8 +48,11 @@ contract WETHTest is Test {
         vm.prank(user);
         router.execute{value: amountIn}(logics, tokensReturn);
 
+        address agent = router.getAgent(user);
         assertEq(address(router).balance, 0);
+        assertEq(address(agent).balance, 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
+        assertEq(tokenOut.balanceOf(address(agent)), 0);
         assertGt(user.balance, 0);
         assertGt(tokenOut.balanceOf(user), 0);
     }

@@ -56,7 +56,7 @@ contract SpenderERC20ApprovalTest is Test {
     }
 
     // Cannot call spender directly
-    function testCannotBeCalledByNonRouter(uint128 amount) external {
+    function testCannotBeCalledByNonAgent(uint128 amount) external {
         vm.assume(amount > 0);
         deal(address(mockERC20), user, amount);
 

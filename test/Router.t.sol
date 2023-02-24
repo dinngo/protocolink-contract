@@ -34,19 +34,19 @@ contract RouterTest is Test {
         mockTo = address(new MockFallback());
 
         // Mock `Logic.to`
-        vm.mockCall(mockTo, 0, abi.encodeWithSignature('dummy()'), new bytes(0));
+        vm.mockCall(mockTo, 0, '', new bytes(0));
         vm.label(address(mockERC20), 'mERC20');
     }
 
     function testNewAgent() external {
         vm.prank(user);
-        router.newAgent();
-        assertFalse(router.getAgent(user) == address(0));
+        address agent = router.newAgent();
+        assertEq(router.getAgent(user), agent);
     }
 
     function testNewAgentForUser() external {
-        router.newAgent(user);
-        assertFalse(router.getAgent(user) == address(0));
+        address agent = router.newAgent(user);
+        assertEq(router.getAgent(user), agent);
     }
 
     function testCalcAgent() external {
@@ -59,7 +59,7 @@ contract RouterTest is Test {
     function testCannotNewAgentAgain() external {
         vm.startPrank(user);
         router.newAgent();
-        vm.expectRevert();
+        vm.expectRevert(IRouter.AgentCreated.selector);
         router.newAgent();
         vm.stopPrank();
     }
@@ -68,7 +68,7 @@ contract RouterTest is Test {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
             address(mockTo), // to
-            abi.encodeWithSignature('dummy()'),
+            '',
             inputsEmpty,
             address(0) // callback
         );
@@ -82,7 +82,7 @@ contract RouterTest is Test {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
             address(mockTo), // to
-            abi.encodeWithSignature('dummy()'),
+            '',
             inputsEmpty,
             address(0) // callback
         );
@@ -97,7 +97,7 @@ contract RouterTest is Test {
         IParam.Logic[] memory callback = new IParam.Logic[](1);
         callback[0] = IParam.Logic(
             address(mockTo), // to
-            abi.encodeWithSignature('dummy()'),
+            '',
             inputsEmpty,
             address(0) // callback
         );
@@ -110,7 +110,7 @@ contract RouterTest is Test {
         );
         vm.startPrank(user);
         router.newAgent();
-        vm.expectRevert();
+        vm.expectRevert(IRouter.Reentrancy.selector);
         router.execute(logics, tokensReturnEmpty);
         vm.stopPrank();
     }

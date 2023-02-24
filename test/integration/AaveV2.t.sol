@@ -122,6 +122,7 @@ contract AaveV2IntegrationTest is Test {
         router.execute(logics, tokensReturnEmpty);
 
         assertEq(token.balanceOf(address(router)), 0);
+        assertEq(token.balanceOf(address(agent)), 0);
         assertEq(token.balanceOf(address(flashLoanCallback)), 0);
         assertEq(token.balanceOf(user), 0);
     }
