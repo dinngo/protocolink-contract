@@ -6,7 +6,6 @@ import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ut
 import {SpenderMakerVaultAuthority, ISpenderMakerVaultAuthority} from '../../src/SpenderMakerVaultAuthority.sol';
 import {Router, IRouter} from '../../src/Router.sol';
 import {IDSProxy, IDSProxyRegistry} from '../../src/interfaces/maker/IDSProxy.sol';
-import 'forge-std/console.sol';
 
 interface IMakerVat {
     function ilks(bytes32) external view returns (uint, uint, uint, uint, uint);
@@ -36,7 +35,8 @@ contract SpenderMakerVaultAuthorityTest is Test {
     address public user;
     IRouter public router;
     ISpenderMakerVaultAuthority public spenderMaker;
-    uint256 daiDrawAmount = 20000 ether;
+    uint256 ethCdp;
+    uint256 gemCdp;
 
     // Empty arrays
     address[] tokensReturnEmpty;
@@ -61,8 +61,9 @@ contract SpenderMakerVaultAuthorityTest is Test {
 
         // Open ETH Vault
         uint256 ethAmount = 100 ether;
+        uint256 drawDaiAmount = 20000 ether;
         deal(user, ethAmount);
-        IDSProxy(userDSProxy).execute{value: ethAmount}(
+        bytes32 ret = IDSProxy(userDSProxy).execute{value: ethAmount}(
             PROXY_ACTIONS,
             abi.encodeWithSelector(
                 0xe685cc04, // selector of "openLockETHAndDraw(address,address,address,address,bytes32,uint256)"
@@ -71,16 +72,18 @@ contract SpenderMakerVaultAuthorityTest is Test {
                 ETH_JOIN_A,
                 DAI_JOIN,
                 bytes32(bytes(ETH_JOIN_NAME)),
-                daiDrawAmount
+                drawDaiAmount
             )
         );
-        assertEq(IERC20(DAI_TOKEN).balanceOf(user), daiDrawAmount);
+        ethCdp = uint256(ret);
+
+        assertEq(IERC20(DAI_TOKEN).balanceOf(user), drawDaiAmount);
 
         // Open LINK Vault
-        uint256 linkAmount = 500000 ether;
-        deal(LINK_TOKEN, user, linkAmount);
-        IERC20(LINK_TOKEN).approve(userDSProxy, linkAmount);
-        IDSProxy(userDSProxy).execute(
+        uint256 gemAmount = 500000 ether;
+        deal(GEM, user, gemAmount);
+        IERC20(GEM).approve(userDSProxy, gemAmount);
+        ret = IDSProxy(userDSProxy).execute(
             PROXY_ACTIONS,
             abi.encodeWithSelector(
                 // selector of "openLockGemAndDraw(address,address,address,address,bytes32,uint256,uint256,bool)"
@@ -90,18 +93,26 @@ contract SpenderMakerVaultAuthorityTest is Test {
                 GEM_JOIN_LINK_A,
                 DAI_JOIN,
                 bytes32(bytes(TOKEN_JOIN_NAME)),
-                linkAmount,
-                daiDrawAmount,
+                gemAmount,
+                drawDaiAmount,
                 true
             )
         );
-        assertEq(IERC20(DAI_TOKEN).balanceOf(user), daiDrawAmount * 2);
+        gemCdp = uint256(ret);
+
+        assertEq(IERC20(DAI_TOKEN).balanceOf(user), drawDaiAmount * 2);
+
+        // approve
+        address spenderMakerDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(spenderMaker));
+        _allowCdp(userDSProxy, ethCdp, spenderMakerDSProxy);
+        _allowCdp(userDSProxy, gemCdp, spenderMakerDSProxy);
 
         vm.stopPrank();
 
         // Label
         vm.label(address(router), 'Router');
         vm.label(address(spenderMaker), 'SpenderMaker');
+        vm.label(address(spenderMakerDSProxy), 'SpenderMakerDSProxy');
         vm.label(address(userDSProxy), 'UserDSProxy');
         vm.label(PROXY_REGISTRY, 'PROXY_REGISTRY');
         vm.label(CDP_MANAGER, 'CDP_MANAGER');
@@ -114,7 +125,156 @@ contract SpenderMakerVaultAuthorityTest is Test {
         vm.label(GEM, 'GEM');
     }
 
-    function testAAA() external {
-        console.log('Succ!!!');
+    function testFreeETH() external {
+        uint256 freeETHAmount = 1 ether;
+
+        IRouter.Logic[] memory logics = _logicFreeETH(ethCdp, freeETHAmount);
+
+        uint256 userEthBalanceBefore = user.balance;
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(NATIVE);
+        vm.prank(user);
+        router.execute(logics, tokensReturn);
+
+        uint256 userEthBalanceAfter = user.balance;
+
+        assertEq(userEthBalanceAfter - userEthBalanceBefore, freeETHAmount);
+        assertEq(address(router).balance, 0);
+        assertEq(address(spenderMaker).balance, 0);
+    }
+
+    function testFreeGem() external {
+        uint256 freeGemAmount = 100 ether;
+
+        IRouter.Logic[] memory logics = _logicFreeGem(gemCdp, freeGemAmount, GEM);
+
+        uint256 userEthBalanceBefore = IERC20(GEM).balanceOf(user);
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(GEM);
+        vm.prank(user);
+        router.execute(logics, tokensReturn);
+
+        uint256 userEthBalanceAfter = IERC20(GEM).balanceOf(user);
+
+        assertEq(userEthBalanceAfter - userEthBalanceBefore, freeGemAmount);
+        assertEq(IERC20(GEM).balanceOf(address(router)), 0);
+        assertEq(IERC20(GEM).balanceOf(address(spenderMaker)), 0);
+    }
+
+    function testDraw() external {
+        uint256 drawDaiAmount = 1000 ether;
+
+        IRouter.Logic[] memory logics = _logicDraw(ethCdp, drawDaiAmount);
+
+        uint256 userDaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user);
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(DAI_TOKEN);
+        vm.prank(user);
+        router.execute(logics, tokensReturn);
+
+        uint256 userDaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user);
+
+        assertEq(userDaiBalanceAfter - userDaiBalanceBefore, drawDaiAmount);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(spenderMaker)), 0);
+    }
+
+    function _allowCdp(address dsProxy, uint256 cdp, address usr) internal {
+        IDSProxy(dsProxy).execute(
+            PROXY_ACTIONS,
+            abi.encodeWithSelector(
+                0xba727a95, // selector of "cdpAllow(address,uint256,address,uint256)" */
+                CDP_MANAGER,
+                cdp,
+                usr,
+                1
+            )
+        );
+    }
+
+    function _logicFreeETH(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic[] memory) {
+        // Prepare datas
+        bytes memory data = abi.encodeWithSelector(
+            ISpenderMakerVaultAuthority.freeETH.selector,
+            ETH_JOIN_A,
+            cdp,
+            amount
+        );
+
+        // Encode outputs
+        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        outputs[0].token = NATIVE;
+        outputs[0].amountMin = amount;
+
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = IRouter.Logic(
+            address(spenderMaker),
+            data,
+            inputsEmpty,
+            outputs,
+            address(0), // approveTo,
+            address(0) // callback
+        );
+
+        return logics;
+    }
+
+    function _logicFreeGem(
+        uint256 cdp,
+        uint256 amount,
+        address collateral
+    ) internal view returns (IRouter.Logic[] memory) {
+        // Prepare datas
+        bytes memory data = abi.encodeWithSelector(
+            ISpenderMakerVaultAuthority.freeGem.selector,
+            GEM_JOIN_LINK_A,
+            cdp,
+            amount
+        );
+
+        // Encode outputs
+        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        outputs[0].token = collateral;
+        outputs[0].amountMin = amount;
+
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = IRouter.Logic(
+            address(spenderMaker),
+            data,
+            inputsEmpty,
+            outputs,
+            address(0), // approveTo,
+            address(0) // callback
+        );
+
+        return logics;
+    }
+
+    function _logicDraw(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic[] memory) {
+        // Prepare datas
+        bytes memory data = abi.encodeWithSelector(ISpenderMakerVaultAuthority.draw.selector, DAI_JOIN, cdp, amount);
+
+        // Encode outputs
+        IRouter.Output[] memory outputs = new IRouter.Output[](1);
+        outputs[0].token = DAI_TOKEN;
+        outputs[0].amountMin = amount;
+
+        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        logics[0] = IRouter.Logic(
+            address(spenderMaker),
+            data,
+            inputsEmpty,
+            outputs,
+            address(0), // approveTo,
+            address(0) // callback
+        );
+
+        return logics;
     }
 }

@@ -7,7 +7,6 @@ import {UtilityMaker, IUtilityMaker} from '../../../src/utility/UtilityMaker.sol
 import {Router, IRouter} from '../../../src/Router.sol';
 import {IDSProxy, IDSProxyRegistry} from '../../../src/interfaces/maker/IDSProxy.sol';
 import {SpenderERC20Approval, ISpenderERC20Approval} from '../../../src/SpenderERC20Approval.sol';
-import 'forge-std/console.sol';
 
 interface IMakerVat {
     function ilks(bytes32) external view returns (uint256 art, uint256 rate, uint256 spot, uint256 line, uint256 dust);
@@ -72,8 +71,6 @@ contract UtilityMakerTest is Test {
     function testOpenLockETHAndDraw(uint256 ethLockAmount, uint256 daiDrawAmount) external {
         // Calculate minimum collateral amount of ETH and drawing random amount of DAI between minimum and maximum
         bytes32 ilkETH = bytes32(bytes(ETH_JOIN_NAME));
-        console.log('ilkETH:');
-        console.logBytes32(ilkETH);
 
         IMakerVat vat = IMakerVat(VAT);
         (, uint256 rate, uint256 spot, , uint256 dust) = vat.ilks(ilkETH);
@@ -93,15 +90,11 @@ contract UtilityMakerTest is Test {
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
         router.execute{value: ethLockAmount}(logics, tokensReturn);
-
-        console.log('Succ!!!');
     }
 
     function testOpenLockGemAndDraw(uint256 tokenLockAmount, uint256 daiDrawAmount) external {
         // Calculate minimum collateral amount of token and drawing random amount of DAI between minimum and maximum
         bytes32 ilkToken = bytes32(bytes(TOKEN_JOIN_NAME));
-        console.log('ilkToken:');
-        console.logBytes32(ilkToken);
 
         IMakerVat vat = IMakerVat(VAT);
         (, uint256 rate, uint256 spot, , uint256 dust) = vat.ilks(ilkToken);
@@ -121,8 +114,6 @@ contract UtilityMakerTest is Test {
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
         router.execute(logics, tokensReturn);
-
-        console.log('Succ!!!');
     }
 
     function _getDAIDrawMinAndMinCollateral(uint256 spot, uint256 dust) internal pure returns (uint256, uint256) {
