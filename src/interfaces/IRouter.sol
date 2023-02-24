@@ -14,15 +14,15 @@ interface IRouter {
 
     function getAgent() external view returns (address);
 
-    function getUserAgent() external view returns (address, address);
-
     function getAgent(address user) external view returns (address);
 
+    function getUserAgent() external view returns (address, address);
+
     function calcAgent(address user) external view returns (address);
+
+    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 
     function newAgent() external returns (address payable);
 
     function newAgent(address user) external returns (address payable);
-
-    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 }

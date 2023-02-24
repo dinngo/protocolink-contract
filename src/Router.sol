@@ -30,33 +30,6 @@ contract Router is IRouter {
         agentImplementation = address(new AgentImplementation());
     }
 
-    /// @notice Create an agent for `msg.sender`
-    function newAgent() external returns (address payable) {
-        return newAgent(address(msg.sender));
-    }
-
-    /// @notice Create an agent for `owner`
-    function newAgent(address owner) public returns (address payable) {
-        if (address(agents[owner]) != address(0)) {
-            revert AgentCreated();
-        } else {
-            IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20((uint160(owner))))}(agentImplementation)));
-            agents[owner] = agent;
-            return payable(address(agent));
-        }
-    }
-
-    /// @notice Execute logics through user's agent. Create agent for user if not created.
-    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable checkCaller {
-        IAgent agent = agents[user];
-
-        if (address(agent) == address(0)) {
-            agent = IAgent(newAgent(user));
-        }
-
-        agent.execute{value: msg.value}(logics, tokensReturn);
-    }
-
     function getAgent() external view returns (address) {
         return address(agents[user]);
     }
@@ -85,5 +58,32 @@ contract Router is IRouter {
             )
         );
         return result;
+    }
+
+    /// @notice Execute logics through user's agent. Create agent for user if not created.
+    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable checkCaller {
+        IAgent agent = agents[user];
+
+        if (address(agent) == address(0)) {
+            agent = IAgent(newAgent(user));
+        }
+
+        agent.execute{value: msg.value}(logics, tokensReturn);
+    }
+
+    /// @notice Create an agent for `msg.sender`
+    function newAgent() external returns (address payable) {
+        return newAgent(msg.sender);
+    }
+
+    /// @notice Create an agent for `owner`
+    function newAgent(address owner) public returns (address payable) {
+        if (address(agents[owner]) != address(0)) {
+            revert AgentCreated();
+        } else {
+            IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20((uint160(owner))))}(agentImplementation)));
+            agents[owner] = agent;
+            return payable(address(agent));
+        }
     }
 }
