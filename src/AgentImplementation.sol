@@ -102,22 +102,21 @@ contract AgentImplementation is IAgent {
         }
 
         // Push tokensReturn if any balance
-        address user;
         uint256 tokensReturnLength = tokensReturn.length;
         if (tokensReturnLength > 0) {
-            user = IRouter(router).user();
-        }
-        for (uint256 i = 0; i < tokensReturnLength; ) {
-            address token = tokensReturn[i];
-            if (token == _NATIVE) {
-                payable(user).sendValue(address(this).balance);
-            } else {
-                uint256 balance = IERC20(token).balanceOf(address(this));
-                IERC20(token).safeTransfer(user, balance);
-            }
+            address user = IRouter(router).user();
+            for (uint256 i = 0; i < tokensReturnLength; ) {
+                address token = tokensReturn[i];
+                if (token == _NATIVE) {
+                    payable(user).sendValue(address(this).balance);
+                } else {
+                    uint256 balance = IERC20(token).balanceOf(address(this));
+                    IERC20(token).safeTransfer(user, balance);
+                }
 
-            unchecked {
-                i++;
+                unchecked {
+                    i++;
+                }
             }
         }
     }
