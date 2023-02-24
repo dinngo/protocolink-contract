@@ -18,7 +18,6 @@ contract SpenderERC20ApprovalTest is Test {
     IERC20 public mockERC20;
 
     IParam.Input[] inputsEmpty;
-    IParam.Output[] outputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');

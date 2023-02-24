@@ -17,9 +17,4 @@ interface IParam {
         // If amountBps is not skip, amountOrOffset is byte offset of amount in Logic.data used for replacement. Set type(uint256).max to skip if don't need to replace.
         uint256 amountOrOffset;
     }
-
-    struct Output {
-        address token;
-        uint256 amountMin;
-    }
 }

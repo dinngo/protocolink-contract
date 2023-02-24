@@ -131,10 +131,6 @@ contract AaveV2IntegrationTest is Test {
         uint256 amount,
         uint256 interestRateMode
     ) public view returns (IParam.Logic memory) {
-        // Encode outputs
-        IParam.Output[] memory outputs = new IParam.Output[](1);
-        outputs[0].token = address(token);
-
         return
             IParam.Logic(
                 address(spender), // to
