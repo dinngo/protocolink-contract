@@ -25,10 +25,11 @@ contract AgentImplementation is IAgent {
     }
 
     modifier checkCaller() {
-        if (_caller != msg.sender) {
+        address caller = _caller;
+        if (caller != msg.sender) {
             // Only predefined caller can call agent
             revert InvalidCaller();
-        } else if (_caller != router) {
+        } else if (caller != router) {
             // When the caller is not router, should be reset right away to guarantee one-time usage from callback contracts
             _caller = router;
         }
