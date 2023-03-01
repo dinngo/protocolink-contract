@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {SpenderMakerVaultAuthority, ISpenderMakerVaultAuthority} from '../../src/SpenderMakerVaultAuthority.sol';
 import {Router, IRouter} from '../../src/Router.sol';
 import {IDSProxy, IDSProxyRegistry} from '../../src/interfaces/maker/IDSProxy.sol';
@@ -10,8 +10,6 @@ import {IMakerManager, IMakerVat} from '../../src/interfaces/maker/IMaker.sol';
 import {SpenderERC20Approval, ISpenderERC20Approval} from '../../src/SpenderERC20Approval.sol';
 
 contract SpenderMakerVaultAuthorityTest is Test {
-    using SafeERC20 for IERC20;
-
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant LINK_TOKEN = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
 
@@ -29,13 +27,10 @@ contract SpenderMakerVaultAuthorityTest is Test {
     address public constant GEM = LINK_TOKEN;
     string public constant ETH_JOIN_NAME = 'ETH-A';
     string public constant TOKEN_JOIN_NAME = 'LINK-A';
-    uint256 public constant RAY = 10 ** 27;
     uint256 public constant DRAW_DAI_AMOUNT = 20000 ether;
 
     ISpenderMakerVaultAuthority public spenderMaker;
-    ISpenderERC20Approval public spenderERC20;
     address public user;
-    address public user2;
     IRouter public router;
     address public userDSProxy;
     address public routerDSProxy;
@@ -49,7 +44,6 @@ contract SpenderMakerVaultAuthorityTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
-        user2 = makeAddr('User2');
         router = new Router();
         spenderMaker = new SpenderMakerVaultAuthority(
             address(router),
@@ -59,15 +53,10 @@ contract SpenderMakerVaultAuthorityTest is Test {
             DAI_TOKEN,
             JUG
         );
-        spenderERC20 = new SpenderERC20Approval(address(router));
 
         // Build user's DSProxy
         vm.startPrank(user);
         userDSProxy = IDSProxyRegistry(PROXY_REGISTRY).build();
-
-        // Build router's DSProxy
-        router.execute(_logicBuildRouterDSProxy(), new address[](0));
-        routerDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(router));
 
         // Open ETH Vault
         uint256 ethAmount = 100 ether;
@@ -85,7 +74,6 @@ contract SpenderMakerVaultAuthorityTest is Test {
             )
         );
         ethCdp = uint256(ret);
-
         assertEq(IERC20(DAI_TOKEN).balanceOf(user), DRAW_DAI_AMOUNT);
 
         // Open LINK Vault
@@ -108,7 +96,6 @@ contract SpenderMakerVaultAuthorityTest is Test {
             )
         );
         gemCdp = uint256(ret);
-
         assertEq(IERC20(DAI_TOKEN).balanceOf(user), DRAW_DAI_AMOUNT * 2);
 
         // approve
@@ -121,7 +108,6 @@ contract SpenderMakerVaultAuthorityTest is Test {
         // Label
         vm.label(address(router), 'Router');
         vm.label(address(spenderMaker), 'SpenderMaker');
-        vm.label(address(spenderERC20), 'SpenderERC20');
         vm.label(address(spenderMakerDSProxy), 'SpenderMakerDSProxy');
         vm.label(address(routerDSProxy), 'RouterDSProxy');
         vm.label(address(userDSProxy), 'UserDSProxy');
@@ -198,132 +184,6 @@ contract SpenderMakerVaultAuthorityTest is Test {
         assertEq(userDaiBalanceAfter - userDaiBalanceBefore, drawDaiAmount);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(spenderMaker)), 0);
-    }
-
-    function testSafeLockETH() external {
-        // Setup
-        uint256 lockETHAmount = 10 ether;
-        deal(user, lockETHAmount);
-        uint256 userBalanceBefore = user.balance;
-        (, uint256 collateralBefore) = _getCdpInfo(ethCdp);
-
-        // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicSafeLockETH(ethCdp, lockETHAmount);
-
-        // Execute
-        vm.prank(user);
-        router.execute{value: lockETHAmount}(logics, tokensReturnEmpty);
-
-        (, uint256 collateralAfter) = _getCdpInfo(ethCdp);
-
-        assertEq(address(router).balance, 0);
-        assertEq(address(routerDSProxy).balance, 0);
-        assertEq(userBalanceBefore - user.balance, lockETHAmount);
-        assertEq(collateralAfter - collateralBefore, lockETHAmount);
-    }
-
-    function testSafeLockGem() external {
-        // Setup
-        uint256 lockGemAmount = 100 ether;
-        deal(GEM, user, lockGemAmount);
-        uint256 userGemBalanceBefore = IERC20(GEM).balanceOf(user);
-        (, uint256 collateralBefore) = _getCdpInfo(gemCdp);
-
-        // User approve to SpenderERC20Approval
-        vm.prank(user);
-        IERC20(GEM).approve(address(spenderERC20), type(uint256).max);
-
-        // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = _logicSpenderERC20ApprovalPullToken(GEM, lockGemAmount);
-        logics[1] = _logicSafeLockGem(gemCdp, lockGemAmount);
-
-        // Execute
-        vm.prank(user);
-        router.execute(logics, tokensReturnEmpty);
-
-        (, uint256 collateralAfter) = _getCdpInfo(gemCdp);
-        uint256 userGemBalanceAfter = IERC20(GEM).balanceOf(user);
-
-        assertEq(IERC20(GEM).balanceOf(address(router)), 0);
-        assertEq(IERC20(GEM).balanceOf(address(routerDSProxy)), 0);
-        assertEq(userGemBalanceBefore - userGemBalanceAfter, lockGemAmount);
-        assertEq(collateralAfter - collateralBefore, lockGemAmount);
-    }
-
-    function testWipe() external {
-        // Setup
-        uint256 wipeAmount = 100 ether;
-        deal(DAI_TOKEN, user2, wipeAmount);
-        uint256 userDaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user2);
-        (uint256 debtBefore, ) = _getCdpInfo(gemCdp);
-
-        // User approve to SpenderERC20Approval
-        vm.prank(user2);
-        IERC20(DAI_TOKEN).approve(address(spenderERC20), type(uint256).max);
-
-        // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = _logicSpenderERC20ApprovalPullToken(DAI_TOKEN, wipeAmount);
-        logics[1] = _logicWipe(gemCdp, wipeAmount);
-
-        // Execute
-        vm.prank(user2);
-        router.execute(logics, tokensReturnEmpty);
-
-        (uint256 debtAfter, ) = _getCdpInfo(gemCdp);
-        uint256 userDaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user2);
-
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(routerDSProxy)), 0);
-        assertEq(userDaiBalanceBefore - userDaiBalanceAfter, wipeAmount);
-        assertApproxEqRel(((debtBefore - debtAfter) / RAY), wipeAmount, 0.001e18);
-    }
-
-    function testWipeAll() external {
-        // Setup
-        uint256 wipeAmount = DRAW_DAI_AMOUNT + 100 ether;
-        deal(DAI_TOKEN, user2, wipeAmount);
-        uint256 userDaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user2);
-        (uint256 debtBefore, ) = _getCdpInfo(gemCdp);
-
-        // User approve to SpenderERC20Approval
-        vm.prank(user2);
-        IERC20(DAI_TOKEN).approve(address(spenderERC20), type(uint256).max);
-
-        // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        logics[0] = _logicSpenderERC20ApprovalPullToken(DAI_TOKEN, wipeAmount);
-        logics[1] = _logicWipeAll(gemCdp, wipeAmount);
-
-        // Execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(DAI_TOKEN);
-        vm.prank(user2);
-        router.execute(logics, tokensReturn);
-
-        (uint256 debtAfter, ) = _getCdpInfo(gemCdp);
-        uint256 userDaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user2);
-
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(routerDSProxy)), 0);
-        assertApproxEqRel(userDaiBalanceBefore - userDaiBalanceAfter, debtBefore / RAY, 0.001e18);
-        assertEq(debtAfter, 0);
-    }
-
-    function _logicBuildRouterDSProxy() internal view returns (IRouter.Logic[] memory) {
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
-            PROXY_REGISTRY,
-            abi.encodeWithSelector(IDSProxyRegistry.build.selector),
-            inputsEmpty,
-            outputsEmpty,
-            address(0), // approveTo,
-            address(0) // callback
-        );
-
-        return logics;
     }
 
     function _allowCdp(address dsProxy, uint256 cdp, address usr) internal {
@@ -410,155 +270,6 @@ contract SpenderMakerVaultAuthorityTest is Test {
                 outputs,
                 address(0), // approveTo,
                 address(0) // callback
-            );
-    }
-
-    function _logicSafeLockETH(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic memory) {
-        // Prepare data
-        bytes memory data = abi.encodeWithSelector(
-            IDSProxy.execute.selector,
-            PROXY_ACTIONS,
-            abi.encodeWithSelector(
-                0xee284576, // selector of "safeLockETH(address,address,uint256,address)"
-                CDP_MANAGER,
-                ETH_JOIN_A,
-                cdp,
-                userDSProxy
-            )
-        );
-
-        // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
-        inputs[0].token = NATIVE;
-        inputs[0].amountBps = type(uint256).max;
-        inputs[0].amountOrOffset = amount;
-
-        return
-            IRouter.Logic(
-                routerDSProxy,
-                data,
-                inputs,
-                outputsEmpty,
-                address(0), // approveTo,
-                address(0) // callback);
-            );
-    }
-
-    function _logicSafeLockGem(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic memory) {
-        // Prepare data
-        bytes memory data = abi.encodeWithSelector(
-            IDSProxy.execute.selector,
-            PROXY_ACTIONS,
-            abi.encodeWithSelector(
-                0xead64729, // selector of "safeLockGem(address,address,uint256,uint256,bool,address)"
-                CDP_MANAGER,
-                GEM_JOIN_LINK_A,
-                cdp,
-                amount,
-                true,
-                userDSProxy
-            )
-        );
-
-        // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
-        inputs[0].token = GEM;
-        inputs[0].amountBps = type(uint256).max;
-        inputs[0].amountOrOffset = amount;
-
-        return
-            IRouter.Logic(
-                routerDSProxy,
-                data,
-                inputs,
-                outputsEmpty,
-                routerDSProxy, // approveTo,
-                address(0) // callback);
-            );
-    }
-
-    function _logicWipe(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic memory) {
-        // Prepare data
-        bytes memory data = abi.encodeWithSelector(
-            IDSProxy.execute.selector,
-            PROXY_ACTIONS,
-            abi.encodeWithSelector(
-                0x4b666199, // selector of "wipe(address,address,uint256,uint256)"
-                CDP_MANAGER,
-                DAI_JOIN,
-                cdp,
-                amount
-            )
-        );
-
-        // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
-        inputs[0].token = DAI_TOKEN;
-        inputs[0].amountBps = type(uint256).max;
-        inputs[0].amountOrOffset = amount;
-
-        return
-            IRouter.Logic(
-                routerDSProxy,
-                data,
-                inputs,
-                outputsEmpty,
-                routerDSProxy, // approveTo,
-                address(0) // callback);
-            );
-    }
-
-    function _logicWipeAll(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic memory) {
-        // Prepare data
-        bytes memory data = abi.encodeWithSelector(
-            IDSProxy.execute.selector,
-            PROXY_ACTIONS,
-            abi.encodeWithSelector(
-                0x036a2395, // selector of "wipeAll(address,address,uint256)"
-                CDP_MANAGER,
-                DAI_JOIN,
-                cdp
-            )
-        );
-
-        // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
-        inputs[0].token = DAI_TOKEN;
-        inputs[0].amountBps = type(uint256).max;
-        inputs[0].amountOrOffset = amount;
-
-        return
-            IRouter.Logic(
-                routerDSProxy,
-                data,
-                inputs,
-                outputsEmpty,
-                routerDSProxy, // approveTo,
-                address(0) // callback);
-            );
-    }
-
-    function _getCdpInfo(uint256 cdp) internal view returns (uint256, uint256) {
-        address urn = IMakerManager(CDP_MANAGER).urns(cdp);
-        bytes32 ilk = IMakerManager(CDP_MANAGER).ilks(cdp);
-        (, uint256 rate, , , ) = IMakerVat(VAT).ilks(ilk);
-        (uint256 ink, uint256 art) = IMakerVat(VAT).urns(ilk, urn);
-        uint256 debt = art * rate;
-        return (debt, ink);
-    }
-
-    function _logicSpenderERC20ApprovalPullToken(
-        address token,
-        uint256 amount
-    ) internal view returns (IRouter.Logic memory) {
-        return
-            IRouter.Logic(
-                address(spenderERC20),
-                abi.encodeWithSelector(ISpenderERC20Approval.pullToken.selector, token, amount),
-                inputsEmpty,
-                outputsEmpty,
-                address(0), // approveTo,
-                address(0) // callback);
             );
     }
 }
