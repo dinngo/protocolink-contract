@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../../src/Router.sol';
+import {IParam} from '../../src/interfaces/IParam.sol';
 import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
 
 interface IYVault {
@@ -26,8 +27,7 @@ contract YearnV2Test is Test, SpenderPermitUtils {
     IRouter public router;
 
     // Empty arrays
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
@@ -50,9 +50,10 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
+        IParam.Logic[] memory logics = new IParam.Logic[](3);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, uint160(amountIn));
-        logics[1] = _logicYearn(tokenIn, amountIn, BPS_BASE, tokenOut);
+        logics[1] = _logicTokenApproval(tokenIn, address(yVault), amountIn, SKIP);
+        logics[2] = _logicYearn(tokenIn, amountIn, BPS_BASE);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -60,39 +61,51 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         vm.prank(user);
         router.execute(logics, tokensReturn);
 
+        address agent = router.getAgent(user);
         assertEq(tokenIn.balanceOf(address(router)), 0);
+        assertEq(tokenIn.balanceOf(address(agent)), 0);
         assertEq(yVault.balanceOf(address(router)), 0);
+        assertEq(yVault.balanceOf(address(agent)), 0);
         assertGt(yVault.balanceOf(user), 0);
+    }
+
+    function _logicTokenApproval(
+        IERC20 token,
+        address spender,
+        uint256 amount,
+        uint256 amountBps
+    ) internal pure returns (IParam.Logic memory) {
+        // Encode data
+        bytes memory data = abi.encodeCall(IERC20.approve, (spender, amount));
+        IParam.Input[] memory inputs = new IParam.Input[](1);
+        inputs[0].token = address(token);
+        inputs[0].amountBps = amountBps;
+        if (amountBps == SKIP) {
+            inputs[0].amountOrOffset = amount;
+        } else {
+            inputs[0].amountOrOffset = 0x20;
+        }
+
+        return IParam.Logic(address(token), data, inputs, address(0));
     }
 
     function _logicYearn(
         IERC20 tokenIn,
         uint256 amountIn,
-        uint256 amountBps,
-        IERC20 tokenOut
-    ) public pure returns (IRouter.Logic memory) {
-        // FIXME: it's relaxed amountMin = amountIn * 90%
-        uint256 amountMin = (amountIn * 9_000) / BPS_BASE;
-
+        uint256 amountBps
+    ) public pure returns (IParam.Logic memory) {
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
 
-        // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
-        outputs[0].token = address(tokenOut);
-        outputs[0].amountMin = amountMin;
-
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(yVault), // to
                 abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
                 inputs,
-                outputs,
-                address(0), // approveTo
                 address(0) // callback
             );
     }

@@ -24,12 +24,12 @@ contract SpenderAaveV2Delegation is ISpenderAaveV2Delegation {
     /// @notice Router asks to borrow tokens using the user's delegation
     /// @dev Router must guarantee that the public user is msg.sender who called Router.
     function borrow(address asset, uint256 amount, uint256 interestRateMode) external {
-        if (msg.sender != router) revert InvalidRouter();
-        address user = IRouter(router).user();
+        (address user, address agent) = IRouter(router).getUserAgent();
+        if (msg.sender != agent) revert InvalidAgent();
 
         address pool = IAaveV2Provider(aaveV2Provider).getLendingPool();
         IAaveV2Pool(pool).borrow(asset, amount, interestRateMode, _REFERRAL_CODE, user);
 
-        IERC20(asset).safeTransfer(router, IERC20(asset).balanceOf(address(this)));
+        IERC20(asset).safeTransfer(msg.sender, IERC20(asset).balanceOf(address(this)));
     }
 }

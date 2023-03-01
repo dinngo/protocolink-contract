@@ -5,6 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../src/Router.sol';
+import {IParam} from '../src/interfaces/IParam.sol';
 import {ICallback, MockCallback} from './mocks/MockCallback.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
 
@@ -17,13 +18,11 @@ contract RouterTest is Test {
     address public user;
     IRouter public router;
     IERC20 public mockERC20;
-    ICallback public mockCallback;
-    address public mockFallback;
+    address public mockTo;
 
     // Empty arrays
     address[] tokensReturnEmpty;
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
@@ -32,206 +31,108 @@ contract RouterTest is Test {
 
         router = new Router();
         mockERC20 = new ERC20('mockERC20', 'mock');
-        mockCallback = new MockCallback();
-        mockFallback = address(new MockFallback());
+        mockTo = address(new MockFallback());
 
-        vm.label(address(router), 'Router');
         vm.label(address(mockERC20), 'mERC20');
-        vm.label(address(mockCallback), 'mCallback');
-        vm.label(address(mockFallback), 'mFallback');
     }
 
-    function testCannotExecuteByInvalidCallback() external {
-        IRouter.Logic[] memory callbacks = new IRouter.Logic[](1);
-        callbacks[0] = IRouter.Logic(
-            address(mockFallback), // to
+    function testNewAgent() external {
+        vm.prank(user);
+        address agent = router.newAgent();
+        assertEq(router.getAgent(user), agent);
+    }
+
+    function testNewAgentForUser() external {
+        address agent = router.newAgent(user);
+        assertEq(router.getAgent(user), agent);
+    }
+
+    function testCalcAgent() external {
+        address predictAddress = router.calcAgent(user);
+        vm.prank(user);
+        router.newAgent();
+        assertEq(router.getAgent(user), predictAddress);
+    }
+
+    function testCannotNewAgentAgain() external {
+        vm.startPrank(user);
+        router.newAgent();
+        vm.expectRevert(IRouter.AgentCreated.selector);
+        router.newAgent();
+        vm.stopPrank();
+    }
+
+    function testNewUserExecute() external {
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
+            address(mockTo), // to
             '',
             inputsEmpty,
-            outputsEmpty,
-            address(0), // approveTo
             address(0) // callback
         );
-        bytes memory data = abi.encodeWithSelector(IRouter.execute.selector, callbacks, tokensReturnEmpty);
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
-            address(mockCallback),
-            abi.encodeWithSelector(ICallback.callback.selector, data),
-            inputsEmpty,
-            outputsEmpty,
-            address(0), // approveTo
-            address(router) // callback
-        );
-        vm.expectRevert(IRouter.InvalidCallback.selector);
-        router.execute(logics, tokensReturnEmpty);
-    }
-
-    function testCannotEncodeApproveSig() external {
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
-            address(mockERC20), // to
-            abi.encodeWithSelector(IERC20.approve.selector, user, 0),
-            inputsEmpty,
-            outputsEmpty,
-            address(0), // approveTo
-            address(0) // callback
-        );
-
-        vm.expectRevert(IRouter.InvalidERC20Sig.selector);
-        router.execute(logics, tokensReturnEmpty);
-    }
-
-    function testCannotEncodeTransferFromSig() external {
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
-            address(mockERC20), // to
-            abi.encodeWithSelector(IERC20.transferFrom.selector, user, 0),
-            inputsEmpty,
-            outputsEmpty,
-            address(0), // approveTo
-            address(0) // callback
-        );
-
-        vm.expectRevert(IRouter.InvalidERC20Sig.selector);
-        router.execute(logics, tokensReturnEmpty);
-    }
-
-    function testCannotBeInvalidBps() external {
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
-
-        // Revert if amountBps = 0
-        inputs[0] = IRouter.Input(
-            address(0),
-            0, // amountBps
-            0 // amountOrOffset
-        );
-        logics[0] = IRouter.Logic(
-            address(0), // to
-            '',
-            inputs,
-            outputsEmpty,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        vm.expectRevert(IRouter.InvalidBps.selector);
-        router.execute(logics, tokensReturnEmpty);
-
-        // Revert if amountBps = BPS_BASE + 1
-        inputs[0] = IRouter.Input(
-            address(0),
-            BPS_BASE + 1, // amountBps
-            0 // amountOrOffset
-        );
-        logics[0] = IRouter.Logic(
-            address(0), // to
-            '',
-            inputs,
-            outputsEmpty,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        vm.expectRevert(IRouter.InvalidBps.selector);
-        router.execute(logics, tokensReturnEmpty);
-    }
-
-    function testCannotUnresetCallback() external {
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
-            address(mockFallback), // to
-            '',
-            inputsEmpty,
-            outputsEmpty,
-            address(0), // approveTo
-            address(router) // callback
-        );
-        vm.expectRevert(IRouter.UnresetCallback.selector);
-        router.execute(logics, tokensReturnEmpty);
-    }
-
-    function testCannotReceiveLessOutputToken() external {
-        IERC20 tokenOut = mockERC20;
-        uint256 amountMin = 1 ether;
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
-
-        // Output token already exists in router
-        deal(address(tokenOut), address(router), 10 ether);
-
-        outputs[0] = IRouter.Output(address(tokenOut), amountMin);
-
-        // Receive 0 output token
-        logics[0] = IRouter.Logic(
-            address(mockFallback), // to
-            '',
-            inputsEmpty,
-            outputs,
-            address(0), // approveTo
-            address(0) // callback
-        );
-
-        // Execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(tokenOut);
-        vm.expectRevert(abi.encodeWithSelector(IRouter.InsufficientBalance.selector, address(tokenOut), amountMin, 0));
-        router.execute(logics, tokensReturn);
-    }
-
-    function testApproveToIsDefault(uint256 amountIn) external {
-        vm.assume(amountIn > 0);
-
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
-
-        inputs[0] = IRouter.Input(
-            address(mockERC20),
-            SKIP, // amountBps
-            amountIn // amountOrOffset
-        );
-        logics[0] = IRouter.Logic(
-            address(mockFallback), // to
-            '',
-            inputs,
-            outputsEmpty,
-            address(0), // approveTo
-            address(0) // callback
-        );
-
-        // Execute
-        vm.expectEmit(true, true, true, true, address(mockERC20));
-        emit Approval(address(router), address(mockFallback), amountIn);
-        vm.expectEmit(true, true, true, true, address(mockERC20));
-        emit Approval(address(router), address(mockFallback), 0);
+        assertEq(router.getAgent(user), address(0));
         vm.prank(user);
         router.execute(logics, tokensReturnEmpty);
+        assertFalse(router.getAgent(user) == address(0));
     }
 
-    function testApproveToIsSet(uint256 amountIn, address approveTo) external {
-        vm.assume(amountIn > 0);
-        vm.assume(approveTo != address(0) && approveTo != mockFallback && approveTo != address(mockERC20));
-
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
-
-        inputs[0] = IRouter.Input(
-            address(mockERC20),
-            SKIP, // amountBps
-            amountIn // amountOrOffset
-        );
-        logics[0] = IRouter.Logic(
-            address(mockFallback), // to
+    function testOldUserExecute() external {
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
+            address(mockTo), // to
             '',
-            inputs,
-            outputsEmpty,
-            approveTo, // approveTo
+            inputsEmpty,
             address(0) // callback
         );
+        vm.startPrank(user);
+        router.newAgent();
+        assertFalse(router.getAgent(user) == address(0));
+        router.execute(logics, tokensReturnEmpty);
+        vm.stopPrank();
+    }
 
-        // Execute
-        vm.expectEmit(true, true, true, true, address(mockERC20));
-        emit Approval(address(router), approveTo, amountIn);
-        vm.expectEmit(true, true, true, true, address(mockERC20));
-        emit Approval(address(router), approveTo, 0);
+    function testCannotExecuteReentrance() external {
+        IParam.Logic[] memory callback = new IParam.Logic[](1);
+        callback[0] = IParam.Logic(
+            address(mockTo), // to
+            '',
+            inputsEmpty,
+            address(0) // callback
+        );
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
+            address(router), // to
+            abi.encodeCall(IRouter.execute, (callback, tokensReturnEmpty)),
+            inputsEmpty,
+            address(0) // callback
+        );
+        vm.startPrank(user);
+        router.newAgent();
+        vm.expectRevert(IRouter.Reentrancy.selector);
+        router.execute(logics, tokensReturnEmpty);
+        vm.stopPrank();
+    }
+
+    function testGetAgentWithUserExecuting() external {
+        vm.prank(user);
+        router.newAgent();
+        address agent = router.getAgent(user);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
+            address(this), // to
+            abi.encodeCall(this.checkExecutingAgent, (agent)),
+            inputsEmpty,
+            address(0) // callback
+        );
         vm.prank(user);
         router.execute(logics, tokensReturnEmpty);
+        agent = router.getAgent();
+        // The executing agent should be reset to 0
+        assertEq(agent, address(0));
+    }
+
+    function checkExecutingAgent(address agent) external view {
+        address executingAgent = router.getAgent();
+        if (agent != executingAgent) revert();
     }
 }

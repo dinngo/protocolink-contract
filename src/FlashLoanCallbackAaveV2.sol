@@ -35,6 +35,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
         address pool = IAaveV2Provider(aaveV2Provider).getLendingPool();
 
         if (msg.sender != pool) revert InvalidCaller();
+        address agent = IRouter(router).getAgent();
 
         // Transfer assets to Router and record initial balances
         uint256 assetsLength = assets.length;
@@ -42,7 +43,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
         for (uint256 i = 0; i < assetsLength; ) {
             address asset = assets[i];
 
-            IERC20(asset).safeTransfer(router, amounts[i]);
+            IERC20(asset).safeTransfer(agent, amounts[i]);
             initBalances[i] = IERC20(asset).balanceOf(address(this));
 
             unchecked {
@@ -50,8 +51,8 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
             }
         }
 
-        // Call Router::execute
-        router.functionCall(params, 'ERROR_AAVE_V2_FLASH_LOAN_CALLBACK');
+        // Call Agent::execute
+        agent.functionCall(params, 'ERROR_AAVE_V2_FLASH_LOAN_CALLBACK');
 
         // Approve assets for pulling from Aave Pool
         for (uint256 i = 0; i < assetsLength; ) {

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 interface ISpenderERC20Approval {
-    error InvalidRouter();
+    error InvalidAgent();
     error LengthMismatch();
 
     function pullToken(address token, uint256 amount) external;

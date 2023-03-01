@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Router, IRouter} from '../../src/Router.sol';
+import {IParam} from '../../src/interfaces/IParam.sol';
 import {SpenderPermit2ERC20, ISpenderPermit2ERC20, ISignatureTransfer, IAllowanceTransfer} from '../../src/SpenderPermit2ERC20.sol';
 import {PermitSignature} from './PermitSignature.sol';
 import {EIP712} from 'permit2/EIP712.sol';
@@ -34,7 +35,7 @@ contract SpenderPermitUtils is Test, PermitSignature {
         token.safeApprove(permit2Addr, type(uint256).max);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = logicSpenderPermit2ERC20PermitToken(token);
 
         // Encode execute
@@ -43,7 +44,7 @@ contract SpenderPermitUtils is Test, PermitSignature {
         vm.stopPrank();
     }
 
-    function logicSpenderPermit2ERC20PermitToken(IERC20 token) internal view returns (IRouter.Logic memory) {
+    function logicSpenderPermit2ERC20PermitToken(IERC20 token) internal view returns (IParam.Logic memory) {
         // Create signed permit
         uint48 defaultNonce = 0;
         uint48 defaultExpiration = uint48(block.timestamp + 5);
@@ -56,10 +57,9 @@ contract SpenderPermitUtils is Test, PermitSignature {
         );
         bytes memory sig = getPermitSignature(permit, _userPrivateKey, DOMAIN_SEPARATOR);
 
-        IRouter.Input[] memory inputsEmpty;
-        IRouter.Output[] memory outputsEmpty;
+        IParam.Input[] memory inputsEmpty;
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(permit2Addr), // to
                 abi.encodeWithSignature(
                     'permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)',
@@ -68,8 +68,6 @@ contract SpenderPermitUtils is Test, PermitSignature {
                     sig
                 ),
                 inputsEmpty,
-                outputsEmpty,
-                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -77,17 +75,14 @@ contract SpenderPermitUtils is Test, PermitSignature {
     function logicSpenderPermit2ERC20PullToken(
         IERC20 token,
         uint160 amount
-    ) internal view returns (IRouter.Logic memory) {
-        IRouter.Input[] memory inputsEmpty;
-        IRouter.Output[] memory outputsEmpty;
+    ) internal view returns (IParam.Logic memory) {
+        IParam.Input[] memory inputsEmpty;
 
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(spender), // to
                 abi.encodeWithSelector(spender.pullToken.selector, address(token), amount),
                 inputsEmpty,
-                outputsEmpty,
-                address(0), // approveTo
                 address(0) // callback
             );
     }

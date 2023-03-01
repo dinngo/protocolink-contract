@@ -6,7 +6,7 @@ import {IAllowanceTransfer} from './permit2/IAllowanceTransfer.sol';
 
 /// @dev Users must approve Permit2 before calling any of the transfer functions.
 interface ISpenderPermit2ERC20 {
-    error InvalidRouter();
+    error InvalidAgent();
     error InvalidTransferFrom();
     error InvalidTransferTo();
 

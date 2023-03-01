@@ -3,7 +3,9 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IAgent} from '../../src/interfaces/IAgent.sol';
 import {Router, IRouter} from '../../src/Router.sol';
+import {IParam} from '../../src/interfaces/IParam.sol';
 import {SpenderAaveV2Delegation, ISpenderAaveV2Delegation, IAaveV2Provider} from '../../src/SpenderAaveV2Delegation.sol';
 import {FlashLoanCallbackAaveV2, IFlashLoanCallbackAaveV2} from '../../src/FlashLoanCallbackAaveV2.sol';
 import {IAaveV2Pool} from '../../src/interfaces/aaveV2/IAaveV2Pool.sol';
@@ -16,7 +18,7 @@ interface IDebtToken {
     function totalSupply() external view returns (uint256);
 }
 
-contract SpenderAaveV2DelegationTest is Test {
+contract AaveV2IntegrationTest is Test {
     using SafeERC20 for IERC20;
 
     enum InterestRateMode {
@@ -32,19 +34,21 @@ contract SpenderAaveV2DelegationTest is Test {
 
     address public user;
     IRouter public router;
+    IAgent public agent;
     ISpenderAaveV2Delegation public spender;
     IFlashLoanCallbackAaveV2 public flashLoanCallback;
     IAaveV2Pool pool = IAaveV2Pool(IAaveV2Provider(aaveV2Provider).getLendingPool());
 
     // Empty arrays
     address[] tokensReturnEmpty;
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
 
         router = new Router();
+        vm.prank(user);
+        agent = IAgent(router.newAgent());
         spender = new SpenderAaveV2Delegation(address(router), address(aaveV2Provider));
         flashLoanCallback = new FlashLoanCallbackAaveV2(address(router), address(aaveV2Provider));
 
@@ -54,6 +58,7 @@ contract SpenderAaveV2DelegationTest is Test {
         vm.stopPrank();
 
         vm.label(address(router), 'Router');
+        vm.label(address(agent), 'Agent');
         vm.label(address(spender), 'SpenderAaveV2Delegation');
         vm.label(address(aaveV2Provider), 'AaveV2Provider');
         vm.label(address(pool), 'AaveV2Pool');
@@ -78,7 +83,7 @@ contract SpenderAaveV2DelegationTest is Test {
         vm.stopPrank();
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicSpenderAaveV2Delegation(tokenOut, amountIn, uint256(InterestRateMode.VARIABLE));
 
         // Execute
@@ -88,6 +93,7 @@ contract SpenderAaveV2DelegationTest is Test {
         router.execute(logics, tokensReturn);
 
         assertEq(tokenOut.balanceOf(address(router)), 0);
+        assertEq(tokenOut.balanceOf(address(agent)), 0);
         assertEq(tokenOut.balanceOf(address(spender)), 0);
         assertEq(tokenOut.balanceOf(user), amountIn);
     }
@@ -108,7 +114,7 @@ contract SpenderAaveV2DelegationTest is Test {
         modes[0] = uint256(InterestRateMode.NONE);
 
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicAaveV2FlashLoan(tokens, amounts, modes);
 
         // Execute
@@ -116,6 +122,7 @@ contract SpenderAaveV2DelegationTest is Test {
         router.execute(logics, tokensReturnEmpty);
 
         assertEq(token.balanceOf(address(router)), 0);
+        assertEq(token.balanceOf(address(agent)), 0);
         assertEq(token.balanceOf(address(flashLoanCallback)), 0);
         assertEq(token.balanceOf(user), 0);
     }
@@ -124,19 +131,12 @@ contract SpenderAaveV2DelegationTest is Test {
         IERC20 token,
         uint256 amount,
         uint256 interestRateMode
-    ) public view returns (IRouter.Logic memory) {
-        // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
-        outputs[0].token = address(token);
-        outputs[0].amountMin = amount;
-
+    ) public view returns (IParam.Logic memory) {
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(spender), // to
                 abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode),
                 inputsEmpty,
-                outputs,
-                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -145,7 +145,7 @@ contract SpenderAaveV2DelegationTest is Test {
         address[] memory tokens,
         uint256[] memory amounts,
         uint256[] memory modes
-    ) public returns (IRouter.Logic memory) {
+    ) public returns (IParam.Logic memory) {
         // Encode logic
         address receiverAddress = address(flashLoanCallback);
         address onBehalfOf = address(0);
@@ -153,7 +153,7 @@ contract SpenderAaveV2DelegationTest is Test {
         uint16 referralCode = 0;
 
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(pool), // to
                 abi.encodeWithSelector(
                     IAaveV2Pool.flashLoan.selector,
@@ -166,27 +166,23 @@ contract SpenderAaveV2DelegationTest is Test {
                     referralCode
                 ),
                 inputsEmpty,
-                outputsEmpty,
-                address(0), // approveTo
                 address(flashLoanCallback) // callback
             );
     }
 
     function _encodeExecute(address[] memory tokens, uint256[] memory amounts) public returns (bytes memory) {
         // Encode logics
-        IRouter.Logic[] memory logics = new IRouter.Logic[](tokens.length);
+        IParam.Logic[] memory logics = new IParam.Logic[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             // Airdrop fee to Router
             uint256 fee = (amounts[i] * 9) / 10000;
-            deal(address(tokens[i]), address(router), fee);
+            deal(address(tokens[i]), address(agent), fee);
 
             // Encode transfering token + fee to the flash loan callback
-            logics[i] = IRouter.Logic(
+            logics[i] = IParam.Logic(
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
                 inputsEmpty,
-                outputsEmpty,
-                address(0), // approveTo
                 address(0) // callback
             );
         }
