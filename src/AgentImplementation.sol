@@ -20,10 +20,6 @@ contract AgentImplementation is IAgent {
 
     address private _caller;
 
-    constructor() {
-        router = msg.sender;
-    }
-
     modifier checkCaller() {
         address caller = _caller;
         if (caller != msg.sender) {
@@ -34,6 +30,10 @@ contract AgentImplementation is IAgent {
             _caller = router;
         }
         _;
+    }
+
+    constructor() {
+        router = msg.sender;
     }
 
     function initialize() external {
