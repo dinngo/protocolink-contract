@@ -33,8 +33,6 @@ contract RouterTest is Test {
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockTo = address(new MockFallback());
 
-        // Mock `Logic.to`
-        vm.mockCall(mockTo, 0, '', new bytes(0));
         vm.label(address(mockERC20), 'mERC20');
     }
 
