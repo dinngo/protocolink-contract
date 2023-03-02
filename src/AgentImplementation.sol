@@ -91,8 +91,12 @@ contract AgentImplementation is IAgent {
             // Set _callback who should enter one-time execute
             if (callback != address(0)) _caller = callback;
 
-            // Execute
-            to.functionCallWithValue(data, value, 'ERROR_ROUTER_EXECUTE');
+            // Execute and send native
+            if (data.length == 0) {
+                payable(to).sendValue(value);
+            } else {
+                to.functionCallWithValue(data, value, 'ERROR_ROUTER_EXECUTE');
+            }
 
             // Revert if the previous call didn't enter execute
             if (_caller != router) revert UnresetCallback();
