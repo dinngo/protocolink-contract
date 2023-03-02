@@ -18,7 +18,7 @@ contract AgentImplementationTest is Test {
     uint256 public constant SKIP = type(uint256).max;
 
     address public user;
-    address public recipent;
+    address public recipient;
     address public router;
     IAgent public agent;
     IERC20 public mockERC20;
@@ -33,7 +33,7 @@ contract AgentImplementationTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
-        recipent = makeAddr('Recipent');
+        recipient = makeAddr('Recipient');
         router = makeAddr('Router');
 
         vm.prank(router);
@@ -122,8 +122,8 @@ contract AgentImplementationTest is Test {
     }
 
     function testSendNative(uint256 amountIn, uint256 amountBps) external {
-        amountIn = bound(amountIn, BPS_BASE, type(uint128).max);
-        amountBps = bound(amountIn, 0, BPS_BASE);
+        amountIn = bound(amountIn, 0, type(uint128).max);
+        amountBps = bound(amountBps, 0, BPS_BASE);
         if (amountBps == 0) amountBps = SKIP;
         deal(router, amountIn);
 
@@ -135,24 +135,24 @@ contract AgentImplementationTest is Test {
         vm.prank(router);
         agent.execute{value: amountIn}(logics, tokensReturnEmpty);
 
-        uint256 recienptAmount = amountIn;
-        if (amountBps != SKIP) recienptAmount = (amountIn * amountBps) / BPS_BASE;
+        uint256 recipientAmount = amountIn;
+        if (amountBps != SKIP) recipientAmount = (amountIn * amountBps) / BPS_BASE;
         assertEq(address(router).balance, 0);
-        assertEq(recipent.balance, recienptAmount);
-        assertEq(address(agent).balance, amountIn - recienptAmount);
+        assertEq(recipient.balance, recipientAmount);
+        assertEq(address(agent).balance, amountIn - recipientAmount);
     }
 
-    function _logicSendNative(uint256 amountIn, uint256 amountBps) public view returns (IParam.Logic memory) {
+    function _logicSendNative(uint256 amountIn, uint256 amountBps) internal view returns (IParam.Logic memory) {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].amountBps = amountBps;
         if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
-        else inputs[0].amountOrOffset = SKIP; // data don't have amount parameter
+        else inputs[0].amountOrOffset = SKIP; // data is not provided
 
         return
             IParam.Logic(
-                address(recipent), // to
+                address(recipient), // to
                 '',
                 inputs,
                 address(0) // callback
