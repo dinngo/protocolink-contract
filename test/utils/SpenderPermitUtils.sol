@@ -7,7 +7,7 @@ import {Router, IRouter} from '../../src/Router.sol';
 import {IParam} from '../../src/interfaces/IParam.sol';
 import {SpenderPermit2ERC20, ISpenderPermit2ERC20, ISignatureTransfer, IAllowanceTransfer} from '../../src/SpenderPermit2ERC20.sol';
 import {PermitSignature} from './PermitSignature.sol';
-import {EIP712} from 'permit2/EIP712.sol';
+import {EIP712} from './EIP712.sol';
 
 contract SpenderPermitUtils is Test, PermitSignature {
     using SafeERC20 for IERC20;

@@ -8,7 +8,7 @@ import {IAgent} from '../src/interfaces/IAgent.sol';
 import {IParam} from '../src/interfaces/IParam.sol';
 import {SpenderPermit2ERC20, ISpenderPermit2ERC20, ISignatureTransfer, IAllowanceTransfer} from '../src/SpenderPermit2ERC20.sol';
 import {PermitSignature} from './utils/PermitSignature.sol';
-import {EIP712} from 'permit2/EIP712.sol';
+import {EIP712} from './utils/EIP712.sol';
 import {SignatureVerification} from 'permit2/libraries/SignatureVerification.sol';
 
 contract SpenderPermit2ERC20Test is Test, PermitSignature {

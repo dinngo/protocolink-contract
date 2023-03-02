@@ -12,7 +12,7 @@ contract Router is IRouter {
 
     address public immutable agentImplementation;
 
-    mapping(address => IAgent) public agents;
+    mapping(address owner => IAgent agent) public agents;
     address public user;
 
     modifier checkCaller() {
