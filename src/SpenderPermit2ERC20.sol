@@ -64,7 +64,7 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
             if (transferDetails[i].from != user) revert InvalidTransferFrom();
             if (transferDetails[i].to != msg.sender) revert InvalidTransferTo();
             unchecked {
-                i++;
+                ++i;
             }
         }
 

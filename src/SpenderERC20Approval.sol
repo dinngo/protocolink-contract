@@ -34,7 +34,7 @@ contract SpenderERC20Approval is ISpenderERC20Approval {
             _pull(tokens[i], amounts[i], user);
 
             unchecked {
-                i++;
+                ++i;
             }
         }
     }

@@ -37,7 +37,7 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
             initBalances[i] = IERC20(token).balanceOf(address(this));
 
             unchecked {
-                i++;
+                ++i;
             }
         }
 
@@ -53,7 +53,7 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
             if (IERC20(token).balanceOf(address(this)) != initBalances[i]) revert InvalidBalance(token);
 
             unchecked {
-                i++;
+                ++i;
             }
         }
     }

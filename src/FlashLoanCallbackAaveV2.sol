@@ -47,7 +47,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
             initBalances[i] = IERC20(asset).balanceOf(address(this));
 
             unchecked {
-                i++;
+                ++i;
             }
         }
 
@@ -66,7 +66,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
             ApproveHelper._approveMax(asset, pool, amountOwing);
 
             unchecked {
-                i++;
+                ++i;
             }
         }
 

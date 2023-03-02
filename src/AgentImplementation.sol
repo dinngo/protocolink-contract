@@ -102,7 +102,7 @@ contract AgentImplementation is IAgent {
             if (_caller != router) revert UnresetCallback();
 
             unchecked {
-                i++;
+                ++i;
             }
         }
 
@@ -120,7 +120,7 @@ contract AgentImplementation is IAgent {
                 }
 
                 unchecked {
-                    i++;
+                    ++i;
                 }
             }
         }

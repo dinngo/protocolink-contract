@@ -173,7 +173,7 @@ contract AaveV2IntegrationTest is Test {
     function _encodeExecute(address[] memory tokens, uint256[] memory amounts) public returns (bytes memory) {
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; i++) {
+        for (uint256 i = 0; i < tokens.length; ) {
             // Airdrop fee to Router
             uint256 fee = (amounts[i] * 9) / 10000;
             deal(address(tokens[i]), address(agent), fee);
@@ -185,6 +185,10 @@ contract AaveV2IntegrationTest is Test {
                 inputsEmpty,
                 address(0) // callback
             );
+
+            unchecked {
+                ++i;
+            }
         }
 
         // Encode execute data
