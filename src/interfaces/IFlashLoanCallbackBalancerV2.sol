@@ -7,9 +7,9 @@ interface IFlashLoanCallbackBalancerV2 {
     error InvalidBalance(address token);
 
     function receiveFlashLoan(
-        address[] memory tokens,
-        uint256[] memory amounts,
-        uint256[] memory feeAmounts,
-        bytes memory userData
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        uint256[] calldata feeAmounts,
+        bytes calldata userData
     ) external;
 }

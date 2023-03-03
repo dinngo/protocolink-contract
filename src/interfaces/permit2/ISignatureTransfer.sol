@@ -51,7 +51,7 @@ interface ISignatureTransfer {
     /// @param transferDetails The spender's requested transfer details for the permitted token
     /// @param signature The signature to verify
     function permitTransferFrom(
-        PermitTransferFrom memory permit,
+        PermitTransferFrom calldata permit,
         SignatureTransferDetails calldata transferDetails,
         address owner,
         bytes calldata signature
@@ -63,7 +63,7 @@ interface ISignatureTransfer {
     /// @param transferDetails Specifies the recipient and requested amount for the token transfer
     /// @param signature The signature to verify
     function permitTransferFrom(
-        PermitBatchTransferFrom memory permit,
+        PermitBatchTransferFrom calldata permit,
         SignatureTransferDetails[] calldata transferDetails,
         address owner,
         bytes calldata signature
