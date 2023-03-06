@@ -48,7 +48,7 @@ contract AgentImplementation is IAgent {
         for (uint256 i = 0; i < logicsLength; ) {
             address to = logics[i].to;
             bytes memory data = logics[i].data;
-            IParam.Input[] memory inputs = logics[i].inputs;
+            IParam.Input[] calldata inputs = logics[i].inputs;
             address callback = logics[i].callback;
 
             // Execute each input if need to modify the amount
@@ -84,7 +84,7 @@ contract AgentImplementation is IAgent {
                 }
 
                 unchecked {
-                    j++;
+                    ++j;
                 }
             }
 
@@ -102,7 +102,7 @@ contract AgentImplementation is IAgent {
             if (_caller != router) revert UnresetCallback();
 
             unchecked {
-                i++;
+                ++i;
             }
         }
 
@@ -120,7 +120,7 @@ contract AgentImplementation is IAgent {
                 }
 
                 unchecked {
-                    i++;
+                    ++i;
                 }
             }
         }

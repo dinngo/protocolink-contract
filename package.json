@@ -11,7 +11,7 @@
     "url": "https://github.com/dinngodev/router-contract"
   },
   "devDependencies": {
-    "prettier": "^2.8.2",
-    "prettier-plugin-solidity": "^1.1.1"
+    "prettier": "2.8.4",
+    "prettier-plugin-solidity": "1.1.3"
   }
 }

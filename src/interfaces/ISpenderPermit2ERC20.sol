@@ -22,7 +22,7 @@ interface ISpenderPermit2ERC20 {
     /// @param transferDetails The spender's requested transfer details for the permitted token
     /// @param signature The signature to verify
     function permitPullToken(
-        ISignatureTransfer.PermitTransferFrom memory permit,
+        ISignatureTransfer.PermitTransferFrom calldata permit,
         ISignatureTransfer.SignatureTransferDetails calldata transferDetails,
         bytes calldata signature
     ) external;
@@ -32,7 +32,7 @@ interface ISpenderPermit2ERC20 {
     /// @param transferDetails Specifies the recipient and requested amount for the token transfer
     /// @param signature The signature to verify
     function permitPullTokens(
-        ISignatureTransfer.PermitBatchTransferFrom memory permit,
+        ISignatureTransfer.PermitBatchTransferFrom calldata permit,
         ISignatureTransfer.SignatureTransferDetails[] calldata transferDetails,
         bytes calldata signature
     ) external;

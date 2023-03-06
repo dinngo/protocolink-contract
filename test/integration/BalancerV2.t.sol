@@ -81,7 +81,7 @@ contract BalancerV2IntegrationTest is Test {
     function _encodeExecute(address[] memory tokens, uint256[] memory amounts) public view returns (bytes memory) {
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; i++) {
+        for (uint256 i = 0; i < tokens.length; ) {
             // Encode transfering token to the flash loan callback
             logics[i] = IParam.Logic(
                 address(tokens[i]), // to
@@ -89,6 +89,10 @@ contract BalancerV2IntegrationTest is Test {
                 inputsEmpty,
                 address(0) // callback
             );
+
+            unchecked {
+                ++i;
+            }
         }
 
         // Encode execute data

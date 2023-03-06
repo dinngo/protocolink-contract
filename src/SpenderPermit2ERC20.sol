@@ -17,7 +17,7 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
     /// @notice Router asks to permit transfer tokens from the user
     /// @dev Router must guarantee that the public user is msg.sender who called Router.
     function permitPullToken(
-        ISignatureTransfer.PermitTransferFrom memory permit,
+        ISignatureTransfer.PermitTransferFrom calldata permit,
         ISignatureTransfer.SignatureTransferDetails calldata transferDetails,
         bytes calldata signature
     ) external {
@@ -30,7 +30,7 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
     }
 
     function permitPullTokens(
-        ISignatureTransfer.PermitBatchTransferFrom memory permit,
+        ISignatureTransfer.PermitBatchTransferFrom calldata permit,
         ISignatureTransfer.SignatureTransferDetails[] calldata transferDetails,
         bytes calldata signature
     ) external {
@@ -64,7 +64,7 @@ contract SpenderPermit2ERC20 is ISpenderPermit2ERC20 {
             if (transferDetails[i].from != user) revert InvalidTransferFrom();
             if (transferDetails[i].to != msg.sender) revert InvalidTransferTo();
             unchecked {
-                i++;
+                ++i;
             }
         }
 
