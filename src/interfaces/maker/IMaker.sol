@@ -9,6 +9,8 @@ interface IMakerManager {
     function owns(uint) external view returns (address);
 
     function urns(uint) external view returns (address);
+
+    function count(address) external view returns (uint256);
 }
 
 interface IMakerVat {

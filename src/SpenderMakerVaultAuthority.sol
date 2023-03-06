@@ -22,8 +22,9 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
     // SpenderMakerVaultAuthority's DSProxy
     IDSProxy public immutable dsProxy;
 
-    modifier onlyRouter() {
-        if (msg.sender != router) revert InvalidRouter();
+    modifier onlyAgent() {
+        address agent = IRouter(router).getAgent();
+        if (msg.sender != agent) revert InvalidAgent();
         _;
     }
 
@@ -62,7 +63,7 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
     }
 
     /// @notice Decrease locked value of `cdp` and withdraws `wad` amount of ETH from `ethJoin` adapter.
-    function freeETH(address ethJoin, uint256 cdp, uint256 wad) external onlyRouter cdpAllowed(cdp) {
+    function freeETH(address ethJoin, uint256 cdp, uint256 wad) external onlyAgent cdpAllowed(cdp) {
         bytes4 funcSig = 0x7b5a3b43; // selector of "freeETH(address,address,uint256,uint256)"
 
         try
@@ -73,11 +74,11 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
             revert ActionFail(funcSig, '');
         }
 
-        _transferTokenToRouter(NATIVE_TOKEN_ADDRESS);
+        _transferTokenToAgent(NATIVE_TOKEN_ADDRESS);
     }
 
     /// @notice Decrease locked value of `cdp` and withdraws `wad` amount of collateral from `gemJoin` adapter.
-    function freeGem(address gemJoin, uint256 cdp, uint256 wad) external onlyRouter cdpAllowed(cdp) {
+    function freeGem(address gemJoin, uint256 cdp, uint256 wad) external onlyAgent cdpAllowed(cdp) {
         // Get collateral token
         address token = IMakerGemJoin(gemJoin).gem();
         bytes4 funcSig = 0x6ab6a491; // selector of "freeGem(address,address,uint256,uint256)"
@@ -90,11 +91,11 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
             revert ActionFail(funcSig, '');
         }
 
-        _transferTokenToRouter(token);
+        _transferTokenToAgent(token);
     }
 
     /// @notice Increase debt of `cdp` and exits `wad` amount of DAI token from `daiJoin` adapter.
-    function draw(address daiJoin, uint256 cdp, uint256 wad) external onlyRouter cdpAllowed(cdp) {
+    function draw(address daiJoin, uint256 cdp, uint256 wad) external onlyAgent cdpAllowed(cdp) {
         bytes4 funcSig = 0x9f6f3d5b; // selector of "draw(address,address,address,uint256,uint256)"
 
         try
@@ -105,17 +106,18 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
             revert ActionFail(funcSig, '');
         }
 
-        _transferTokenToRouter(daiToken);
+        _transferTokenToAgent(daiToken);
     }
 
-    function _transferTokenToRouter(address token) internal {
+    function _transferTokenToAgent(address token) internal {
+        address agent = IRouter(router).getAgent();
         if (token == NATIVE_TOKEN_ADDRESS) {
             uint256 balance = address(this).balance;
-            (bool succ, ) = router.call{value: balance}('');
+            (bool succ, ) = agent.call{value: balance}('');
             require(succ, 'transfer ETH fail');
         } else {
             uint256 balance = IERC20(token).balanceOf(address(this));
-            IERC20(token).safeTransfer(router, balance);
+            IERC20(token).safeTransfer(agent, balance);
         }
     }
 }

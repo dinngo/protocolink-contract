@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 interface IUtilityMaker {
-    error InvalidRouter();
+    error InvalidAgent();
     error ActionFail(bytes4 sig, string reason);
 
     function openLockETHAndDraw(

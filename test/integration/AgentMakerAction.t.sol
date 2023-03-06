@@ -5,11 +5,14 @@ import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {SpenderMakerVaultAuthority, ISpenderMakerVaultAuthority} from '../../src/SpenderMakerVaultAuthority.sol';
 import {Router, IRouter} from '../../src/Router.sol';
+import {IAgent} from '../../src/interfaces/IAgent.sol';
+import {IParam} from '../../src/interfaces/IParam.sol';
 import {IDSProxy, IDSProxyRegistry} from '../../src/interfaces/maker/IDSProxy.sol';
 import {IMakerManager, IMakerVat} from '../../src/interfaces/maker/IMaker.sol';
 import {SpenderERC20Approval, ISpenderERC20Approval} from '../../src/SpenderERC20Approval.sol';
 
-contract RouterMakerActionTest is Test {
+contract AgentMakerActionTest is Test {
+    uint256 public constant SKIP = type(uint256).max;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant LINK_TOKEN = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
 
@@ -34,15 +37,17 @@ contract RouterMakerActionTest is Test {
     address public user;
     address public user2;
     IRouter public router;
+    IAgent public userAgent;
+    IAgent public user2Agent;
     address public userDSProxy;
-    address public routerDSProxy;
+    address public userAgentDSProxy;
+    address public user2AgentDSProxy;
     uint256 ethCdp;
     uint256 gemCdp;
 
     // Empty arrays
     address[] tokensReturnEmpty;
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -54,9 +59,10 @@ contract RouterMakerActionTest is Test {
         vm.startPrank(user);
         userDSProxy = IDSProxyRegistry(PROXY_REGISTRY).build();
 
-        // Build router's DSProxy
-        router.execute(_logicBuildRouterDSProxy(), new address[](0));
-        routerDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(router));
+        // Build user agent's DSProxy
+        userAgent = IAgent(router.newAgent());
+        router.execute(_logicBuildAgentDSProxy(), new address[](0));
+        userAgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(userAgent));
 
         // Open ETH Vault
         uint256 ethAmount = 100 ether;
@@ -100,11 +106,21 @@ contract RouterMakerActionTest is Test {
 
         vm.stopPrank();
 
+        // Build user2's agent
+        vm.startPrank(user2);
+        user2Agent = IAgent(router.newAgent());
+        router.execute(_logicBuildAgentDSProxy(), new address[](0));
+        user2AgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(user2Agent));
+        vm.stopPrank();
+
         // Label
         vm.label(address(router), 'Router');
         vm.label(address(spenderERC20), 'SpenderERC20');
-        vm.label(address(routerDSProxy), 'RouterDSProxy');
         vm.label(address(userDSProxy), 'UserDSProxy');
+        vm.label(address(userAgent), 'UserAgent');
+        vm.label(address(user2Agent), 'User2Agent');
+        vm.label(address(userAgentDSProxy), 'UserAgentDSProxy');
+        vm.label(address(user2AgentDSProxy), 'User2AgentDSProxy');
         vm.label(PROXY_REGISTRY, 'PROXY_REGISTRY');
         vm.label(CDP_MANAGER, 'CDP_MANAGER');
         vm.label(VAT, 'VAT');
@@ -124,7 +140,7 @@ contract RouterMakerActionTest is Test {
         (, uint256 collateralBefore) = _getCdpInfo(ethCdp);
 
         // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicSafeLockETH(ethCdp, lockETHAmount);
 
         // Execute
@@ -134,7 +150,8 @@ contract RouterMakerActionTest is Test {
         (, uint256 collateralAfter) = _getCdpInfo(ethCdp);
 
         assertEq(address(router).balance, 0);
-        assertEq(address(routerDSProxy).balance, 0);
+        assertEq(address(user2Agent).balance, 0);
+        assertEq(address(user2AgentDSProxy).balance, 0);
         assertEq(user2BalanceBefore - user2.balance, lockETHAmount);
         assertEq(collateralAfter - collateralBefore, lockETHAmount);
     }
@@ -151,9 +168,10 @@ contract RouterMakerActionTest is Test {
         IERC20(GEM).approve(address(spenderERC20), type(uint256).max);
 
         // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
+        IParam.Logic[] memory logics = new IParam.Logic[](3);
         logics[0] = _logicSpenderERC20ApprovalPullToken(GEM, lockGemAmount);
-        logics[1] = _logicSafeLockGem(gemCdp, lockGemAmount);
+        logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, GEM, lockGemAmount);
+        logics[2] = _logicSafeLockGem(gemCdp, lockGemAmount);
 
         // Execute
         vm.prank(user2);
@@ -163,7 +181,8 @@ contract RouterMakerActionTest is Test {
         uint256 user2GemBalanceAfter = IERC20(GEM).balanceOf(user2);
 
         assertEq(IERC20(GEM).balanceOf(address(router)), 0);
-        assertEq(IERC20(GEM).balanceOf(address(routerDSProxy)), 0);
+        assertEq(IERC20(GEM).balanceOf(address(user2Agent)), 0);
+        assertEq(IERC20(GEM).balanceOf(address(user2AgentDSProxy)), 0);
         assertEq(user2GemBalanceBefore - user2GemBalanceAfter, lockGemAmount);
         assertEq(collateralAfter - collateralBefore, lockGemAmount);
     }
@@ -180,9 +199,10 @@ contract RouterMakerActionTest is Test {
         IERC20(DAI_TOKEN).approve(address(spenderERC20), type(uint256).max);
 
         // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
+        IParam.Logic[] memory logics = new IParam.Logic[](3);
         logics[0] = _logicSpenderERC20ApprovalPullToken(DAI_TOKEN, wipeAmount);
-        logics[1] = _logicWipe(gemCdp, wipeAmount);
+        logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
+        logics[2] = _logicWipe(gemCdp, wipeAmount);
 
         // Execute
         vm.prank(user2);
@@ -192,7 +212,8 @@ contract RouterMakerActionTest is Test {
         uint256 user2DaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user2);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(routerDSProxy)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(user2Agent)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(user2AgentDSProxy)), 0);
         assertEq(user2DaiBalanceBefore - user2DaiBalanceAfter, wipeAmount);
         assertApproxEqRel(((debtBefore - debtAfter) / RAY), wipeAmount, 0.001e18);
     }
@@ -209,9 +230,10 @@ contract RouterMakerActionTest is Test {
         IERC20(DAI_TOKEN).approve(address(spenderERC20), type(uint256).max);
 
         // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
+        IParam.Logic[] memory logics = new IParam.Logic[](3);
         logics[0] = _logicSpenderERC20ApprovalPullToken(DAI_TOKEN, wipeAmount);
-        logics[1] = _logicWipeAll(gemCdp, wipeAmount);
+        logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
+        logics[2] = _logicWipeAll(gemCdp, wipeAmount);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -223,26 +245,61 @@ contract RouterMakerActionTest is Test {
         uint256 user2DaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user2);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(routerDSProxy)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(user2Agent)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(user2AgentDSProxy)), 0);
         assertApproxEqRel(user2DaiBalanceBefore - user2DaiBalanceAfter, debtBefore / RAY, 0.001e18);
         assertEq(debtAfter, 0);
     }
 
-    function _logicBuildRouterDSProxy() internal view returns (IRouter.Logic[] memory) {
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
+    function _logicBuildAgentDSProxy() internal view returns (IParam.Logic[] memory) {
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
             PROXY_REGISTRY,
             abi.encodeWithSelector(IDSProxyRegistry.build.selector),
             inputsEmpty,
-            outputsEmpty,
-            address(0), // approveTo,
             address(0) // callback
         );
 
         return logics;
     }
 
-    function _logicSafeLockETH(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic memory) {
+    function _getCdpInfo(uint256 cdp) internal view returns (uint256, uint256) {
+        address urn = IMakerManager(CDP_MANAGER).urns(cdp);
+        bytes32 ilk = IMakerManager(CDP_MANAGER).ilks(cdp);
+        (, uint256 rate, , , ) = IMakerVat(VAT).ilks(ilk);
+        (uint256 ink, uint256 art) = IMakerVat(VAT).urns(ilk, urn);
+        uint256 debt = art * rate;
+        return (debt, ink);
+    }
+
+    function _logicSpenderERC20ApprovalPullToken(
+        address token,
+        uint256 amount
+    ) internal view returns (IParam.Logic memory) {
+        return
+            IParam.Logic(
+                address(spenderERC20),
+                abi.encodeWithSelector(ISpenderERC20Approval.pullToken.selector, token, amount),
+                inputsEmpty,
+                address(0) // callback);
+            );
+    }
+
+    function _logicAgentERC20ApprovalToDSProxy(
+        address dsProxy,
+        address token,
+        uint256 amount
+    ) internal view returns (IParam.Logic memory) {
+        return
+            IParam.Logic(
+                token,
+                abi.encodeWithSelector(IERC20.approve.selector, dsProxy, amount),
+                inputsEmpty,
+                address(0) // callback);
+            );
+    }
+
+    function _logicSafeLockETH(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -257,23 +314,21 @@ contract RouterMakerActionTest is Test {
         );
 
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
-        inputs[0].amountBps = type(uint256).max;
+        inputs[0].amountBps = SKIP;
         inputs[0].amountOrOffset = amount;
 
         return
-            IRouter.Logic(
-                routerDSProxy,
+            IParam.Logic(
+                user2AgentDSProxy,
                 data,
                 inputs,
-                outputsEmpty,
-                address(0), // approveTo,
                 address(0) // callback);
             );
     }
 
-    function _logicSafeLockGem(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic memory) {
+    function _logicSafeLockGem(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -290,23 +345,21 @@ contract RouterMakerActionTest is Test {
         );
 
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = GEM;
-        inputs[0].amountBps = type(uint256).max;
+        inputs[0].amountBps = SKIP;
         inputs[0].amountOrOffset = amount;
 
         return
-            IRouter.Logic(
-                routerDSProxy,
+            IParam.Logic(
+                user2AgentDSProxy,
                 data,
                 inputs,
-                outputsEmpty,
-                routerDSProxy, // approveTo,
                 address(0) // callback);
             );
     }
 
-    function _logicWipe(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic memory) {
+    function _logicWipe(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -321,23 +374,21 @@ contract RouterMakerActionTest is Test {
         );
 
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = DAI_TOKEN;
-        inputs[0].amountBps = type(uint256).max;
+        inputs[0].amountBps = SKIP;
         inputs[0].amountOrOffset = amount;
 
         return
-            IRouter.Logic(
-                routerDSProxy,
+            IParam.Logic(
+                user2AgentDSProxy,
                 data,
                 inputs,
-                outputsEmpty,
-                routerDSProxy, // approveTo,
                 address(0) // callback);
             );
     }
 
-    function _logicWipeAll(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic memory) {
+    function _logicWipeAll(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -351,42 +402,16 @@ contract RouterMakerActionTest is Test {
         );
 
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = DAI_TOKEN;
-        inputs[0].amountBps = type(uint256).max;
+        inputs[0].amountBps = SKIP;
         inputs[0].amountOrOffset = amount;
 
         return
-            IRouter.Logic(
-                routerDSProxy,
+            IParam.Logic(
+                user2AgentDSProxy,
                 data,
                 inputs,
-                outputsEmpty,
-                routerDSProxy, // approveTo,
-                address(0) // callback);
-            );
-    }
-
-    function _getCdpInfo(uint256 cdp) internal view returns (uint256, uint256) {
-        address urn = IMakerManager(CDP_MANAGER).urns(cdp);
-        bytes32 ilk = IMakerManager(CDP_MANAGER).ilks(cdp);
-        (, uint256 rate, , , ) = IMakerVat(VAT).ilks(ilk);
-        (uint256 ink, uint256 art) = IMakerVat(VAT).urns(ilk, urn);
-        uint256 debt = art * rate;
-        return (debt, ink);
-    }
-
-    function _logicSpenderERC20ApprovalPullToken(
-        address token,
-        uint256 amount
-    ) internal view returns (IRouter.Logic memory) {
-        return
-            IRouter.Logic(
-                address(spenderERC20),
-                abi.encodeWithSelector(ISpenderERC20Approval.pullToken.selector, token, amount),
-                inputsEmpty,
-                outputsEmpty,
-                address(0), // approveTo,
                 address(0) // callback);
             );
     }

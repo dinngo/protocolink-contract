@@ -5,7 +5,10 @@ import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {UtilityMaker, IUtilityMaker} from '../../../src/utility/UtilityMaker.sol';
 import {Router, IRouter} from '../../../src/Router.sol';
+import {IAgent} from '../../../src/interfaces/IAgent.sol';
+import {IParam} from '../../../src/interfaces/IParam.sol';
 import {IDSProxy, IDSProxyRegistry} from '../../../src/interfaces/maker/IDSProxy.sol';
+import {IMakerManager} from '../../../src/interfaces/maker/IMaker.sol';
 import {SpenderERC20Approval, ISpenderERC20Approval} from '../../../src/SpenderERC20Approval.sol';
 
 interface IMakerVat {
@@ -15,6 +18,7 @@ interface IMakerVat {
 contract UtilityMakerTest is Test {
     using SafeERC20 for IERC20;
 
+    uint256 public constant SKIP = type(uint256).max;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant LINK_TOKEN = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
 
@@ -34,28 +38,37 @@ contract UtilityMakerTest is Test {
     string public constant TOKEN_JOIN_NAME = 'LINK-A';
 
     address public user;
+    address public userDSProxy;
     IRouter public router;
+    IAgent public agent;
     IUtilityMaker public utilityMaker;
+    address public utilityMakerDSProxy;
     ISpenderERC20Approval public spenderERC20;
 
     // Empty arrays
     address[] tokensReturnEmpty;
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
-
         router = new Router();
         utilityMaker = new UtilityMaker(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
+        utilityMakerDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(utilityMaker));
         spenderERC20 = new SpenderERC20Approval(address(router));
 
-        vm.prank(user);
+        // Setup
+        vm.startPrank(user);
+        userDSProxy = IDSProxyRegistry(PROXY_REGISTRY).build();
+        agent = IAgent(router.newAgent());
         IERC20(GEM).approve(address(spenderERC20), type(uint256).max);
+        vm.stopPrank();
 
         // Label
+        vm.label(address(userDSProxy), 'UserDSProxy');
         vm.label(address(router), 'Router');
+        vm.label(address(agent), 'Agent');
         vm.label(address(utilityMaker), 'UtilityMaker');
+        vm.label(address(utilityMakerDSProxy), 'UtilityMakerDSProxy');
         vm.label(address(spenderERC20), 'SpenderERC20');
         vm.label(PROXY_REGISTRY, 'PROXY_REGISTRY');
         vm.label(CDP_MANAGER, 'CDP_MANAGER');
@@ -70,50 +83,76 @@ contract UtilityMakerTest is Test {
 
     function testOpenLockETHAndDraw(uint256 ethLockAmount, uint256 daiDrawAmount) external {
         // Calculate minimum collateral amount of ETH and drawing random amount of DAI between minimum and maximum
-        bytes32 ilkETH = bytes32(bytes(ETH_JOIN_NAME));
-
         IMakerVat vat = IMakerVat(VAT);
+        bytes32 ilkETH = bytes32(bytes(ETH_JOIN_NAME));
         (, uint256 rate, uint256 spot, , uint256 dust) = vat.ilks(ilkETH);
         (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust);
 
         ethLockAmount = bound(ethLockAmount, minCollateral, 1e22);
+        deal(user, ethLockAmount);
         uint256 daiDrawMax = _getDAIDrawMaxAmount(ethLockAmount, daiDrawMin, spot, rate);
         daiDrawAmount = bound(daiDrawAmount, daiDrawMin, daiDrawMax);
 
         // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        deal(user, ethLockAmount);
-        logics = _logicOpenLockETHAndDraw(ethLockAmount, daiDrawAmount);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicOpenLockETHAndDraw(ethLockAmount, daiDrawAmount);
+
+        // Get param before execute
+        uint256 userDAIBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user);
+        uint256 userCdpCountBefore = IMakerManager(CDP_MANAGER).count(userDSProxy);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
         router.execute{value: ethLockAmount}(logics, tokensReturn);
+
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(utilityMaker)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(utilityMakerDSProxy)), 0);
+        assertEq(address(agent).balance, 0);
+        assertEq(address(utilityMaker).balance, 0);
+        assertEq(address(utilityMakerDSProxy).balance, 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(user) - userDAIBalanceBefore, daiDrawAmount);
+        assertEq(IMakerManager(CDP_MANAGER).count(userDSProxy) - userCdpCountBefore, 1); // cdp count should increase by 1
     }
 
     function testOpenLockGemAndDraw(uint256 tokenLockAmount, uint256 daiDrawAmount) external {
         // Calculate minimum collateral amount of token and drawing random amount of DAI between minimum and maximum
-        bytes32 ilkToken = bytes32(bytes(TOKEN_JOIN_NAME));
-
         IMakerVat vat = IMakerVat(VAT);
+        bytes32 ilkToken = bytes32(bytes(TOKEN_JOIN_NAME));
         (, uint256 rate, uint256 spot, , uint256 dust) = vat.ilks(ilkToken);
         (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust);
 
         tokenLockAmount = bound(tokenLockAmount, minCollateral, 1e23);
+        deal(GEM, user, tokenLockAmount);
         uint256 daiDrawMax = _getDAIDrawMaxAmount(tokenLockAmount, daiDrawMin, spot, rate);
         daiDrawAmount = bound(daiDrawAmount, daiDrawMin, daiDrawMax);
 
         // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](2);
-        deal(GEM, user, tokenLockAmount);
-        logics = _logicOpenLockGemAndDraw(GEM, tokenLockAmount, daiDrawAmount);
+        IParam.Logic[] memory logics = new IParam.Logic[](3);
+        logics[0] = _logicSpenderERC20ApprovalPullToken(GEM, tokenLockAmount);
+        logics[1] = _logicTransferERC20ToUtilityMaker(GEM, tokenLockAmount);
+        logics[2] = _logicOpenLockGemAndDraw(tokenLockAmount, daiDrawAmount);
+
+        // Get param before execute
+        uint256 userDAIBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user);
+        uint256 userCdpCountBefore = IMakerManager(CDP_MANAGER).count(userDSProxy);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
         router.execute(logics, tokensReturn);
+
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(utilityMaker)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(utilityMakerDSProxy)), 0);
+        assertEq(IERC20(GEM).balanceOf(address(agent)), 0);
+        assertEq(IERC20(GEM).balanceOf(address(utilityMaker)), 0);
+        assertEq(IERC20(GEM).balanceOf(address(utilityMakerDSProxy)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(user) - userDAIBalanceBefore, daiDrawAmount);
+        assertEq(IMakerManager(CDP_MANAGER).count(userDSProxy) - userCdpCountBefore, 1); // cdp count should increase by 1
     }
 
     function _getDAIDrawMinAndMinCollateral(uint256 spot, uint256 dust) internal pure returns (uint256, uint256) {
@@ -132,10 +171,7 @@ contract UtilityMakerTest is Test {
         return daiDrawMax > daiDrawMin ? daiDrawMax : daiDrawMin;
     }
 
-    function _logicOpenLockETHAndDraw(
-        uint256 value,
-        uint256 amountOutMin
-    ) public view returns (IRouter.Logic[] memory) {
+    function _logicOpenLockETHAndDraw(uint256 value, uint256 amountOutMin) public view returns (IParam.Logic memory) {
         // Data for openLockETHAndDraw
         bytes memory data = abi.encodeWithSelector(
             IUtilityMaker.openLockETHAndDraw.selector,
@@ -147,42 +183,48 @@ contract UtilityMakerTest is Test {
         );
 
         // Encode inputs
-        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
-        inputs[0].amountBps = type(uint256).max;
+        inputs[0].amountBps = SKIP;
         inputs[0].amountOrOffset = value;
 
-        // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
-        outputs[0].token = DAI_TOKEN;
-        outputs[0].amountMin = amountOutMin;
-
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = IRouter.Logic(
-            address(utilityMaker),
-            data,
-            inputs,
-            outputs,
-            address(0), // approveTo,
-            address(0) // callback
-        );
-
-        return logics;
+        return
+            IParam.Logic(
+                address(utilityMaker),
+                data,
+                inputs,
+                address(0) // callback
+            );
     }
 
-    function _logicOpenLockGemAndDraw(
-        address collateral,
-        uint256 value,
-        uint256 amountOutMin
-    ) public view returns (IRouter.Logic[] memory) {
-        // Step 0: pull collateral to router from SpenderERC20
-        // Step 1: transfer token to UtilityMaker
-        // Step 2: call openLockGemAndDraw on UtilityMaker
+    function _logicSpenderERC20ApprovalPullToken(
+        address token,
+        uint256 amount
+    ) internal view returns (IParam.Logic memory) {
+        return
+            IParam.Logic(
+                address(spenderERC20),
+                abi.encodeWithSelector(ISpenderERC20Approval.pullToken.selector, token, amount),
+                inputsEmpty,
+                address(0) // callback);
+            );
+    }
 
-        // Prepare datas
-        bytes memory data0 = abi.encodeWithSelector(ISpenderERC20Approval.pullToken.selector, collateral, value);
-        bytes memory data1 = abi.encodeWithSelector(IERC20.transfer.selector, utilityMaker, value);
-        bytes memory data2 = abi.encodeWithSelector(
+    function _logicTransferERC20ToUtilityMaker(
+        address token,
+        uint256 amount
+    ) internal view returns (IParam.Logic memory) {
+        return
+            IParam.Logic(
+                token,
+                abi.encodeWithSelector(IERC20.transfer.selector, utilityMaker, amount),
+                inputsEmpty,
+                address(0) // callback);
+            );
+    }
+
+    function _logicOpenLockGemAndDraw(uint256 value, uint256 amountOutMin) public view returns (IParam.Logic memory) {
+        bytes memory data = abi.encodeWithSelector(
             IUtilityMaker.openLockGemAndDraw.selector,
             GEM_JOIN_LINK_A,
             DAI_JOIN,
@@ -191,45 +233,12 @@ contract UtilityMakerTest is Test {
             amountOutMin
         );
 
-        // Encode inputs
-        // IRouter.Input[] memory inputs = new IRouter.Input[](3);
-        // inputs[2].token = collateral;
-        // inputs[2].amountBps = type(uint256).max;
-        // inputs[2].amountOrOffset = value;
-
-        // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
-        outputs[0].token = DAI_TOKEN;
-        outputs[0].amountMin = amountOutMin;
-
-        IRouter.Logic[] memory logics = new IRouter.Logic[](3);
-        logics[0] = IRouter.Logic(
-            address(spenderERC20),
-            data0,
-            inputsEmpty,
-            outputsEmpty,
-            address(0), // approveTo,
-            address(0) // callback
-        );
-
-        logics[1] = IRouter.Logic(
-            collateral,
-            data1,
-            inputsEmpty,
-            outputsEmpty,
-            address(0), // approveTo,
-            address(0) // callback
-        );
-
-        logics[2] = IRouter.Logic(
-            address(utilityMaker),
-            data2,
-            inputsEmpty,
-            outputs,
-            address(0), // approveTo,
-            address(0) // callback
-        );
-
-        return logics;
+        return
+            IParam.Logic(
+                address(utilityMaker),
+                data,
+                inputsEmpty,
+                address(0) // callback
+            );
     }
 }

@@ -21,8 +21,9 @@ contract UtilityMaker is IUtilityMaker {
     // UtilityMaker's DSProxy
     IDSProxy public immutable dsProxy;
 
-    modifier onlyRouter() {
-        if (msg.sender != router) revert InvalidRouter();
+    modifier onlyAgent() {
+        address agent = IRouter(router).getAgent();
+        if (msg.sender != agent) revert InvalidAgent();
         _;
     }
 
@@ -52,7 +53,7 @@ contract UtilityMaker is IUtilityMaker {
         address daiJoin,
         bytes32 ilk,
         uint256 wadD
-    ) external payable onlyRouter returns (uint256 cdp) {
+    ) external payable onlyAgent returns (uint256 cdp) {
         bytes4 funcSig = 0xe685cc04; // selector of "openLockETHAndDraw(address,address,address,address,bytes32,uint256)"
 
         try
@@ -68,7 +69,7 @@ contract UtilityMaker is IUtilityMaker {
             revert ActionFail(funcSig, '');
         }
 
-        _transferTokenToRouter(daiToken);
+        _transferTokenToAgent(daiToken);
         _transferCdp(cdp);
     }
 
@@ -80,7 +81,7 @@ contract UtilityMaker is IUtilityMaker {
         bytes32 ilk,
         uint256 wadC,
         uint256 wadD
-    ) external onlyRouter returns (uint256 cdp) {
+    ) external onlyAgent returns (uint256 cdp) {
         // Get collateral token
         address token = IMakerGemJoin(gemJoin).gem();
         bytes4 funcSig = 0xdb802a32; // selector of "openLockGemAndDraw(address,address,address,address,bytes32,uint256,uint256,bool)"
@@ -102,13 +103,14 @@ contract UtilityMaker is IUtilityMaker {
 
         ApproveHelper._approveZero(token, address(dsProxy));
 
-        _transferTokenToRouter(daiToken);
+        _transferTokenToAgent(daiToken);
         _transferCdp(cdp);
     }
 
-    function _transferTokenToRouter(address token) internal {
+    function _transferTokenToAgent(address token) internal {
+        address agent = IRouter(router).getAgent();
         uint256 balance = IERC20(token).balanceOf(address(this));
-        IERC20(token).safeTransfer(router, balance);
+        IERC20(token).safeTransfer(agent, balance);
     }
 
     function _transferCdp(uint256 cdp) internal {

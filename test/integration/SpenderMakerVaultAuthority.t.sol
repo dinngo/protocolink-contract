@@ -5,6 +5,8 @@ import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {SpenderMakerVaultAuthority, ISpenderMakerVaultAuthority} from '../../src/SpenderMakerVaultAuthority.sol';
 import {Router, IRouter} from '../../src/Router.sol';
+import {IAgent} from '../../src/interfaces/IAgent.sol';
+import {IParam} from '../../src/interfaces/IParam.sol';
 import {IDSProxy, IDSProxyRegistry} from '../../src/interfaces/maker/IDSProxy.sol';
 import {IMakerManager, IMakerVat} from '../../src/interfaces/maker/IMaker.sol';
 import {SpenderERC20Approval, ISpenderERC20Approval} from '../../src/SpenderERC20Approval.sol';
@@ -32,15 +34,14 @@ contract SpenderMakerVaultAuthorityTest is Test {
     ISpenderMakerVaultAuthority public spenderMaker;
     address public user;
     IRouter public router;
+    IAgent public agent;
     address public userDSProxy;
-    address public routerDSProxy;
     uint256 ethCdp;
     uint256 gemCdp;
 
     // Empty arrays
     address[] tokensReturnEmpty;
-    IRouter.Input[] inputsEmpty;
-    IRouter.Output[] outputsEmpty;
+    IParam.Input[] inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -57,6 +58,7 @@ contract SpenderMakerVaultAuthorityTest is Test {
         // Build user's DSProxy
         vm.startPrank(user);
         userDSProxy = IDSProxyRegistry(PROXY_REGISTRY).build();
+        agent = IAgent(router.newAgent());
 
         // Open ETH Vault
         uint256 ethAmount = 100 ether;
@@ -107,9 +109,9 @@ contract SpenderMakerVaultAuthorityTest is Test {
 
         // Label
         vm.label(address(router), 'Router');
+        vm.label(address(agent), 'Agent');
         vm.label(address(spenderMaker), 'SpenderMaker');
         vm.label(address(spenderMakerDSProxy), 'SpenderMakerDSProxy');
-        vm.label(address(routerDSProxy), 'RouterDSProxy');
         vm.label(address(userDSProxy), 'UserDSProxy');
         vm.label(PROXY_REGISTRY, 'PROXY_REGISTRY');
         vm.label(CDP_MANAGER, 'CDP_MANAGER');
@@ -128,7 +130,7 @@ contract SpenderMakerVaultAuthorityTest is Test {
         uint256 userEthBalanceBefore = user.balance;
 
         // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicFreeETH(ethCdp, freeETHAmount);
 
         // Execute
@@ -139,6 +141,7 @@ contract SpenderMakerVaultAuthorityTest is Test {
 
         assertEq(user.balance - userEthBalanceBefore, freeETHAmount);
         assertEq(address(router).balance, 0);
+        assertEq(address(agent).balance, 0);
         assertEq(address(spenderMaker).balance, 0);
     }
 
@@ -148,8 +151,8 @@ contract SpenderMakerVaultAuthorityTest is Test {
         uint256 userEthBalanceBefore = IERC20(GEM).balanceOf(user);
 
         // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
-        logics[0] = _logicFreeGem(gemCdp, freeGemAmount, GEM);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicFreeGem(gemCdp, freeGemAmount);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -161,6 +164,7 @@ contract SpenderMakerVaultAuthorityTest is Test {
 
         assertEq(userEthBalanceAfter - userEthBalanceBefore, freeGemAmount);
         assertEq(IERC20(GEM).balanceOf(address(router)), 0);
+        assertEq(IERC20(GEM).balanceOf(address(agent)), 0);
         assertEq(IERC20(GEM).balanceOf(address(spenderMaker)), 0);
     }
 
@@ -170,7 +174,7 @@ contract SpenderMakerVaultAuthorityTest is Test {
         uint256 userDaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user);
 
         // Encode logic
-        IRouter.Logic[] memory logics = new IRouter.Logic[](1);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicDraw(ethCdp, drawDaiAmount);
 
         // Execute
@@ -183,6 +187,7 @@ contract SpenderMakerVaultAuthorityTest is Test {
 
         assertEq(userDaiBalanceAfter - userDaiBalanceBefore, drawDaiAmount);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(spenderMaker)), 0);
     }
 
@@ -199,7 +204,7 @@ contract SpenderMakerVaultAuthorityTest is Test {
         );
     }
 
-    function _logicFreeETH(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic memory) {
+    function _logicFreeETH(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
         // Prepare datas
         bytes memory data = abi.encodeWithSelector(
             ISpenderMakerVaultAuthority.freeETH.selector,
@@ -208,27 +213,16 @@ contract SpenderMakerVaultAuthorityTest is Test {
             amount
         );
 
-        // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
-        outputs[0].token = NATIVE;
-        outputs[0].amountMin = amount;
-
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(spenderMaker),
                 data,
                 inputsEmpty,
-                outputs,
-                address(0), // approveTo,
                 address(0) // callback
             );
     }
 
-    function _logicFreeGem(
-        uint256 cdp,
-        uint256 amount,
-        address collateral
-    ) internal view returns (IRouter.Logic memory) {
+    function _logicFreeGem(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
         // Prepare datas
         bytes memory data = abi.encodeWithSelector(
             ISpenderMakerVaultAuthority.freeGem.selector,
@@ -237,38 +231,24 @@ contract SpenderMakerVaultAuthorityTest is Test {
             amount
         );
 
-        // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
-        outputs[0].token = collateral;
-        outputs[0].amountMin = amount;
-
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(spenderMaker),
                 data,
                 inputsEmpty,
-                outputs,
-                address(0), // approveTo,
                 address(0) // callback
             );
     }
 
-    function _logicDraw(uint256 cdp, uint256 amount) internal view returns (IRouter.Logic memory) {
+    function _logicDraw(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
         // Prepare datas
         bytes memory data = abi.encodeWithSelector(ISpenderMakerVaultAuthority.draw.selector, DAI_JOIN, cdp, amount);
 
-        // Encode outputs
-        IRouter.Output[] memory outputs = new IRouter.Output[](1);
-        outputs[0].token = DAI_TOKEN;
-        outputs[0].amountMin = amount;
-
         return
-            IRouter.Logic(
+            IParam.Logic(
                 address(spenderMaker),
                 data,
                 inputsEmpty,
-                outputs,
-                address(0), // approveTo,
                 address(0) // callback
             );
     }
