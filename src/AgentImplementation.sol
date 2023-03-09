@@ -20,6 +20,7 @@ contract AgentImplementation is IAgent {
 
     address private _caller;
 
+
     modifier checkCaller() {
         address caller = _caller;
         if (caller != msg.sender) {
@@ -43,6 +44,10 @@ contract AgentImplementation is IAgent {
 
     /// @notice Execute logics and return tokens to user
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable checkCaller {
+        // TODO: chained ret value for PoC only
+        uint256 size = 1024;
+        bytes[] memory retValues = new bytes[](size);
+
         // Execute each logic
         uint256 logicsLength = logics.length;
         for (uint256 i = 0; i < logicsLength; ) {
@@ -50,37 +55,53 @@ contract AgentImplementation is IAgent {
             bytes memory data = logics[i].data;
             IParam.Input[] calldata inputs = logics[i].inputs;
             address callback = logics[i].callback;
+            uint256 value = logics[i].value;
 
-            // Execute each input if need to modify the amount
-            uint256 value;
-            uint256 inputsLength = inputs.length;
-            for (uint256 j = 0; j < inputsLength; ) {
-                address token = inputs[j].token;
-                uint256 amountBps = inputs[j].amountBps;
+            // Get ret values (would skip if length = 0)
+            // TODO: stack too deep
+            // uint256 inputsLength = inputs.length;
+            for (uint256 j = 0; j < inputs.length/*inputsLength*/; ) {
+                if(retValues.length == 0) break; // no saved ret value
 
-                // Calculate native or token amount
-                // 1. if amountBps is skip: read amountOrOffset as amount
-                // 2. if amountBps isn't skip: balance multiplied by amountBps as amount and replace the amount at offset equal to amountOrOffset with the calculated amount
-                uint256 amount;
-                if (amountBps == _SKIP) {
-                    amount = inputs[j].amountOrOffset;
-                } else {
-                    if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
-                    amount = (_getBalance(token) * amountBps) / _BPS_BASE;
+                uint256 offsetLength = inputs[j].retOffsets.length;
+                require(offsetLength > 0, 'no offset');
+                require(offsetLength == inputs[j].dataOffsets.length, "data length mismatch");
+                require(offsetLength == inputs[j].amountBps.length, "bps length mismatch");
 
-                    // Skip if don't need to replace, e.g., most protocols set native amount in call value
-                    uint256 offset = inputs[j].amountOrOffset;
-                    if (offset != _SKIP) {
+                uint256 index = inputs[j].index;
+                bytes memory retdata = retValues[index];
+                {
+                    // get native token amount for msg.value
+                    uint256 valueOffset = inputs[j].valueOffset;
+                    uint256 valueBps = inputs[j].valueBps;
+                    if (valueOffset != _SKIP) {
                         assembly {
-                            let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
-                            mstore(loc, amount)
+                            // TODO: should we add length of bytes here too?
+                            let valueLoc := add(retdata, valueOffset)
+                            value := div(mul(mload(valueLoc), valueBps), _BPS_BASE)
                         }
                     }
                 }
 
-                // Set native token value for native token
-                if (token == _NATIVE) {
-                    value = amount;
+
+                // replace data with ret values
+                for (uint256 k = 0; k < inputs[j].retOffsets.length;) {
+                    uint256 amountBps = inputs[j].amountBps[k];
+                    if (amountBps > _BPS_BASE) revert InvalidBps();
+                    {
+                        uint256 retOffset = inputs[j].retOffsets[k];
+                        uint256 dataOffset = inputs[j].dataOffsets[k];
+
+                        assembly {
+                            let retLoc := add(retdata, retOffset)
+                            let retVal := div(mul(mload(retLoc), amountBps), _BPS_BASE)
+                            let dataLoc := add(add(data, 0x24), dataOffset) // 0x24 = 0x20(data_length) + 0x4(sig)
+                            mstore(dataLoc,retVal)
+                        }
+                    }
+                    unchecked {
+                        ++k;
+                    }
                 }
 
                 unchecked {
@@ -95,7 +116,10 @@ contract AgentImplementation is IAgent {
             if (data.length == 0) {
                 payable(to).sendValue(value);
             } else {
-                to.functionCallWithValue(data, value, 'ERROR_ROUTER_EXECUTE');
+                bytes memory retData = to.functionCallWithValue(data, value, 'ERROR_ROUTER_EXECUTE');
+                if (logics[i].chained) {
+                    retValues[i] = retData;
+                }
             }
 
             // Revert if the previous call didn't enter execute

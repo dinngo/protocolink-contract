@@ -4,17 +4,19 @@ pragma solidity ^0.8.0;
 interface IParam {
     struct Logic {
         address to;
+        uint256 value; // amount of native token
         bytes data;
         Input[] inputs;
         address callback;
+        bool chained; // flag for saving ret value
     }
 
     struct Input {
-        address token;
-        // 7_000 means the replacing amount is 70% of token balance. Set type(uint256).max to skip bps calculation so simply use amountOrOffset as amount
-        uint256 amountBps;
-        // If amountBps is skip, can simply read amountOrOffset as amount
-        // If amountBps is not skip, amountOrOffset is byte offset of amount in Logic.data used for replacement. Set type(uint256).max to skip if don't need to replace.
-        uint256 amountOrOffset;
+        uint256 index; // index of chained ret value
+        uint256 valueOffset; // offset of the native token amount
+        uint256 valueBps; // 7_000 means the replacing amount is 70% of token balance
+        uint256[] retOffsets; // return data offsets
+        uint256[] dataOffsets; // replaced data offsets
+        uint256[] amountBps; // 7_000 means the replacing amount is 70% of token balance
     }
 }
