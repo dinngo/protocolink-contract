@@ -89,9 +89,7 @@ contract AgentImplementation is IAgent {
                 if (token == _NATIVE) {
                     value = amount;
                 } else if (token != approveTo) {
-                    if (IERC20(token).allowance(address(this), approveTo) < amount) {
-                        ApproveHelper._approve(token, approveTo, type(uint256).max);
-                    }
+                    ApproveHelper._approveMax(token, approveTo, amount);
                 }
 
                 unchecked {
