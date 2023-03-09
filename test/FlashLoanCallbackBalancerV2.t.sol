@@ -73,6 +73,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
             address(tokens[0]), // to
             abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[0] + feeExcess),
             inputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
 

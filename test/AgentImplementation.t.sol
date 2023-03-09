@@ -56,6 +56,7 @@ contract AgentImplementationTest is Test {
             address(mockFallback), // to
             '',
             inputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
         bytes memory data = abi.encodeWithSelector(IRouter.execute.selector, callbacks, tokensReturnEmpty);
@@ -64,6 +65,7 @@ contract AgentImplementationTest is Test {
             address(mockCallback),
             abi.encodeWithSelector(ICallback.callback.selector, data),
             inputsEmpty,
+            address(0), // approveTo
             address(router) // callback
         );
         vm.expectRevert(IAgent.InvalidCaller.selector);
@@ -85,6 +87,7 @@ contract AgentImplementationTest is Test {
             address(0), // to
             '',
             inputs,
+            address(0), // approveTo
             address(0) // callback
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
@@ -101,6 +104,7 @@ contract AgentImplementationTest is Test {
             address(0), // to
             '',
             inputs,
+            address(0), // approveTo
             address(0) // callback
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
@@ -114,6 +118,7 @@ contract AgentImplementationTest is Test {
             address(mockFallback), // to
             '',
             inputsEmpty,
+            address(0), // approveTo
             address(mockCallback) // callback
         );
         vm.expectRevert(IAgent.UnresetCallback.selector);
@@ -155,7 +160,81 @@ contract AgentImplementationTest is Test {
                 address(recipient), // to
                 '',
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
+    }
+
+    function testApproveToIsDefault(uint256 amountIn) external {
+        vm.assume(amountIn > 0);
+
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
+
+        inputs[0] = IParam.Input(
+            address(mockERC20),
+            SKIP, // amountBps
+            amountIn // amountOrOffset
+        );
+        logics[0] = IParam.Logic(
+            address(mockFallback), // to
+            '',
+            inputs,
+            address(0), // approveTo
+            address(0) // callback
+        );
+
+        // Execute
+        vm.expectEmit(true, true, true, true, address(mockERC20));
+        emit Approval(address(agent), address(mockFallback), type(uint256).max);
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
+
+        // Execute again, mock approve to guarantee that approval is not called
+        vm.mockCall(
+            address(mockERC20),
+            0,
+            abi.encodeCall(IERC20.approve, (address(mockFallback), type(uint256).max)),
+            abi.encode(false)
+        );
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
+    }
+
+    function testApproveToIsSet(uint256 amountIn, address approveTo) external {
+        vm.assume(amountIn > 0);
+        vm.assume(approveTo != address(0) && approveTo != mockFallback && approveTo != address(mockERC20));
+
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
+
+        inputs[0] = IParam.Input(
+            address(mockERC20),
+            SKIP, // amountBps
+            amountIn // amountOrOffset
+        );
+        logics[0] = IParam.Logic(
+            address(mockFallback), // to
+            '',
+            inputs,
+            approveTo, // approveTo
+            address(0) // callback
+        );
+
+        // Execute
+        vm.expectEmit(true, true, true, true, address(mockERC20));
+        emit Approval(address(agent), approveTo, type(uint256).max);
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
+
+        // Execute again, mock approve to guarantee that approval is not called
+        vm.mockCall(
+            address(mockERC20),
+            0,
+            abi.encodeCall(IERC20.approve, (address(mockERC20), type(uint256).max)),
+            abi.encode(false)
+        );
+        vm.prank(router);
+        agent.execute(logics, tokensReturnEmpty);
     }
 }

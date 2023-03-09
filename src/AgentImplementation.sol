@@ -5,6 +5,7 @@ import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token
 import {IAgent} from './interfaces/IAgent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
+import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 /// @title Implemtation contract of agent logics
 contract AgentImplementation is IAgent {
@@ -49,9 +50,15 @@ contract AgentImplementation is IAgent {
             address to = logics[i].to;
             bytes memory data = logics[i].data;
             IParam.Input[] calldata inputs = logics[i].inputs;
+            address approveTo = logics[i].approveTo;
             address callback = logics[i].callback;
 
-            // Execute each input if need to modify the amount
+            // Default `approveTo` is same as `to` unless `approveTo` is set
+            if (approveTo == address(0)) {
+                approveTo = to;
+            }
+
+            // Execute each input if need to modify the amount or do approve
             uint256 value;
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength; ) {
@@ -81,6 +88,8 @@ contract AgentImplementation is IAgent {
                 // Set native token value for native token
                 if (token == _NATIVE) {
                     value = amount;
+                } else if (token != approveTo) {
+                    ApproveHelper._approveMax(token, approveTo, amount);
                 }
 
                 unchecked {
