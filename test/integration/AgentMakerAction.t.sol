@@ -3,15 +3,17 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {SpenderMakerVaultAuthority, ISpenderMakerVaultAuthority} from '../../src/SpenderMakerVaultAuthority.sol';
 import {Router, IRouter} from '../../src/Router.sol';
 import {IAgent} from '../../src/interfaces/IAgent.sol';
 import {IParam} from '../../src/interfaces/IParam.sol';
 import {IDSProxy, IDSProxyRegistry} from '../../src/interfaces/maker/IDSProxy.sol';
 import {IMakerManager, IMakerVat} from '../../src/interfaces/maker/IMaker.sol';
-import {SpenderERC20Approval, ISpenderERC20Approval} from '../../src/SpenderERC20Approval.sol';
+import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
+import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 
-contract AgentMakerActionTest is Test {
+contract AgentMakerActionTest is Test, SpenderPermitUtils {
+    using SafeCast160 for uint256;
+
     uint256 public constant SKIP = type(uint256).max;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant LINK_TOKEN = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
@@ -33,17 +35,17 @@ contract AgentMakerActionTest is Test {
     uint256 public constant RAY = 10 ** 27;
     uint256 public constant DRAW_DAI_AMOUNT = 20000 ether;
 
-    ISpenderERC20Approval public spenderERC20;
     address public user;
     address public user2;
+    uint256 public user2PrivateKey;
     IRouter public router;
     IAgent public userAgent;
     IAgent public user2Agent;
     address public userDSProxy;
     address public userAgentDSProxy;
     address public user2AgentDSProxy;
-    uint256 ethCdp;
-    uint256 gemCdp;
+    uint256 public ethCdp;
+    uint256 public gemCdp;
 
     // Empty arrays
     address[] tokensReturnEmpty;
@@ -51,9 +53,8 @@ contract AgentMakerActionTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
-        user2 = makeAddr('User2');
+        (user2, user2PrivateKey) = makeAddrAndKey('User2');
         router = new Router();
-        spenderERC20 = new SpenderERC20Approval(address(router));
 
         // Build user's DSProxy
         vm.startPrank(user);
@@ -113,9 +114,14 @@ contract AgentMakerActionTest is Test {
         user2AgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(user2Agent));
         vm.stopPrank();
 
+        // Setup permit2
+        spenderSetUp(user2, user2PrivateKey, router);
+        permitToken(IERC20(GEM));
+        permitToken(IERC20(DAI_TOKEN));
+
         // Label
         vm.label(address(router), 'Router');
-        vm.label(address(spenderERC20), 'SpenderERC20');
+        vm.label(address(spender), 'SpenderPermit2ERC20');
         vm.label(address(userDSProxy), 'UserDSProxy');
         vm.label(address(userAgent), 'UserAgent');
         vm.label(address(user2Agent), 'User2Agent');
@@ -163,13 +169,9 @@ contract AgentMakerActionTest is Test {
         uint256 user2GemBalanceBefore = IERC20(GEM).balanceOf(user2);
         (, uint256 collateralBefore) = _getCdpInfo(gemCdp);
 
-        // User approve to SpenderERC20Approval
-        vm.prank(user2);
-        IERC20(GEM).approve(address(spenderERC20), type(uint256).max);
-
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = _logicSpenderERC20ApprovalPullToken(GEM, lockGemAmount);
+        logics[0] = logicSpenderPermit2ERC20PullToken(IERC20(GEM), lockGemAmount.toUint160());
         logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, GEM, lockGemAmount);
         logics[2] = _logicSafeLockGem(gemCdp, lockGemAmount);
 
@@ -194,13 +196,9 @@ contract AgentMakerActionTest is Test {
         uint256 user2DaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user2);
         (uint256 debtBefore, ) = _getCdpInfo(gemCdp);
 
-        // User approve to SpenderERC20Approval
-        vm.prank(user2);
-        IERC20(DAI_TOKEN).approve(address(spenderERC20), type(uint256).max);
-
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = _logicSpenderERC20ApprovalPullToken(DAI_TOKEN, wipeAmount);
+        logics[0] = logicSpenderPermit2ERC20PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
         logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
         logics[2] = _logicWipe(gemCdp, wipeAmount);
 
@@ -225,13 +223,9 @@ contract AgentMakerActionTest is Test {
         uint256 user2DaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user2);
         (uint256 debtBefore, ) = _getCdpInfo(gemCdp);
 
-        // User approve to SpenderERC20Approval
-        vm.prank(user2);
-        IERC20(DAI_TOKEN).approve(address(spenderERC20), type(uint256).max);
-
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = _logicSpenderERC20ApprovalPullToken(DAI_TOKEN, wipeAmount);
+        logics[0] = logicSpenderPermit2ERC20PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
         logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
         logics[2] = _logicWipeAll(gemCdp, wipeAmount);
 
@@ -272,19 +266,6 @@ contract AgentMakerActionTest is Test {
         return (debt, ink);
     }
 
-    function _logicSpenderERC20ApprovalPullToken(
-        address token,
-        uint256 amount
-    ) internal view returns (IParam.Logic memory) {
-        return
-            IParam.Logic(
-                address(spenderERC20),
-                abi.encodeWithSelector(ISpenderERC20Approval.pullToken.selector, token, amount),
-                inputsEmpty,
-                address(0) // callback);
-            );
-    }
-
     function _logicAgentERC20ApprovalToDSProxy(
         address dsProxy,
         address token,
@@ -295,7 +276,7 @@ contract AgentMakerActionTest is Test {
                 token,
                 abi.encodeWithSelector(IERC20.approve.selector, dsProxy, amount),
                 inputsEmpty,
-                address(0) // callback);
+                address(0) // callback
             );
     }
 
@@ -324,7 +305,7 @@ contract AgentMakerActionTest is Test {
                 user2AgentDSProxy,
                 data,
                 inputs,
-                address(0) // callback);
+                address(0) // callback
             );
     }
 
@@ -344,18 +325,12 @@ contract AgentMakerActionTest is Test {
             )
         );
 
-        // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0].token = GEM;
-        inputs[0].amountBps = SKIP;
-        inputs[0].amountOrOffset = amount;
-
         return
             IParam.Logic(
                 user2AgentDSProxy,
                 data,
-                inputs,
-                address(0) // callback);
+                inputsEmpty,
+                address(0) // callback
             );
     }
 
@@ -373,22 +348,16 @@ contract AgentMakerActionTest is Test {
             )
         );
 
-        // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0].token = DAI_TOKEN;
-        inputs[0].amountBps = SKIP;
-        inputs[0].amountOrOffset = amount;
-
         return
             IParam.Logic(
                 user2AgentDSProxy,
                 data,
-                inputs,
-                address(0) // callback);
+                inputsEmpty,
+                address(0) // callback
             );
     }
 
-    function _logicWipeAll(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+    function _logicWipeAll(uint256 cdp) internal view returns (IParam.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -401,18 +370,12 @@ contract AgentMakerActionTest is Test {
             )
         );
 
-        // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0].token = DAI_TOKEN;
-        inputs[0].amountBps = SKIP;
-        inputs[0].amountOrOffset = amount;
-
         return
             IParam.Logic(
                 user2AgentDSProxy,
                 data,
-                inputs,
-                address(0) // callback);
+                inputsEmpty,
+                address(0) // callback
             );
     }
 }

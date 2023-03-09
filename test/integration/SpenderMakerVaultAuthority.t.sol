@@ -9,7 +9,6 @@ import {IAgent} from '../../src/interfaces/IAgent.sol';
 import {IParam} from '../../src/interfaces/IParam.sol';
 import {IDSProxy, IDSProxyRegistry} from '../../src/interfaces/maker/IDSProxy.sol';
 import {IMakerManager, IMakerVat} from '../../src/interfaces/maker/IMaker.sol';
-import {SpenderERC20Approval, ISpenderERC20Approval} from '../../src/SpenderERC20Approval.sol';
 
 contract SpenderMakerVaultAuthorityTest is Test {
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -36,8 +35,8 @@ contract SpenderMakerVaultAuthorityTest is Test {
     IRouter public router;
     IAgent public agent;
     address public userDSProxy;
-    uint256 ethCdp;
-    uint256 gemCdp;
+    uint256 public ethCdp;
+    uint256 public gemCdp;
 
     // Empty arrays
     address[] tokensReturnEmpty;

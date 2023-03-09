@@ -21,12 +21,6 @@ contract UtilityMaker is IUtilityMaker {
     // UtilityMaker's DSProxy
     IDSProxy public immutable dsProxy;
 
-    modifier onlyAgent() {
-        address agent = IRouter(router).getAgent();
-        if (msg.sender != agent) revert InvalidAgent();
-        _;
-    }
-
     constructor(
         address router_,
         address proxyRegistry_,
@@ -53,24 +47,26 @@ contract UtilityMaker is IUtilityMaker {
         address daiJoin,
         bytes32 ilk,
         uint256 wadD
-    ) external payable onlyAgent returns (uint256 cdp) {
-        bytes4 funcSig = 0xe685cc04; // selector of "openLockETHAndDraw(address,address,address,address,bytes32,uint256)"
+    ) external payable returns (uint256 cdp) {
+        (address user, address agent) = IRouter(router).getUserAgent();
+        if (msg.sender != agent) revert InvalidAgent();
 
-        try
-            dsProxy.execute{value: value}(
-                proxyActions,
-                abi.encodeWithSelector(funcSig, cdpManager, jug, ethJoin, daiJoin, ilk, wadD)
+        bytes32 ret = dsProxy.execute{value: value}(
+            proxyActions,
+            abi.encodeWithSelector(
+                0xe685cc04, // selector of "openLockETHAndDraw(address,address,address,address,bytes32,uint256)"
+                cdpManager,
+                jug,
+                ethJoin,
+                daiJoin,
+                ilk,
+                wadD
             )
-        returns (bytes32 ret) {
-            cdp = uint256(ret);
-        } catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
+        );
+        cdp = uint256(ret);
 
-        _transferTokenToAgent(daiToken);
-        _transferCdp(cdp);
+        IERC20(daiToken).safeTransfer(agent, wadD);
+        _transferCdp(user, cdp);
     }
 
     /// @notice Creates a cdp for the user(for a specific `ilk`), deposits `wadC` amount of collateral in `gemJoin`
@@ -81,48 +77,46 @@ contract UtilityMaker is IUtilityMaker {
         bytes32 ilk,
         uint256 wadC,
         uint256 wadD
-    ) external onlyAgent returns (uint256 cdp) {
+    ) external returns (uint256 cdp) {
+        (address user, address agent) = IRouter(router).getUserAgent();
+        if (msg.sender != agent) revert InvalidAgent();
+
         // Get collateral token
         address token = IMakerGemJoin(gemJoin).gem();
-        bytes4 funcSig = 0xdb802a32; // selector of "openLockGemAndDraw(address,address,address,address,bytes32,uint256,uint256,bool)"
-
         ApproveHelper._approve(token, address(dsProxy), wadC);
 
-        try
-            dsProxy.execute(
-                proxyActions,
-                abi.encodeWithSelector(funcSig, cdpManager, jug, gemJoin, daiJoin, ilk, wadC, wadD, true)
+        bytes32 ret = dsProxy.execute(
+            proxyActions,
+            abi.encodeWithSelector(
+                0xdb802a32, // selector of "openLockGemAndDraw(address,address,address,address,bytes32,uint256,uint256,bool)"
+                cdpManager,
+                jug,
+                gemJoin,
+                daiJoin,
+                ilk,
+                wadC,
+                wadD,
+                true
             )
-        returns (bytes32 ret) {
-            cdp = uint256(ret);
-        } catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
+        );
+        cdp = uint256(ret);
 
         ApproveHelper._approveZero(token, address(dsProxy));
 
-        _transferTokenToAgent(daiToken);
-        _transferCdp(cdp);
+        IERC20(daiToken).safeTransfer(agent, wadD);
+        _transferCdp(user, cdp);
     }
 
-    function _transferTokenToAgent(address token) internal {
-        address agent = IRouter(router).getAgent();
-        uint256 balance = IERC20(token).balanceOf(address(this));
-        IERC20(token).safeTransfer(agent, balance);
-    }
-
-    function _transferCdp(uint256 cdp) internal {
-        address user = IRouter(router).user();
-        bytes4 funcSig = 0x493c2049; // selector of "giveToProxy(address,address,uint256,address)"
-
-        try
-            dsProxy.execute(proxyActions, abi.encodeWithSelector(funcSig, proxyRegistry, cdpManager, cdp, user))
-        {} catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
+    function _transferCdp(address user, uint256 cdp) internal {
+        dsProxy.execute(
+            proxyActions,
+            abi.encodeWithSelector(
+                0x493c2049, // selector of "giveToProxy(address,address,uint256,address)"
+                proxyRegistry,
+                cdpManager,
+                cdp,
+                user
+            )
+        );
     }
 }

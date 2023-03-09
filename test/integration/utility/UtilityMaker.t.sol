@@ -2,21 +2,22 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {UtilityMaker, IUtilityMaker} from '../../../src/utility/UtilityMaker.sol';
 import {Router, IRouter} from '../../../src/Router.sol';
 import {IAgent} from '../../../src/interfaces/IAgent.sol';
 import {IParam} from '../../../src/interfaces/IParam.sol';
 import {IDSProxy, IDSProxyRegistry} from '../../../src/interfaces/maker/IDSProxy.sol';
 import {IMakerManager} from '../../../src/interfaces/maker/IMaker.sol';
-import {SpenderERC20Approval, ISpenderERC20Approval} from '../../../src/SpenderERC20Approval.sol';
+import {SpenderPermitUtils} from '../../utils/SpenderPermitUtils.sol';
+import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 
 interface IMakerVat {
     function ilks(bytes32) external view returns (uint256 art, uint256 rate, uint256 spot, uint256 line, uint256 dust);
 }
 
-contract UtilityMakerTest is Test {
-    using SafeERC20 for IERC20;
+contract UtilityMakerTest is Test, SpenderPermitUtils {
+    using SafeCast160 for uint256;
 
     uint256 public constant SKIP = type(uint256).max;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -38,30 +39,32 @@ contract UtilityMakerTest is Test {
     string public constant TOKEN_JOIN_NAME = 'LINK-A';
 
     address public user;
+    uint256 public userPrivateKey;
     address public userDSProxy;
     IRouter public router;
     IAgent public agent;
     IUtilityMaker public utilityMaker;
     address public utilityMakerDSProxy;
-    ISpenderERC20Approval public spenderERC20;
 
     // Empty arrays
     address[] tokensReturnEmpty;
     IParam.Input[] inputsEmpty;
 
     function setUp() external {
-        user = makeAddr('User');
+        (user, userPrivateKey) = makeAddrAndKey('User');
         router = new Router();
         utilityMaker = new UtilityMaker(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
         utilityMakerDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(utilityMaker));
-        spenderERC20 = new SpenderERC20Approval(address(router));
 
         // Setup
         vm.startPrank(user);
         userDSProxy = IDSProxyRegistry(PROXY_REGISTRY).build();
         agent = IAgent(router.newAgent());
-        IERC20(GEM).approve(address(spenderERC20), type(uint256).max);
         vm.stopPrank();
+
+        // Setup permit2
+        spenderSetUp(user, userPrivateKey, router);
+        permitToken(IERC20(GEM));
 
         // Label
         vm.label(address(userDSProxy), 'UserDSProxy');
@@ -69,7 +72,7 @@ contract UtilityMakerTest is Test {
         vm.label(address(agent), 'Agent');
         vm.label(address(utilityMaker), 'UtilityMaker');
         vm.label(address(utilityMakerDSProxy), 'UtilityMakerDSProxy');
-        vm.label(address(spenderERC20), 'SpenderERC20');
+        vm.label(address(spender), 'SpenderPermit2ERC20');
         vm.label(PROXY_REGISTRY, 'PROXY_REGISTRY');
         vm.label(CDP_MANAGER, 'CDP_MANAGER');
         vm.label(VAT, 'VAT');
@@ -131,7 +134,7 @@ contract UtilityMakerTest is Test {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = _logicSpenderERC20ApprovalPullToken(GEM, tokenLockAmount);
+        logics[0] = logicSpenderPermit2ERC20PullToken(IERC20(GEM), tokenLockAmount.toUint160());
         logics[1] = _logicTransferERC20ToUtilityMaker(GEM, tokenLockAmount);
         logics[2] = _logicOpenLockGemAndDraw(tokenLockAmount, daiDrawAmount);
 
@@ -197,19 +200,6 @@ contract UtilityMakerTest is Test {
             );
     }
 
-    function _logicSpenderERC20ApprovalPullToken(
-        address token,
-        uint256 amount
-    ) internal view returns (IParam.Logic memory) {
-        return
-            IParam.Logic(
-                address(spenderERC20),
-                abi.encodeWithSelector(ISpenderERC20Approval.pullToken.selector, token, amount),
-                inputsEmpty,
-                address(0) // callback);
-            );
-    }
-
     function _logicTransferERC20ToUtilityMaker(
         address token,
         uint256 amount
@@ -219,7 +209,7 @@ contract UtilityMakerTest is Test {
                 token,
                 abi.encodeWithSelector(IERC20.transfer.selector, utilityMaker, amount),
                 inputsEmpty,
-                address(0) // callback);
+                address(0) // callback
             );
     }
 

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {IDSProxy, IDSProxyRegistry} from './interfaces/maker/IDSProxy.sol';
 import {IMakerManager, IMakerGemJoin} from './interfaces/maker/IMaker.sol';
 import {ISpenderMakerVaultAuthority} from './interfaces/ISpenderMakerVaultAuthority.sol';
-import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 ///@title Spender for Maker which user can interact with Maker
 contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
     using SafeERC20 for IERC20;
+    using Address for address payable;
 
     address public constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public immutable router;
@@ -21,12 +21,6 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
     address public immutable jug;
     // SpenderMakerVaultAuthority's DSProxy
     IDSProxy public immutable dsProxy;
-
-    modifier onlyAgent() {
-        address agent = IRouter(router).getAgent();
-        if (msg.sender != agent) revert InvalidAgent();
-        _;
-    }
 
     ///@notice Check if user has permission to modify cdp
     modifier cdpAllowed(uint256 cdp) {
@@ -63,61 +57,63 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
     }
 
     /// @notice Decrease locked value of `cdp` and withdraws `wad` amount of ETH from `ethJoin` adapter.
-    function freeETH(address ethJoin, uint256 cdp, uint256 wad) external onlyAgent cdpAllowed(cdp) {
-        bytes4 funcSig = 0x7b5a3b43; // selector of "freeETH(address,address,uint256,uint256)"
+    function freeETH(address ethJoin, uint256 cdp, uint256 wad) external cdpAllowed(cdp) {
+        address agent = IRouter(router).getAgent();
+        if (msg.sender != agent) revert InvalidAgent();
 
-        try
-            dsProxy.execute(proxyActions, abi.encodeWithSelector(0x7b5a3b43, cdpManager, ethJoin, cdp, wad))
-        {} catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
+        dsProxy.execute(
+            proxyActions,
+            abi.encodeWithSelector(
+                0x7b5a3b43, // selector of "freeETH(address,address,uint256,uint256)"
+                cdpManager,
+                ethJoin,
+                cdp,
+                wad
+            )
+        );
 
-        _transferTokenToAgent(NATIVE_TOKEN_ADDRESS);
+        payable(agent).sendValue(wad);
     }
 
     /// @notice Decrease locked value of `cdp` and withdraws `wad` amount of collateral from `gemJoin` adapter.
-    function freeGem(address gemJoin, uint256 cdp, uint256 wad) external onlyAgent cdpAllowed(cdp) {
+    function freeGem(address gemJoin, uint256 cdp, uint256 wad) external cdpAllowed(cdp) {
+        address agent = IRouter(router).getAgent();
+        if (msg.sender != agent) revert InvalidAgent();
+
         // Get collateral token
         address token = IMakerGemJoin(gemJoin).gem();
-        bytes4 funcSig = 0x6ab6a491; // selector of "freeGem(address,address,uint256,uint256)"
 
-        try
-            dsProxy.execute(proxyActions, abi.encodeWithSelector(funcSig, cdpManager, gemJoin, cdp, wad))
-        {} catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
+        dsProxy.execute(
+            proxyActions,
+            abi.encodeWithSelector(
+                0x6ab6a491, // selector of "freeGem(address,address,uint256,uint256)"
+                cdpManager,
+                gemJoin,
+                cdp,
+                wad
+            )
+        );
 
-        _transferTokenToAgent(token);
+        IERC20(token).safeTransfer(agent, wad);
     }
 
     /// @notice Increase debt of `cdp` and exits `wad` amount of DAI token from `daiJoin` adapter.
-    function draw(address daiJoin, uint256 cdp, uint256 wad) external onlyAgent cdpAllowed(cdp) {
-        bytes4 funcSig = 0x9f6f3d5b; // selector of "draw(address,address,address,uint256,uint256)"
-
-        try
-            dsProxy.execute(proxyActions, abi.encodeWithSelector(funcSig, cdpManager, jug, daiJoin, cdp, wad))
-        {} catch Error(string memory reason) {
-            revert ActionFail(funcSig, reason);
-        } catch {
-            revert ActionFail(funcSig, '');
-        }
-
-        _transferTokenToAgent(daiToken);
-    }
-
-    function _transferTokenToAgent(address token) internal {
+    function draw(address daiJoin, uint256 cdp, uint256 wad) external cdpAllowed(cdp) {
         address agent = IRouter(router).getAgent();
-        if (token == NATIVE_TOKEN_ADDRESS) {
-            uint256 balance = address(this).balance;
-            (bool succ, ) = agent.call{value: balance}('');
-            require(succ, 'transfer ETH fail');
-        } else {
-            uint256 balance = IERC20(token).balanceOf(address(this));
-            IERC20(token).safeTransfer(agent, balance);
-        }
+        if (msg.sender != agent) revert InvalidAgent();
+
+        dsProxy.execute(
+            proxyActions,
+            abi.encodeWithSelector(
+                0x9f6f3d5b, // selector of "draw(address,address,address,uint256,uint256)"
+                cdpManager,
+                jug,
+                daiJoin,
+                cdp,
+                wad
+            )
+        );
+
+        IERC20(daiToken).safeTransfer(agent, wad);
     }
 }
