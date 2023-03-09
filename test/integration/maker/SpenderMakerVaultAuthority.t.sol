@@ -17,11 +17,15 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
 
     ISpenderMakerVaultAuthority public spenderMaker;
     address public user;
+    address public user2;
     IRouter public router;
-    IAgent public agent;
+    IAgent public userAgent;
+    IAgent public user2Agent;
     address public userDSProxy;
-    uint256 public ethCdp;
-    uint256 public gemCdp;
+    address public user2DSProxy;
+    uint256 public userEthCdp;
+    uint256 public userGemCdp;
+    uint256 public user2EthCdp;
 
     // Empty arrays
     address[] tokensReturnEmpty;
@@ -29,6 +33,7 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
 
     function setUp() external {
         user = makeAddr('User');
+        user2 = makeAddr('User2');
         router = new Router();
         spenderMaker = new SpenderMakerVaultAuthority(
             address(router),
@@ -39,10 +44,10 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
             JUG
         );
 
-        // Build user's DSProxy
+        // Setup user
         vm.startPrank(user);
         userDSProxy = IDSProxyRegistry(PROXY_REGISTRY).build();
-        agent = IAgent(router.newAgent());
+        userAgent = IAgent(router.newAgent());
 
         // Open ETH Vault
         uint256 ethAmount = 100 ether;
@@ -59,7 +64,7 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
                 DRAW_DAI_AMOUNT
             )
         );
-        ethCdp = uint256(ret);
+        userEthCdp = uint256(ret);
         assertEq(IERC20(DAI_TOKEN).balanceOf(user), DRAW_DAI_AMOUNT);
 
         // Open LINK Vault
@@ -81,22 +86,48 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
                 true
             )
         );
-        gemCdp = uint256(ret);
+        userGemCdp = uint256(ret);
         assertEq(IERC20(DAI_TOKEN).balanceOf(user), DRAW_DAI_AMOUNT * 2);
 
         // approve
         address spenderMakerDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(spenderMaker));
-        _allowCdp(userDSProxy, ethCdp, spenderMakerDSProxy);
-        _allowCdp(userDSProxy, gemCdp, spenderMakerDSProxy);
+        _allowCdp(userDSProxy, userEthCdp, spenderMakerDSProxy);
+        _allowCdp(userDSProxy, userGemCdp, spenderMakerDSProxy);
+
+        vm.stopPrank();
+
+        // Setup user2 who doesn't give authority
+        vm.startPrank(user2);
+        user2DSProxy = IDSProxyRegistry(PROXY_REGISTRY).build();
+        user2Agent = IAgent(router.newAgent());
+
+        // Open user2 ETH Vault
+        deal(user2, ethAmount);
+        ret = IDSProxy(user2DSProxy).execute{value: ethAmount}(
+            PROXY_ACTIONS,
+            abi.encodeWithSelector(
+                0xe685cc04, // selector of "openLockETHAndDraw(address,address,address,address,bytes32,uint256)"
+                CDP_MANAGER,
+                JUG,
+                ETH_JOIN_A,
+                DAI_JOIN,
+                bytes32(bytes(ETH_JOIN_NAME)),
+                DRAW_DAI_AMOUNT
+            )
+        );
+        user2EthCdp = uint256(ret);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(user2), DRAW_DAI_AMOUNT);
 
         vm.stopPrank();
 
         // Label
         vm.label(address(router), 'Router');
-        vm.label(address(agent), 'Agent');
+        vm.label(address(userAgent), 'UserAgent');
+        vm.label(address(user2Agent), 'User2Agent');
         vm.label(address(spenderMaker), 'SpenderMaker');
         vm.label(address(spenderMakerDSProxy), 'SpenderMakerDSProxy');
         vm.label(address(userDSProxy), 'UserDSProxy');
+        vm.label(address(user2DSProxy), 'User2DSProxy');
 
         makerCommonSetUp();
     }
@@ -108,7 +139,7 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicFreeETH(ethCdp, freeETHAmount);
+        logics[0] = _logicFreeETH(userEthCdp, freeETHAmount);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -118,7 +149,7 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
 
         assertEq(user.balance - userEthBalanceBefore, freeETHAmount);
         assertEq(address(router).balance, 0);
-        assertEq(address(agent).balance, 0);
+        assertEq(address(userAgent).balance, 0);
         assertEq(address(spenderMaker).balance, 0);
     }
 
@@ -129,7 +160,7 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicFreeGem(gemCdp, freeGemAmount);
+        logics[0] = _logicFreeGem(userGemCdp, freeGemAmount);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -141,7 +172,7 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
 
         assertEq(userEthBalanceAfter - userEthBalanceBefore, freeGemAmount);
         assertEq(IERC20(GEM).balanceOf(address(router)), 0);
-        assertEq(IERC20(GEM).balanceOf(address(agent)), 0);
+        assertEq(IERC20(GEM).balanceOf(address(userAgent)), 0);
         assertEq(IERC20(GEM).balanceOf(address(spenderMaker)), 0);
     }
 
@@ -152,7 +183,7 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicDraw(ethCdp, drawDaiAmount);
+        logics[0] = _logicDraw(userEthCdp, drawDaiAmount);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -164,8 +195,24 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
 
         assertEq(userDaiBalanceAfter - userDaiBalanceBefore, drawDaiAmount);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(userAgent)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(spenderMaker)), 0);
+    }
+
+    function testFreeETHWithoutAuthority() external {
+        // Setup
+        uint256 freeETHAmount = 1 ether;
+
+        // Encode logic
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicFreeETH(user2EthCdp, freeETHAmount);
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(NATIVE);
+        vm.expectRevert('ERROR_ROUTER_EXECUTE');
+        vm.prank(user2);
+        router.execute(logics, tokensReturn);
     }
 
     function _allowCdp(address dsProxy, uint256 cdp, address usr) internal {

@@ -116,7 +116,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         makerCommonSetUp();
     }
 
-    function testSafeLockETH() external {
+    function testLockETH() external {
         // Setup
         uint256 lockETHAmount = 10 ether;
         deal(user2, lockETHAmount);
@@ -125,7 +125,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicSafeLockETH(ethCdp, lockETHAmount);
+        logics[0] = _logicLockETH(ethCdp, lockETHAmount);
 
         // Execute
         vm.prank(user2);
@@ -140,7 +140,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         assertEq(collateralAfter - collateralBefore, lockETHAmount);
     }
 
-    function testSafeLockGem() external {
+    function testLockGem() external {
         // Setup
         uint256 lockGemAmount = 100 ether;
         deal(GEM, user2, lockGemAmount);
@@ -151,7 +151,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         IParam.Logic[] memory logics = new IParam.Logic[](3);
         logics[0] = logicSpenderPermit2ERC20PullToken(IERC20(GEM), lockGemAmount.toUint160());
         logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, GEM, lockGemAmount);
-        logics[2] = _logicSafeLockGem(gemCdp, lockGemAmount);
+        logics[2] = _logicLockGem(gemCdp, lockGemAmount);
 
         // Execute
         vm.prank(user2);
@@ -258,17 +258,16 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
             );
     }
 
-    function _logicSafeLockETH(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+    function _logicLockETH(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
             PROXY_ACTIONS,
             abi.encodeWithSelector(
-                0xee284576, // selector of "safeLockETH(address,address,uint256,address)"
+                0xe205c108, // selector of "lockETH(address,address,uint256)"
                 CDP_MANAGER,
                 ETH_JOIN_A,
-                cdp,
-                userDSProxy
+                cdp
             )
         );
 
@@ -287,19 +286,18 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
             );
     }
 
-    function _logicSafeLockGem(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+    function _logicLockGem(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
             PROXY_ACTIONS,
             abi.encodeWithSelector(
-                0xead64729, // selector of "safeLockGem(address,address,uint256,uint256,bool,address)"
+                0x3e29e565, // selector of "lockGem(address,address,uint256,uint256,bool)"
                 CDP_MANAGER,
                 GEM_JOIN_LINK_A,
                 cdp,
                 amount,
-                true,
-                userDSProxy
+                true
             )
         );
 
