@@ -133,10 +133,9 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
-        logics[1] = _logicTokenApproval(tokenIn, address(uniswapRouter02), amountIn, SKIP);
-        logics[2] = _logicUniswapV2SwapTokenToNative(tokenIn, amountIn, SKIP); // Fixed amount
+        logics[1] = _logicUniswapV2SwapTokenToNative(tokenIn, amountIn, SKIP); // Fixed amount
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -158,10 +157,9 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
-        logics[1] = _logicTokenApproval(tokenIn, address(uniswapRouter02), amountIn, SKIP);
-        logics[2] = _logicUniswapV2Swap(tokenIn, amountIn / BPS_BASE, BPS_BASE, tokenOut);
+        logics[1] = _logicUniswapV2Swap(tokenIn, amountIn / BPS_BASE, BPS_BASE, tokenOut);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -189,16 +187,12 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         deal(address(tokenIn0), user, amountIn0);
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](9);
+        IParam.Logic[] memory logics = new IParam.Logic[](5);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn0, amountIn0.toUint160());
-        logics[1] = _logicTokenApproval(tokenIn0, address(uniswapRouter02), amountIn0, SKIP);
-        logics[2] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1); // Swap 50% amountIn0 to amountIn1
-        logics[3] = _logicTokenApproval(tokenIn1, address(uniswapRouter02), 0, BPS_BASE);
-        logics[4] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1); // Add liquidity with 50% amountIn0 and all amountIn1
-        logics[5] = _logicTokenApproval(tokenOut, address(uniswapRouter02), 0, BPS_BASE);
-        logics[6] = _logicUniswapV2RemoveLiquidity(tokenOut, 0, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity
-        logics[7] = _logicTokenApproval(tokenIn1, address(uniswapRouter02), 0, BPS_BASE);
-        logics[8] = _logicUniswapV2Swap(tokenIn1, amountIn0Half, BPS_BASE, tokenIn0); // 100% balance of tokenIn
+        logics[1] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1); // Swap 50% amountIn0 to amountIn1
+        logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1); // Add liquidity with 50% amountIn0 and all amountIn1
+        logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, 0, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity
+        logics[4] = _logicUniswapV2Swap(tokenIn1, amountIn0Half, BPS_BASE, tokenIn0); // 100% balance of tokenIn
 
         // Execute
         address[] memory tokensReturn = new address[](3);
@@ -215,26 +209,6 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(agent)), 0);
         assertApproxEqRel(tokenIn0.balanceOf(user), amountIn0, 0.01 * 1e18);
-    }
-
-    function _logicTokenApproval(
-        IERC20 token,
-        address spender,
-        uint256 amount,
-        uint256 amountBps
-    ) internal pure returns (IParam.Logic memory) {
-        // Encode data
-        bytes memory data = abi.encodeCall(IERC20.approve, (spender, amount));
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0].token = address(token);
-        inputs[0].amountBps = amountBps;
-        if (amountBps == SKIP) {
-            inputs[0].amountOrOffset = amount;
-        } else {
-            inputs[0].amountOrOffset = 0x20;
-        }
-
-        return IParam.Logic(address(token), data, inputs, address(0));
     }
 
     function _logicUniswapV2SwapNativeToToken(
@@ -268,6 +242,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
                 address(uniswapRouter02), // to
                 data,
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -304,6 +279,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
                 address(uniswapRouter02), // to
                 data,
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -342,6 +318,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
                 address(uniswapRouter02), // to
                 data,
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -384,6 +361,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
                 address(uniswapRouter02), // to
                 data,
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -422,6 +400,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
                 address(uniswapRouter02), // to
                 data,
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }

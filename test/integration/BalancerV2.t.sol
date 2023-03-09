@@ -74,6 +74,7 @@ contract BalancerV2IntegrationTest is Test {
                 address(balancerV2Vault), // to
                 abi.encodeWithSelector(IBalancerV2Vault.flashLoan.selector, receiver, tokens, amounts, userData),
                 inputsEmpty,
+                address(0), // approveTo
                 address(flashLoanCallback) // callback
             );
     }
@@ -87,6 +88,7 @@ contract BalancerV2IntegrationTest is Test {
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i]),
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
 

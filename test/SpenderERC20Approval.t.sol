@@ -72,4 +72,15 @@ contract SpenderERC20ApprovalTest is Test {
         spender.pullTokens(tokens, amounts);
         vm.stopPrank();
     }
+
+    function _logicSpenderERC20Approval(IERC20 tokenIn, uint256 amountIn) public view returns (IParam.Logic memory) {
+        return
+            IParam.Logic(
+                address(spender), // to
+                abi.encodeWithSelector(spender.pullToken.selector, address(tokenIn), amountIn),
+                inputsEmpty,
+                address(0), // approveTo
+                address(0) // callback
+            );
+    }
 }

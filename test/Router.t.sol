@@ -68,6 +68,7 @@ contract RouterTest is Test {
             address(mockTo), // to
             '',
             inputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
         assertEq(router.getAgent(user), address(0));
@@ -82,6 +83,7 @@ contract RouterTest is Test {
             address(mockTo), // to
             '',
             inputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
         vm.startPrank(user);
@@ -97,6 +99,7 @@ contract RouterTest is Test {
             address(mockTo), // to
             '',
             inputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -104,6 +107,7 @@ contract RouterTest is Test {
             address(router), // to
             abi.encodeCall(IRouter.execute, (callback, tokensReturnEmpty)),
             inputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
         vm.startPrank(user);
@@ -122,6 +126,7 @@ contract RouterTest is Test {
             address(this), // to
             abi.encodeCall(this.checkExecutingAgent, (agent)),
             inputsEmpty,
+            address(0), // approveTo
             address(0) // callback
         );
         vm.prank(user);

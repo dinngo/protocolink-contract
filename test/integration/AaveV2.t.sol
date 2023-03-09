@@ -137,6 +137,7 @@ contract AaveV2IntegrationTest is Test {
                 address(spender), // to
                 abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode),
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -166,6 +167,7 @@ contract AaveV2IntegrationTest is Test {
                     referralCode
                 ),
                 inputsEmpty,
+                address(0), // approveTo
                 address(flashLoanCallback) // callback
             );
     }
@@ -183,6 +185,7 @@ contract AaveV2IntegrationTest is Test {
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
 

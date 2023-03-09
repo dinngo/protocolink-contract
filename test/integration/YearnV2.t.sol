@@ -50,10 +50,9 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, uint160(amountIn));
-        logics[1] = _logicTokenApproval(tokenIn, address(yVault), amountIn, SKIP);
-        logics[2] = _logicYearn(tokenIn, amountIn, BPS_BASE);
+        logics[1] = _logicYearn(tokenIn, amountIn, BPS_BASE);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -67,26 +66,6 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         assertEq(yVault.balanceOf(address(router)), 0);
         assertEq(yVault.balanceOf(address(agent)), 0);
         assertGt(yVault.balanceOf(user), 0);
-    }
-
-    function _logicTokenApproval(
-        IERC20 token,
-        address spender,
-        uint256 amount,
-        uint256 amountBps
-    ) internal pure returns (IParam.Logic memory) {
-        // Encode data
-        bytes memory data = abi.encodeCall(IERC20.approve, (spender, amount));
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0].token = address(token);
-        inputs[0].amountBps = amountBps;
-        if (amountBps == SKIP) {
-            inputs[0].amountOrOffset = amount;
-        } else {
-            inputs[0].amountOrOffset = 0x20;
-        }
-
-        return IParam.Logic(address(token), data, inputs, address(0));
     }
 
     function _logicYearn(
@@ -106,6 +85,7 @@ contract YearnV2Test is Test, SpenderPermitUtils {
                 address(yVault), // to
                 abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
