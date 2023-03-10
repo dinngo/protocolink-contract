@@ -22,10 +22,14 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
     // SpenderMakerVaultAuthority's DSProxy
     IDSProxy public immutable dsProxy;
 
-    /// @notice Check if dsProxy has permission to modify cdp
+    /// @notice Check if user has permission to modify cdp
     modifier cdpAllowed(uint256 cdp) {
+        address user = IRouter(router).user();
         address cdpOwner = IMakerManager(cdpManager).owns(cdp);
-        if (IMakerManager(cdpManager).cdpCan(cdpOwner, cdp, address(dsProxy)) != 1) {
+        if (
+            IDSProxyRegistry(proxyRegistry).proxies(user) != cdpOwner &&
+            IMakerManager(cdpManager).cdpCan(cdpOwner, cdp, user) != 1
+        ) {
             revert UnauthorizedSender(cdp);
         }
         _;

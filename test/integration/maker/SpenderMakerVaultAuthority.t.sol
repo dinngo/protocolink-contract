@@ -22,10 +22,8 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
     IAgent public userAgent;
     IAgent public user2Agent;
     address public userDSProxy;
-    address public user2DSProxy;
     uint256 public userEthCdp;
     uint256 public userGemCdp;
-    uint256 public user2EthCdp;
 
     // Empty arrays
     address[] tokensReturnEmpty;
@@ -96,29 +94,9 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
 
         vm.stopPrank();
 
-        // Setup user2 who doesn't give authority
-        vm.startPrank(user2);
-        user2DSProxy = IDSProxyRegistry(PROXY_REGISTRY).build();
+        // Setup user2
+        vm.prank(user2);
         user2Agent = IAgent(router.newAgent());
-
-        // Open user2 ETH Vault
-        deal(user2, ethAmount);
-        ret = IDSProxy(user2DSProxy).execute{value: ethAmount}(
-            PROXY_ACTIONS,
-            abi.encodeWithSelector(
-                0xe685cc04, // selector of "openLockETHAndDraw(address,address,address,address,bytes32,uint256)"
-                CDP_MANAGER,
-                JUG,
-                ETH_JOIN_A,
-                DAI_JOIN,
-                bytes32(bytes(ETH_JOIN_NAME)),
-                DRAW_DAI_AMOUNT
-            )
-        );
-        user2EthCdp = uint256(ret);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(user2), DRAW_DAI_AMOUNT);
-
-        vm.stopPrank();
 
         // Label
         vm.label(address(router), 'Router');
@@ -127,7 +105,6 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
         vm.label(address(spenderMaker), 'SpenderMaker');
         vm.label(address(spenderMakerDSProxy), 'SpenderMakerDSProxy');
         vm.label(address(userDSProxy), 'UserDSProxy');
-        vm.label(address(user2DSProxy), 'User2DSProxy');
 
         makerCommonSetUp();
     }
@@ -199,18 +176,43 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(spenderMaker)), 0);
     }
 
+    function testFreeETHWithAuthority() external {
+        // Setup
+        uint256 freeETHAmount = 1 ether;
+        uint256 user2EthBalanceBefore = user2.balance;
+
+        // User approve to user2
+        vm.prank(user);
+        _allowCdp(userDSProxy, userEthCdp, user2);
+
+        // Encode logic
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicFreeETH(userEthCdp, freeETHAmount);
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(NATIVE);
+        vm.prank(user2);
+        router.execute(logics, tokensReturn);
+
+        assertEq(user2.balance - user2EthBalanceBefore, freeETHAmount);
+        assertEq(address(router).balance, 0);
+        assertEq(address(user2Agent).balance, 0);
+        assertEq(address(spenderMaker).balance, 0);
+    }
+
     function testFreeETHWithoutAuthority() external {
         // Setup
         uint256 freeETHAmount = 1 ether;
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicFreeETH(user2EthCdp, freeETHAmount);
+        logics[0] = _logicFreeETH(userEthCdp, freeETHAmount);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(NATIVE);
-        vm.expectRevert(abi.encodeWithSelector(ISpenderMakerVaultAuthority.UnauthorizedSender.selector, user2EthCdp));
+        vm.expectRevert(abi.encodeWithSelector(ISpenderMakerVaultAuthority.UnauthorizedSender.selector, userEthCdp));
         vm.prank(user2);
         router.execute(logics, tokensReturn);
     }
