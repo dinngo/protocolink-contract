@@ -83,7 +83,7 @@ contract UtilityMaker is IUtilityMaker {
 
         // Get collateral token
         address token = IMakerGemJoin(gemJoin).gem();
-        ApproveHelper._approve(token, address(dsProxy), wadC);
+        ApproveHelper._approveMax(token, address(dsProxy), wadC);
 
         bytes32 ret = dsProxy.execute(
             proxyActions,

@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 interface ISpenderMakerVaultAuthority {
     error InvalidAgent();
-    error ActionFail(bytes4 sig, string reason);
     error UnauthorizedSender(uint256 cdp);
 
     function freeETH(address ethJoin, uint256 cdp, uint256 wad) external;

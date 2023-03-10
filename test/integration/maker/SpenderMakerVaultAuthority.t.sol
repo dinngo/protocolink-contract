@@ -210,7 +210,7 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
         // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(NATIVE);
-        vm.expectRevert('ERROR_ROUTER_EXECUTE');
+        vm.expectRevert(abi.encodeWithSelector(ISpenderMakerVaultAuthority.UnauthorizedSender.selector, user2EthCdp));
         vm.prank(user2);
         router.execute(logics, tokensReturn);
     }

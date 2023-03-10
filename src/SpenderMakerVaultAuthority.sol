@@ -7,7 +7,7 @@ import {IDSProxy, IDSProxyRegistry} from './interfaces/maker/IDSProxy.sol';
 import {IMakerManager, IMakerGemJoin} from './interfaces/maker/IMaker.sol';
 import {ISpenderMakerVaultAuthority} from './interfaces/ISpenderMakerVaultAuthority.sol';
 
-///@title Spender for Maker which user can interact with Maker
+/// @title Spender for Maker which user can interact with Maker
 contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
     using SafeERC20 for IERC20;
     using Address for address payable;
@@ -22,17 +22,12 @@ contract SpenderMakerVaultAuthority is ISpenderMakerVaultAuthority {
     // SpenderMakerVaultAuthority's DSProxy
     IDSProxy public immutable dsProxy;
 
-    ///@notice Check if user has permission to modify cdp
+    /// @notice Check if dsProxy has permission to modify cdp
     modifier cdpAllowed(uint256 cdp) {
-        address user = IRouter(router).user();
         address cdpOwner = IMakerManager(cdpManager).owns(cdp);
-        if (
-            IDSProxyRegistry(proxyRegistry).proxies(user) != cdpOwner &&
-            IMakerManager(cdpManager).cdpCan(cdpOwner, cdp, user) != 1
-        ) {
+        if (IMakerManager(cdpManager).cdpCan(cdpOwner, cdp, address(dsProxy)) != 1) {
             revert UnauthorizedSender(cdp);
         }
-
         _;
     }
 
