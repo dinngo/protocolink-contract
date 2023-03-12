@@ -10,4 +10,8 @@ contract MockERC721 is ERC721 {
     function mint(address to, uint256 tokenId) external {
         _safeMint(to, tokenId);
     }
+
+    function isMinted(uint256 tokenId) external view returns (bool) {
+        return _exists(tokenId);
+    }
 }
