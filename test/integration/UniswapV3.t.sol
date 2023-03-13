@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
@@ -85,20 +84,7 @@ interface INonfungiblePositionManager {
         payable
         returns (uint256 amount0, uint256 amount1);
 
-    struct CollectParams {
-        uint256 tokenId;
-        address recipient;
-        uint128 amount0Max;
-        uint128 amount1Max;
-    }
-
     function ownerOf(uint256 tokenId) external view returns (address owner);
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) external;
 }
 
 contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
@@ -308,8 +294,6 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
         (uint256 tokenId, uint128 liquidity, , ) = nonfungiblePositionManager.mint(mintParams);
         vm.stopPrank();
 
-
-
         uint128 decreasedLiquidity = liquidity / 2;
         INonfungiblePositionManager.DecreaseLiquidityParams memory decreaseParams = INonfungiblePositionManager
             .DecreaseLiquidityParams({
@@ -330,12 +314,21 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
         tokensReturn[0] = address(tokenIn0);
         tokensReturn[1] = address(tokenIn1);
 
+        // Get Estimate result
+        (, bytes memory returnData) = _callStatic(
+            user,
+            address(nonfungiblePositionManager),
+            abi.encodeWithSelector(nonfungiblePositionManager.decreaseLiquidity.selector, decreaseParams)
+        );
+        (uint256 estimatedAmount0, uint256 estimatedAmount1) = abi.decode(returnData, (uint256, uint256));
+
         // Execute
         vm.prank(user);
         router.execute(logics, tokensReturn);
 
         // Verify
-        (, , , , , , , uint128 newLiquidity, , , , ) = nonfungiblePositionManager.positions(tokenId);
+        (, , , , , , , uint128 newLiquidity, , , uint256 tokensOwed0, uint256 tokensOwed1) = nonfungiblePositionManager
+            .positions(tokenId);
         assertEq(tokenIn0.balanceOf(address(router)), 0);
         assertEq(tokenIn0.balanceOf(address(agent)), 0);
         assertEq(tokenIn1.balanceOf(address(router)), 0);
@@ -343,6 +336,8 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
         assertEq(tokenIn1.balanceOf(address(agent)), 0);
         assertEq(newLiquidity, liquidity - decreasedLiquidity);
         assertEq(nonfungiblePositionManager.ownerOf(tokenId), address(agent));
+        assertEq(tokensOwed0, estimatedAmount0);
+        assertEq(tokensOwed1, estimatedAmount1);
     }
 
     function _logicTokenApproval(

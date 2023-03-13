@@ -13,7 +13,8 @@ contract SpenderERC721ApprovalTest is Test {
     address public router;
     address public agent;
     ISpenderERC721Approval public spender;
-    MockERC721 public mockERC721;
+    MockERC721 public mockERC721A;
+    MockERC721 public mockERC721B;
     IParam.Input[] inputsEmpty;
 
     function setUp() external {
@@ -25,11 +26,13 @@ contract SpenderERC721ApprovalTest is Test {
         vm.etch(agent, 'code');
 
         spender = new SpenderERC721Approval(router);
-        mockERC721 = new MockERC721('Mock ERC721', 'mERC721');
+        mockERC721A = new MockERC721('Mock ERC721A', 'mERC721A');
+        mockERC721B = new MockERC721('Mock ERC721B', 'mERC721B');
 
         // User approved spender
         vm.startPrank(user);
-        mockERC721.setApprovalForAll(address(spender), true);
+        mockERC721A.setApprovalForAll(address(spender), true);
+        mockERC721B.setApprovalForAll(address(spender), true);
         vm.stopPrank();
 
         // Return activated agent from router
@@ -43,11 +46,12 @@ contract SpenderERC721ApprovalTest is Test {
             abi.encode(bytes4(abi.encodeWithSignature('onERC721Received(address,address,uint256,bytes)'))) // onERC721Received.selector
         );
         vm.label(address(spender), 'SpenderERC721Approval');
-        vm.label(address(mockERC721), 'mERC721');
+        vm.label(address(mockERC721A), 'mERC721A');
+        vm.label(address(mockERC721B), 'mERC721B');
     }
 
     function testPullToken(uint256 tokenId) external {
-        MockERC721 nft = mockERC721;
+        MockERC721 nft = mockERC721A;
         tokenId = bound(tokenId, 0, 1e12);
         nft.mint(user, tokenId);
 
@@ -60,36 +64,51 @@ contract SpenderERC721ApprovalTest is Test {
     }
 
     function testPullTokens(uint256 tokenId) external {
-        MockERC721 nft = mockERC721;
+        MockERC721 nftA = mockERC721A;
+        MockERC721 nftB = mockERC721B;
         tokenId = bound(tokenId, 0, 1e12);
-        nft.mint(user, tokenId);
+        nftA.mint(user, tokenId);
+        nftB.mint(user, tokenId);
 
-        address[] memory tokens = new address[](1);
-        uint256[] memory tokenIds = new uint256[](1);
-        tokens[0] = address(mockERC721);
+        address[] memory tokens = new address[](2);
+        uint256[] memory tokenIds = new uint256[](2);
+        tokens[0] = address(mockERC721A);
         tokenIds[0] = tokenId;
+        tokens[1] = address(mockERC721B);
+        tokenIds[1] = tokenId;
 
         vm.prank(agent);
-        spender.pullToken(address(nft), tokenId);
+        spender.pullTokens(tokens, tokenIds);
 
-        assertEq(nft.balanceOf(address(spender)), 0);
-        assertEq(nft.balanceOf(address(router)), 0);
-        assertEq(nft.ownerOf(tokenId), address(agent));
+        assertEq(nftA.balanceOf(address(spender)), 0);
+        assertEq(nftA.balanceOf(address(router)), 0);
+        assertEq(nftA.ownerOf(tokenId), address(agent));
+
+        assertEq(nftB.balanceOf(address(spender)), 0);
+        assertEq(nftB.balanceOf(address(router)), 0);
+        assertEq(nftB.ownerOf(tokenId), address(agent));
     }
 
     // Cannot call spender directly
-    function testCannotBeCalledByNonAgent(uint256 tokenId) external {
-        MockERC721 nft = mockERC721;
+    function testCannotPullTokenByNonAgent(uint256 tokenId) external {
+        MockERC721 nft = mockERC721A;
         nft.mint(user, tokenId);
 
         vm.startPrank(user);
         vm.expectRevert(ISpenderERC721Approval.InvalidAgent.selector);
-        spender.pullToken(address(mockERC721), tokenId);
+        spender.pullToken(address(mockERC721A), tokenId);
+        vm.stopPrank();
+    }
 
+    function testCannotPullTokensByNonAgent(uint256 tokenId) external {
+        MockERC721 nft = mockERC721A;
+        nft.mint(user, tokenId);
+
+        vm.startPrank(user);
         vm.expectRevert(ISpenderERC721Approval.InvalidAgent.selector);
         address[] memory tokens = new address[](1);
         uint256[] memory tokenIds = new uint256[](1);
-        tokens[0] = address(mockERC721);
+        tokens[0] = address(mockERC721A);
         tokenIds[0] = tokenId;
         spender.pullTokens(tokens, tokenIds);
         vm.stopPrank();
