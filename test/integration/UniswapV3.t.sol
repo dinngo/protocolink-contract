@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import 'forge-std/console.sol';
+
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
@@ -201,8 +201,6 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
         assertEq(tokenIn1.balanceOf(address(router)), 0);
         assertEq(tokenIn1.balanceOf(address(agent)), 0);
         assertEq(nonfungiblePositionManager.ownerOf(tokenId), address(agent));
-
-        require(false);
     }
 
     // Increase Liquidity
@@ -310,7 +308,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
         (uint256 tokenId, uint128 liquidity, , ) = nonfungiblePositionManager.mint(mintParams);
         vm.stopPrank();
 
-        console.log('owner', nonfungiblePositionManager.ownerOf(tokenId));
+
 
         uint128 decreasedLiquidity = liquidity / 2;
         INonfungiblePositionManager.DecreaseLiquidityParams memory decreaseParams = INonfungiblePositionManager
