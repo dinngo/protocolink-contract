@@ -229,6 +229,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
             PROXY_REGISTRY,
             abi.encodeWithSelector(IDSProxyRegistry.build.selector),
             inputsEmpty,
+            address(0),
             address(0) // callback
         );
 
@@ -254,6 +255,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 token,
                 abi.encodeWithSelector(IERC20.approve.selector, dsProxy, amount),
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -282,6 +284,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 user2AgentDSProxy,
                 data,
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -306,6 +309,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 user2AgentDSProxy,
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -329,6 +333,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 user2AgentDSProxy,
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -351,6 +356,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 user2AgentDSProxy,
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }

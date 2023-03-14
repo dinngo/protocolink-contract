@@ -174,6 +174,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 address(utilityMaker),
                 data,
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -187,6 +188,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 token,
                 abi.encodeWithSelector(IERC20.transfer.selector, utilityMaker, amount),
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -206,6 +208,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 address(utilityMaker),
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
