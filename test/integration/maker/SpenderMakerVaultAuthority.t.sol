@@ -244,6 +244,7 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
                 address(spenderMaker),
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -262,6 +263,7 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
                 address(spenderMaker),
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -275,6 +277,7 @@ contract SpenderMakerVaultAuthorityTest is Test, MakerCommonUtils {
                 address(spenderMaker),
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }

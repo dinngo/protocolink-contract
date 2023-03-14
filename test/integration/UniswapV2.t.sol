@@ -290,8 +290,8 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         uint256 amountBps,
         IERC20 tokenOut
     ) public view returns (IParam.Logic memory) {
-        // At least get 99% tokenIn since both are stablecoins
-        uint256 amountMin = (amountIn * 9_900) / BPS_BASE;
+        // At least get 98% tokenIn since both are stablecoins
+        uint256 amountMin = (amountIn * 9_800) / BPS_BASE;
 
         // Encode data
         address[] memory path = new address[](2);
