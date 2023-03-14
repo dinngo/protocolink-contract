@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+interface IUtilityMaker {
+    error InvalidAgent();
+
+    function openLockETHAndDraw(
+        uint256 value,
+        address ethJoin,
+        address daiJoin,
+        bytes32 ilk,
+        uint256 wadD
+    ) external payable returns (uint256 cdp);
+
+    function openLockGemAndDraw(
+        address gemJoin,
+        address daiJoin,
+        bytes32 ilk,
+        uint256 wadC,
+        uint256 wadD
+    ) external returns (uint256 cdp);
+}
