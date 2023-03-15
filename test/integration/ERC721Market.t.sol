@@ -63,8 +63,7 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
         IParam.Logic[] memory logics = new IParam.Logic[](3);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
         logics[1] = _logicTokenApproval(tokenIn, address(market), amountIn, SKIP);
-        logics[2] = _logicERC721MarketTokenToNFT(tokenIn, amountIn, tokenId);
-        // TODO: Return nft to user
+        logics[2] = _logicERC721MarketTokenToNFT(tokenIn, amountIn, tokenId, user);
 
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenIn);
@@ -76,7 +75,7 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenIn.balanceOf(address(agent)), 0);
-        assertEq(nft.ownerOf(tokenId), address(agent));
+        assertEq(nft.ownerOf(tokenId), user);
     }
 
     function testExecuteERC721MarketNFtToToken(uint256 tokenId) external {
@@ -88,7 +87,7 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
 
         vm.startPrank(user);
         tokenIn.approve(address(market), amountIn);
-        market.tokenToNft(tokenId);
+        market.tokenToNft(tokenId, user);
         vm.stopPrank();
 
         // Encode logics
@@ -96,7 +95,6 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
         logics[0] = logicSpenderERC721PullToken(address(nft), tokenId);
         logics[1] = _logicERC721Approval(nft, address(market));
         logics[2] = _logicERC721MarketNFTToToken(tokenId);
-        // TODO: Return nft to user
 
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenIn);
@@ -109,7 +107,7 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenIn.balanceOf(address(agent)), 0);
-        assertEq(tokenIn.balanceOf(address(user)), tokenBefore + amountIn);
+        assertEq(tokenIn.balanceOf(user), tokenBefore + amountIn);
         assertEq(nft.ownerOf(tokenId), address(market));
     }
 
@@ -147,10 +145,11 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
     function _logicERC721MarketTokenToNFT(
         IERC20 tokenIn,
         uint256 amountIn,
-        uint256 tokenId
+        uint256 tokenId,
+        address recipient
     ) public view returns (IParam.Logic memory) {
         // Encode data
-        bytes memory data = abi.encodeWithSelector(market.tokenToNft.selector, tokenId);
+        bytes memory data = abi.encodeWithSelector(market.tokenToNft.selector, tokenId, recipient);
 
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);

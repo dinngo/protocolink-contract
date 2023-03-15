@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {ERC1155Holder} from 'openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Holder.sol';
 import {MockERC1155} from './MockERC1155.sol';
 
 pragma solidity ^0.8.0;
 
 contract MockERC1155Market is ERC1155Holder {
-    using SafeERC20 for IERC20;
-
     uint256 public constant amount = 1000000;
 
     MockERC1155 public nft;
@@ -24,13 +22,13 @@ contract MockERC1155Market is ERC1155Holder {
         token.transfer(msg.sender, nftAmount * amount);
     }
 
-    function tokenToNft(uint256 tokenId, uint256 nftAmount) external {
+    function tokenToNft(uint256 tokenId, uint256 nftAmount, address recipient) external {
         token.transferFrom(msg.sender, address(this), nftAmount * amount);
         uint256 marketBalanceOf = nft.balanceOf(address(this), tokenId);
         if (marketBalanceOf < nftAmount) {
             nft.mint(address(this), tokenId, nftAmount - marketBalanceOf);
         }
-        nft.safeTransferFrom(address(this), msg.sender, tokenId, nftAmount, '');
+        nft.safeTransferFrom(address(this), recipient, tokenId, nftAmount, '');
     }
 
     function nftBatchToToken(uint256[] calldata tokenIds, uint256[] calldata nftAmounts) external {
@@ -43,7 +41,7 @@ contract MockERC1155Market is ERC1155Holder {
         token.transfer(msg.sender, totalNftAmount * amount);
     }
 
-    function tokenToNftBatch(uint256[] calldata tokenIds, uint256[] calldata nftAmounts) external {
+    function tokenToNftBatch(uint256[] calldata tokenIds, uint256[] calldata nftAmounts, address recipient) external {
         uint256 totalNftAmount;
         for (uint256 i; i < nftAmounts.length; i++) {
             totalNftAmount += nftAmounts[i];
@@ -54,6 +52,6 @@ contract MockERC1155Market is ERC1155Holder {
             }
         }
         token.transferFrom(msg.sender, address(this), totalNftAmount * amount);
-        nft.safeBatchTransferFrom(address(this), msg.sender, tokenIds, nftAmounts, '');
+        nft.safeBatchTransferFrom(address(this), recipient, tokenIds, nftAmounts, '');
     }
 }
