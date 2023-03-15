@@ -14,7 +14,7 @@ library LogicHash {
 
     bytes32 internal constant _LOGIC_BATCH_TYPEHASH =
         keccak256(
-            'LogicBatch(Logic[] logics,uint256 deadline)Logic(address to,bytes data,Input[] inputs,address approveTo,address callback)Input(address token,uint256 amountBps,uint256 amountOrOffset)'
+            'LogicBatch(Logic[] logics,uint256 deadline)Input(address token,uint256 amountBps,uint256 amountOrOffset)Logic(address to,bytes data,Input[] inputs,address approveTo,address callback)'
         );
 
     function _hash(IParam.Input calldata input) internal pure returns (bytes32) {

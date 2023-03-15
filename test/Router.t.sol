@@ -194,7 +194,7 @@ contract RouterTest is Test, LogicSignature {
         );
         uint256 deadline = block.timestamp;
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, deadline);
-        bytes memory sigature = getLogicBatchSignature(logicBatch, signerPrivateKey, router.domainSeparator());
+        bytes memory sigature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.prank(user);
         router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty);
@@ -203,7 +203,7 @@ contract RouterTest is Test, LogicSignature {
     function testCannotExecuteSignatureExpired() external {
         uint256 deadline = block.timestamp - 1; // Expired
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, deadline);
-        bytes memory sigature = getLogicBatchSignature(logicBatch, signerPrivateKey, router.domainSeparator());
+        bytes memory sigature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.SignatureExpired.selector, deadline));
         vm.prank(user);
@@ -214,7 +214,7 @@ contract RouterTest is Test, LogicSignature {
         // Don't add signer
         uint256 deadline = block.timestamp;
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, deadline);
-        bytes memory sigature = getLogicBatchSignature(logicBatch, signerPrivateKey, router.domainSeparator());
+        bytes memory sigature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.InvalidSigner.selector, signer));
         vm.prank(user);
@@ -227,7 +227,7 @@ contract RouterTest is Test, LogicSignature {
         // Sign correct deadline and logicBatch
         uint256 deadline = block.timestamp;
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, deadline);
-        bytes memory sigature = getLogicBatchSignature(logicBatch, signerPrivateKey, router.domainSeparator());
+        bytes memory sigature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         // Tamper deadline
         logicBatch = IParam.LogicBatch(logicsEmpty, deadline + 1);
