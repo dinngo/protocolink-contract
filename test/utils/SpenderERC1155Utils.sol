@@ -36,6 +36,7 @@ contract SpenderERC1155Utils is Test {
                 address(erc1155Spender), // to
                 abi.encodeWithSelector(erc1155Spender.pullToken.selector, token, tokenIds, amounts),
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }

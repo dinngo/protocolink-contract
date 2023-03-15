@@ -61,10 +61,9 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
-        logics[1] = _logicTokenApproval(tokenIn, address(market), amountIn, SKIP);
-        logics[2] = _logicERC1155MarketTokenToNFT(tokenIn, amountIn, tokenId, amount, user);
+        logics[1] = _logicERC1155MarketTokenToNFT(tokenIn, amountIn, tokenId, amount, user);
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenIn);
 
@@ -120,10 +119,9 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
         deal(address(tokenIn), user, amountIn);
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
-        logics[1] = _logicTokenApproval(tokenIn, address(market), amountIn, SKIP);
-        logics[2] = _logicERC1155MarketTokenToNFTBatch(tokenIn, amountIn, tokenId, amount, user);
+        logics[1] = _logicERC1155MarketTokenToNFTBatch(tokenIn, amountIn, tokenId, amount, user);
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenIn);
 
@@ -170,26 +168,6 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
         assertEq(nft.balanceOf(address(market), tokenId), amount);
     }
 
-    function _logicTokenApproval(
-        IERC20 token,
-        address spender,
-        uint256 amount,
-        uint256 amountBps
-    ) internal pure returns (IParam.Logic memory) {
-        // Encode data
-        bytes memory data = abi.encodeCall(IERC20.approve, (spender, amount));
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0].token = address(token);
-        inputs[0].amountBps = amountBps;
-        if (amountBps == SKIP) {
-            inputs[0].amountOrOffset = amount;
-        } else {
-            inputs[0].amountOrOffset = 0x20;
-        }
-
-        return IParam.Logic(address(token), data, inputs, address(0));
-    }
-
     function _logicERC1155Approval(IERC1155 token, address spender) internal view returns (IParam.Logic memory) {
         bytes memory data = abi.encodeWithSelector(IERC1155.setApprovalForAll.selector, spender, true);
         return
@@ -197,6 +175,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
                 address(token), // to
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -222,6 +201,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
                 address(market), // to
                 data,
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -251,6 +231,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
                 address(market), // to
                 data,
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -264,6 +245,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
                 address(market), // to
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -283,6 +265,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
                 address(market), // to
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }

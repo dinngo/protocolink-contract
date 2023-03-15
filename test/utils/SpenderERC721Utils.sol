@@ -27,6 +27,7 @@ contract SpenderERC721Utils is Test {
                 address(erc721Spender), // to
                 abi.encodeWithSelector(erc721Spender.pullToken.selector, token, tokenId),
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }

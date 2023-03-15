@@ -177,12 +177,10 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
         (tokenId, , , ) = abi.decode(returnData, (uint256, uint128, uint256, uint256));
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](5);
+        IParam.Logic[] memory logics = new IParam.Logic[](3);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn0, amountIn0.toUint160());
         logics[1] = logicSpenderPermit2ERC20PullToken(tokenIn1, amountIn1.toUint160());
-        logics[2] = _logicTokenApproval(tokenIn0, address(NON_FUNGIBLE_POSITION_MANAGER), amountIn0, SKIP);
-        logics[3] = _logicTokenApproval(tokenIn1, address(NON_FUNGIBLE_POSITION_MANAGER), amountIn1, SKIP);
-        logics[4] = _logicUniswapV3MintLiquidityNFT(tokenIn0, tokenIn1, amountIn0, amountIn1, mintParams);
+        logics[2] = _logicUniswapV3MintLiquidityNFT(tokenIn0, tokenIn1, amountIn0, amountIn1, mintParams);
 
         address[] memory tokensReturn = new address[](2);
         tokensReturn[0] = address(tokenIn0);
@@ -250,12 +248,10 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
         (uint128 increasedLiquidity, , ) = abi.decode(returnData, (uint128, uint256, uint256));
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](5);
+        IParam.Logic[] memory logics = new IParam.Logic[](3);
         logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn0, amountIn0.toUint160());
         logics[1] = logicSpenderPermit2ERC20PullToken(tokenIn1, amountIn1.toUint160());
-        logics[2] = _logicTokenApproval(tokenIn0, address(NON_FUNGIBLE_POSITION_MANAGER), amountIn0, SKIP);
-        logics[3] = _logicTokenApproval(tokenIn1, address(NON_FUNGIBLE_POSITION_MANAGER), amountIn1, SKIP);
-        logics[4] = _logicUniswapV3IncreaseLiquidity(tokenIn0, tokenIn1, amountIn0, amountIn1, increaseParams);
+        logics[2] = _logicUniswapV3IncreaseLiquidity(tokenIn0, tokenIn1, amountIn0, amountIn1, increaseParams);
 
         address[] memory tokensReturn = new address[](2);
         tokensReturn[0] = address(tokenIn0);
@@ -396,26 +392,6 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
         assertEq(tokenIn1.balanceOf(user) - userToken1Before, collectAmount1);
     }
 
-    function _logicTokenApproval(
-        IERC20 token,
-        address spender,
-        uint256 amount,
-        uint256 amountBps
-    ) internal pure returns (IParam.Logic memory) {
-        // Encode data
-        bytes memory data = abi.encodeCall(IERC20.approve, (spender, amount));
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0].token = address(token);
-        inputs[0].amountBps = amountBps;
-        if (amountBps == SKIP) {
-            inputs[0].amountOrOffset = amount;
-        } else {
-            inputs[0].amountOrOffset = 0x20;
-        }
-
-        return IParam.Logic(address(token), data, inputs, address(0));
-    }
-
     function _logicUniswapV3MintLiquidityNFT(
         IERC20 token0,
         IERC20 token1,
@@ -440,6 +416,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -468,6 +445,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputs,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -482,6 +460,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
@@ -496,6 +475,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputsEmpty,
+                address(0), // approveTo
                 address(0) // callback
             );
     }
