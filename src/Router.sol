@@ -9,6 +9,7 @@ import {Agent} from './Agent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
+import {IFeeDecodeContract} from './interfaces/IFeeDecodeContract.sol';
 
 /// @title Router executes arbitrary logics
 contract Router is IRouter, EIP712, Ownable {
@@ -17,11 +18,16 @@ contract Router is IRouter, EIP712, Ownable {
 
     address private constant _INIT_USER = address(1);
     uint256 private constant _INVALID_REFERRAL = 0;
+    address public constant ANY_ADDRESS = address(0xff);
+    uint256 public constant BPS_BASE = 10_000;
+    uint256 public constant FEE_RATE = 20;
 
     address public immutable agentImplementation;
 
     mapping(address owner => IAgent agent) public agents;
     mapping(address signer => uint256 referral) public signerReferrals;
+    mapping(bytes4 selector => mapping(address to => address feeDecodeContract)) public feeDecoder;
+    mapping(bytes4 selector => bool) public feeChargeSelector;
     address public user;
 
     modifier checkCaller() {
@@ -33,8 +39,8 @@ contract Router is IRouter, EIP712, Ownable {
         _;
         user = _INIT_USER;
     }
-
-    constructor() EIP712('Composable Router', '1') {
+    
+    constructor() EIP712('Composable Router', '1'){
         user = _INIT_USER;
         agentImplementation = address(new AgentImplementation());
     }
@@ -129,4 +135,74 @@ contract Router is IRouter, EIP712, Ownable {
             return payable(address(agent));
         }
     }
+
+    function setFeeDecoder(bytes4[] calldata selector, address[] calldata tos, address[] calldata feeDecodeContracts) public onlyOwner{
+        uint256 length = selector.length;
+        require(length == tos.length);
+        require(length == feeDecodeContracts.length);
+
+        for(uint256 i = 0; i < length; ){
+            feeDecoder[selector[i]][tos[i]] = feeDecodeContracts[i];
+            feeChargeSelector[selector[i]] = true;
+            unchecked{
+                ++i;
+            }
+        }
+    }
+    // Verify fees by decreasing memory fees which should be 0 in the end
+    function verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees) internal view {
+        uint256 feesLength = fees.length;
+        uint256 logicsLength = logics.length;
+        for (uint256 i = 0; i < logicsLength; ) {
+            bytes calldata data = logics[i].data;
+            // TODO: charge native
+
+            // Check if selector need charge
+            bytes4 selector = bytes4(data[:4]);
+            if(feeChargeSelector[selector] == false){
+                unchecked{
+                    ++i;
+                }
+                continue;
+            }
+
+            // Check if `to` need charge    
+            mapping(address to => address feeDecodeContract) storage feeDecodeContracts = feeDecoder[selector];
+            address to = logics[i].to;
+            address decodeContract = feeDecodeContracts[to];
+            decodeContract = decodeContract != address(0)? decodeContract : feeDecodeContracts[ANY_ADDRESS]; 
+            if(decodeContract == address(0)){
+                unchecked{
+                    ++i;
+                }
+                continue;
+            }
+
+            // Deduct fee
+            (address asset, uint256 amount) = IFeeDecodeContract(decodeContract).decodeData(data);
+            for (uint256 j = 0; j < feesLength; ) {
+                if (fees[j].token == asset) {
+                    fees[j].feeAmount -= (amount * FEE_RATE) / BPS_BASE;
+                    break;
+                }
+                
+                unchecked{
+                    ++j;
+                }
+            }
+
+            unchecked{
+                ++i;
+            }
+        }
+
+        // Verify all fee amounts are 0 to ensure the fees are valid
+        for (uint256 i = 0; i < feesLength; ) {
+            require(fees[i].feeAmount == 0, 'fee is not enough');
+            unchecked{
+                ++i;
+            }
+        }
+    }
+    
 }

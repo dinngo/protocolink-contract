@@ -45,8 +45,17 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _caller = router;
     }
 
-    /// @notice Execute logics and return tokens to user
+    // For tests file compile succ
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable checkCaller {
+        IAgent(address(this)).executeWithFee(logics, new IParam.Fee[](1), tokensReturn);
+    }
+
+    /// @notice Execute logics and return tokens to user
+    function executeWithFee(
+        IParam.Logic[] calldata logics,
+        IParam.Fee[] calldata fees,
+        address[] calldata tokensReturn
+    ) external payable checkCaller {
         // Execute each logic
         uint256 logicsLength = logics.length;
         for (uint256 i = 0; i < logicsLength; ) {
@@ -116,6 +125,18 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             unchecked {
                 ++i;
             }
+        }
+
+        // Charge fees
+        uint256 feesLength = fees.length;
+        for (uint256 i = 0; i < feesLength; ) {
+            IERC20(fees[i].token).safeTransfer(address(router), fees[i].feeAmount); // assume router is fee collector
+
+            unchecked {
+                ++i;
+            }
+
+            // emit ChargeFee event
         }
 
         // Push tokensReturn if any balance

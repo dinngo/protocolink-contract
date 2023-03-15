@@ -49,6 +49,13 @@ interface IRouter {
 
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 
+    // For tests file compile succ
+    function executeWithFee(
+        IParam.Logic[] calldata logics,
+        IParam.Fee[] calldata fees,
+        address[] calldata tokensReturn
+    ) external payable;
+
     function newAgent() external returns (address payable);
 
     function newAgent(address user) external returns (address payable);
