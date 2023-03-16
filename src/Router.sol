@@ -18,10 +18,10 @@ contract Router is IRouter, EIP712, Ownable {
 
     address private constant _INIT_USER = address(1);
     uint256 private constant _INVALID_REFERRAL = 0;
+    uint256 private constant _FEE_RATE = 20;
     address public constant ANY_ADDRESS = address(0xff);
     uint256 public constant BPS_BASE = 10_000;
-    uint256 public constant FEE_RATE = 20;
-
+    
     address public immutable agentImplementation;
 
     mapping(address owner => IAgent agent) public agents;
@@ -92,6 +92,51 @@ contract Router is IRouter, EIP712, Ownable {
 
         emit SignerRemoved(signer);
     }
+    
+    // @notice Get fees by logics
+    function getFees(IParam.Logic[] calldata logics) external view returns (IParam.Fee[] memory ){
+        // Temporary fees array, assume fee length won't exceed 128
+        IParam.Fee[] memory feesTemp = new IParam.Fee[](128);
+        // Real fee length
+        uint256 feeLenthCounts;
+        bool isFeeTokenFind;
+        uint256 length = logics.length;
+        for(uint256 i = 0; i < length; i++){
+            bytes calldata data = logics[i].data;
+            // TODO: how to charge native
+
+            (bool isCharged, address asset, uint256 amount) = _isChargingFee(data, logics[i].to);
+            if(isCharged == false){
+                continue;
+            }
+
+            isFeeTokenFind = false;
+            for (uint256 j = 0; j < feeLenthCounts; j++ ) {
+                if (feesTemp[j].token == asset) {
+                    isFeeTokenFind = true;
+                    // TODO: check feeAmount correctiness
+                    feesTemp[j].feeAmount += (amount * (_FEE_RATE + BPS_BASE)) / BPS_BASE;
+                    break;
+                }
+                
+            }
+            
+            if(isFeeTokenFind == false){ // Need to charge fee, token not added into feesTemp
+                // TODO: check feeAmount correctiness
+                IParam.Fee memory fee = IParam.Fee({token: asset, feeAmount: (amount * (_FEE_RATE + BPS_BASE)) / BPS_BASE});
+                feesTemp[feeLenthCounts] = fee;
+                feeLenthCounts++;
+            }
+
+        }
+
+        // Update final fees array and return
+        IParam.Fee[] memory fees = new IParam.Fee[](feeLenthCounts);
+        for (uint256 i = 0; i < feeLenthCounts; i++ ){
+            fees[i] = feesTemp[i];
+        }
+        return fees;
+    }
 
     /// @notice Execute logics with signer's signature.
     function executeWithSignature(
@@ -150,28 +195,15 @@ contract Router is IRouter, EIP712, Ownable {
         }
     }
     // Verify fees by decreasing memory fees which should be 0 in the end
-    function verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees) internal view {
+    function _verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees) internal view {
         uint256 feesLength = fees.length;
         uint256 logicsLength = logics.length;
         for (uint256 i = 0; i < logicsLength; ) {
             bytes calldata data = logics[i].data;
-            // TODO: charge native
+            // TODO: how to charge native
 
-            // Check if selector need charge
-            bytes4 selector = bytes4(data[:4]);
-            if(feeChargeSelector[selector] == false){
-                unchecked{
-                    ++i;
-                }
-                continue;
-            }
-
-            // Check if `to` need charge    
-            mapping(address to => address feeDecodeContract) storage feeDecodeContracts = feeDecoder[selector];
-            address to = logics[i].to;
-            address decodeContract = feeDecodeContracts[to];
-            decodeContract = decodeContract != address(0)? decodeContract : feeDecodeContracts[ANY_ADDRESS]; 
-            if(decodeContract == address(0)){
+            (bool isCharged, address asset, uint256 amount) = _isChargingFee(data, logics[i].to);
+            if(isCharged == false){
                 unchecked{
                     ++i;
                 }
@@ -179,10 +211,9 @@ contract Router is IRouter, EIP712, Ownable {
             }
 
             // Deduct fee
-            (address asset, uint256 amount) = IFeeDecodeContract(decodeContract).decodeData(data);
             for (uint256 j = 0; j < feesLength; ) {
                 if (fees[j].token == asset) {
-                    fees[j].feeAmount -= (amount * FEE_RATE) / BPS_BASE;
+                    fees[j].feeAmount -= (amount * _FEE_RATE) / BPS_BASE;
                     break;
                 }
                 
@@ -203,6 +234,27 @@ contract Router is IRouter, EIP712, Ownable {
                 ++i;
             }
         }
+    }
+
+    /// @notice Check transaction `data` is need to charge fee or not
+    function _isChargingFee(bytes calldata data, address to) internal view returns(bool isCharged, address asset, uint256 amount){
+        // Check if selector need charge
+        bytes4 selector = bytes4(data[:4]);
+        if(feeChargeSelector[selector] == false){
+            return (false, address(0), 0);
+        }
+
+        // Check if `to` need charge    
+        mapping(address to => address feeDecodeContract) storage feeDecodeContracts = feeDecoder[selector];
+        address decodeContract = feeDecodeContracts[to];
+        decodeContract = decodeContract != address(0)? decodeContract : feeDecodeContracts[ANY_ADDRESS]; 
+        if(decodeContract == address(0)){
+            return (false, address(0), 0);
+        }
+
+        // Get charged asset and input amount
+        (asset, amount) = IFeeDecodeContract(decodeContract).decodeData(data);
+        return (true, asset, amount);
     }
     
 }
