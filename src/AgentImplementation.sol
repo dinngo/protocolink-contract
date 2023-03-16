@@ -2,13 +2,16 @@
 pragma solidity ^0.8.0;
 
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {ERC721Holder} from 'openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol';
+import {ERC1155Holder} from 'openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Holder.sol';
+
 import {IAgent} from './interfaces/IAgent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 /// @title Implemtation contract of agent logics
-contract AgentImplementation is IAgent {
+contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     using SafeERC20 for IERC20;
     using Address for address;
     using Address for address payable;

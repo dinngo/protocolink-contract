@@ -95,6 +95,11 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         permitToken(USDT);
         permitToken(USDC);
 
+        // Empty router the balance
+        vm.prank(address(router));
+        (bool success, ) = payable(address(0)).call{value: address(router).balance}('');
+        assertTrue(success);
+
         vm.label(address(router), 'Router');
         vm.label(address(agent), 'Agent');
         vm.label(address(spender), 'SpenderPermit2ERC20');

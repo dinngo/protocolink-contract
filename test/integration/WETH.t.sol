@@ -27,6 +27,11 @@ contract WETHTest is Test {
 
         router = new Router();
 
+        // Empty router the balance
+        vm.prank(address(router));
+        (bool success, ) = payable(address(0)).call{value: address(router).balance}('');
+        assertTrue(success);
+
         vm.label(address(router), 'Router');
         vm.label(address(WETH), 'WETH');
     }
