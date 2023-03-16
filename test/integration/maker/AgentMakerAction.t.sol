@@ -41,6 +41,11 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         (user2, user2PrivateKey) = makeAddrAndKey('User2');
         router = new Router();
 
+        // Empty router the balance
+        vm.prank(address(router));
+        (bool success, ) = payable(address(0)).call{value: address(router).balance}('');
+        assertTrue(success);
+
         // Build user's DSProxy
         vm.startPrank(user);
         userDSProxy = IDSProxyRegistry(PROXY_REGISTRY).build();
