@@ -34,6 +34,7 @@ contract SpenderAaveV2DelegationTest is Test {
     uint256 public constant NO_CHAINED_INPUT = type(uint256).max;
 
     address public user;
+    address public user2;
     IRouter public router;
     ISpenderERC20Approval public spenderERC20;
     ISpenderAaveV2Delegation public spender;
@@ -47,6 +48,7 @@ contract SpenderAaveV2DelegationTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
+        user2 = makeAddr('User2');
 
         router = new Router();
         spenderERC20 = new SpenderERC20Approval(address(router));
@@ -222,6 +224,43 @@ contract SpenderAaveV2DelegationTest is Test {
         assertEq(tokenOut.balanceOf(user), amountMin - 1); // would get 2 wei less underlying token
     }
 
+    function testExecuteAaveV2Transfer(uint256 amountIn) external {
+        // aToken would be 2 wei short
+        IERC20 token = USDC;
+        IERC20 tokenOut = AUSDC_V2;
+        amountIn = bound(amountIn, 2, token.totalSupply());
+        uint256 tolerance = 1 wei;
+        uint256 amountMin = amountIn - tolerance; // would get 1 wei less aToken
+
+        deal(address(token), user, amountIn);
+
+        // Encode logics
+        IRouter.Logic[] memory logics = new IRouter.Logic[](3);
+        logics[0] = _logicSpenderERC20Approval(token, amountIn);
+        logics[1] = _logicAaveV2Deposit(
+            address(token),
+            amountIn,
+            BPS_BASE,
+            NO_CHAINED_INPUT,
+            address(router),
+            address(tokenOut),
+            amountMin
+        );
+        logics[2] = _logicAaveV2Transfer(user2, address(tokenOut), amountMin);
+
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(tokenOut);
+
+        // Execute
+        vm.prank(user);
+        router.execute(logics, tokensReturn);
+
+        assertEq(tokenOut.balanceOf(address(router)), 0, 'router');
+        assertEq(tokenOut.balanceOf(address(spenderERC20)), 0, 'spender');
+        assertLe(tokenOut.balanceOf(user), tolerance, 'user'); // would transfer 1 wei less aToken and leave 1 wei in user balance
+        assertGe(tokenOut.balanceOf(user2), amountMin - tolerance, 'user2'); // would get 2 wei less aToken
+    }
+
     function testExecuteAaveV2FlashLoan(uint256 amountIn) external {
         vm.assume(amountIn > 1e6);
         IERC20 token = USDC;
@@ -352,6 +391,30 @@ contract SpenderAaveV2DelegationTest is Test {
                 data,
                 inputs,
                 outputs,
+                address(0) // callback
+            );
+    }
+
+    function _logicAaveV2Transfer(
+        address receiver,
+        address tokenIn,
+        uint256 amountIn
+    ) public view returns (IRouter.Logic memory) {
+        bytes memory data = abi.encodeWithSelector(IERC20.transfer.selector, receiver, amountIn);
+
+        // Encode inputs
+        IRouter.Input[] memory inputs = new IRouter.Input[](1);
+        inputs[0].token = tokenIn;
+        inputs[0].amountBps = BPS_BASE;
+        inputs[0].amountOffset = NO_CHAINED_INPUT;
+        inputs[0].doApprove = true;
+
+        return
+            IRouter.Logic(
+                tokenIn, // to
+                data,
+                inputs,
+                outputsEmpty,
                 address(0) // callback
             );
     }
