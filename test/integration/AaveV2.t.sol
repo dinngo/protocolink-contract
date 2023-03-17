@@ -6,7 +6,7 @@ import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ut
 import {IAgent} from '../../src/interfaces/IAgent.sol';
 import {Router, IRouter} from '../../src/Router.sol';
 import {IParam} from '../../src/interfaces/IParam.sol';
-import {SpenderAaveV2Delegation, ISpenderAaveV2Delegation, IAaveV2Provider} from '../../src/SpenderAaveV2Delegation.sol';
+import {IAaveV2Provider} from '../../src/interfaces/aaveV2/IAaveV2Provider.sol';
 import {FlashLoanCallbackAaveV2, IFlashLoanCallbackAaveV2} from '../../src/FlashLoanCallbackAaveV2.sol';
 import {IAaveV2Pool} from '../../src/interfaces/aaveV2/IAaveV2Pool.sol';
 
@@ -27,7 +27,8 @@ contract AaveV2IntegrationTest is Test {
         VARIABLE
     }
 
-    IAaveV2Provider public constant aaveV2Provider = IAaveV2Provider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
+    uint16 private constant _REFERRAL_CODE = 56;
+    IAaveV2Provider public constant AAVE_V2_PROVIDER = IAaveV2Provider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address public constant AUSDC_V2 = 0xBcca60bB61934080951369a648Fb03DF4F96263C;
     IDebtToken public constant AUSDC_V2_DEBT_VARIABLE = IDebtToken(0x619beb58998eD2278e08620f97007e1116D5D25b);
@@ -35,9 +36,8 @@ contract AaveV2IntegrationTest is Test {
     address public user;
     IRouter public router;
     IAgent public agent;
-    ISpenderAaveV2Delegation public spender;
     IFlashLoanCallbackAaveV2 public flashLoanCallback;
-    IAaveV2Pool pool = IAaveV2Pool(IAaveV2Provider(aaveV2Provider).getLendingPool());
+    IAaveV2Pool pool = IAaveV2Pool(IAaveV2Provider(AAVE_V2_PROVIDER).getLendingPool());
 
     // Empty arrays
     address[] tokensReturnEmpty;
@@ -49,18 +49,16 @@ contract AaveV2IntegrationTest is Test {
         router = new Router();
         vm.prank(user);
         agent = IAgent(router.newAgent());
-        spender = new SpenderAaveV2Delegation(address(router), address(aaveV2Provider));
-        flashLoanCallback = new FlashLoanCallbackAaveV2(address(router), address(aaveV2Provider));
+        flashLoanCallback = new FlashLoanCallbackAaveV2(address(router), address(AAVE_V2_PROVIDER));
 
-        // User approved spender aave v2 delegation
+        // User approved agent aave v2 delegation
         vm.startPrank(user);
-        AUSDC_V2_DEBT_VARIABLE.approveDelegation(address(spender), type(uint256).max);
+        AUSDC_V2_DEBT_VARIABLE.approveDelegation(address(agent), type(uint256).max);
         vm.stopPrank();
 
         vm.label(address(router), 'Router');
         vm.label(address(agent), 'Agent');
-        vm.label(address(spender), 'SpenderAaveV2Delegation');
-        vm.label(address(aaveV2Provider), 'AaveV2Provider');
+        vm.label(address(AAVE_V2_PROVIDER), 'AaveV2Provider');
         vm.label(address(pool), 'AaveV2Pool');
         vm.label(address(USDC), 'USDC');
         vm.label(address(AUSDC_V2), 'aUSDC');
@@ -94,7 +92,6 @@ contract AaveV2IntegrationTest is Test {
 
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(agent)), 0);
-        assertEq(tokenOut.balanceOf(address(spender)), 0);
         assertEq(tokenOut.balanceOf(user), amountIn);
     }
 
@@ -134,8 +131,8 @@ contract AaveV2IntegrationTest is Test {
     ) public view returns (IParam.Logic memory) {
         return
             IParam.Logic(
-                address(spender), // to
-                abi.encodeWithSelector(ISpenderAaveV2Delegation.borrow.selector, token, amount, interestRateMode),
+                address(pool), // to
+                abi.encodeWithSelector(IAaveV2Pool.borrow.selector, token, amount, interestRateMode, _REFERRAL_CODE, user),
                 inputsEmpty,
                 address(0), // approveTo
                 address(0) // callback

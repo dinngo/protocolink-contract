@@ -124,7 +124,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
         agent = IAgent(router.newAgent());
 
         // User permit token
-        spenderSetUp(user, userPrivateKey, router);
+        spenderSetUp(user, userPrivateKey, router, agent);
         permitToken(USDT);
         permitToken(USDC);
         spenderERC721SetUp(user, address(router));
@@ -132,8 +132,6 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
 
         vm.label(address(router), 'Router');
         vm.label(address(agent), 'Agent');
-        vm.label(address(spender), 'SpenderPermit2ERC20');
-        vm.label(address(erc721Spender), 'SpenderERC721Approval');
         vm.label(address(USDT), 'USDT');
         vm.label(address(USDC), 'USDC');
         vm.label(address(NON_FUNGIBLE_POSITION_MANAGER), 'NON_FUNGIBLE_POSITION_MANAGER');

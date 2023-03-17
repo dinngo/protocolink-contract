@@ -39,15 +39,13 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
         nft = IERC1155(address(market.nft()));
 
         // User permit token
-        spenderSetUp(user, userPrivateKey, router);
+        spenderSetUp(user, userPrivateKey, router, agent);
         permitToken(USDC);
-        spenderERC1155SetUp(user, address(router));
+        spenderERC1155SetUp(user, address(agent));
         permitERC1155Token(address(nft));
 
         vm.label(address(router), 'Router');
         vm.label(address(agent), 'Agent');
-        vm.label(address(spender), 'SpenderPermit2ERC20');
-        vm.label(address(erc1155Spender), 'SpenderERC1155Approval');
         vm.label(address(USDC), 'USDC');
         vm.label(address(market), 'ERC1155Market');
     }

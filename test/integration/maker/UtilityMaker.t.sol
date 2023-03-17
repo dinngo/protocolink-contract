@@ -48,7 +48,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
         vm.stopPrank();
 
         // Setup permit2
-        spenderSetUp(user, userPrivateKey, router);
+        spenderSetUp(user, userPrivateKey, router, agent);
         permitToken(IERC20(GEM));
 
         // Label
@@ -57,7 +57,6 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
         vm.label(address(agent), 'Agent');
         vm.label(address(utilityMaker), 'UtilityMaker');
         vm.label(address(utilityMakerDSProxy), 'UtilityMakerDSProxy');
-        vm.label(address(spender), 'SpenderPermit2ERC20');
 
         makerCommonSetUp();
     }

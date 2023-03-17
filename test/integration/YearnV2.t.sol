@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IAgent} from '../../src/interfaces/IAgent.sol';
 import {Router, IRouter} from '../../src/Router.sol';
 import {IParam} from '../../src/interfaces/IParam.sol';
 import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
@@ -25,6 +26,7 @@ contract YearnV2Test is Test, SpenderPermitUtils {
     address public user;
     uint256 public userPrivateKey;
     IRouter public router;
+    IAgent public agent;
 
     // Empty arrays
     IParam.Input[] inputsEmpty;
@@ -32,13 +34,14 @@ contract YearnV2Test is Test, SpenderPermitUtils {
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
         router = new Router();
+        vm.prank(user);
+        agent = IAgent(router.newAgent());
 
         // User permit token
-        spenderSetUp(user, userPrivateKey, router);
+        spenderSetUp(user, userPrivateKey, router, agent);
         permitToken(USDT);
 
         vm.label(address(router), 'Router');
-        vm.label(address(spender), 'SpenderPermit2ERC20');
         vm.label(address(USDT), 'USDT');
         vm.label(address(yVault), 'yVault');
     }
@@ -60,7 +63,6 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         vm.prank(user);
         router.execute(logics, tokensReturn);
 
-        address agent = router.getAgent(user);
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenIn.balanceOf(address(agent)), 0);
         assertEq(yVault.balanceOf(address(router)), 0);
