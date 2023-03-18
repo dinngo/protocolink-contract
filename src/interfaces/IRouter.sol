@@ -20,6 +20,8 @@ interface IRouter {
 
     error InvalidSignature();
 
+    error LengthMismatch();
+
     function agentImplementation() external view returns (address);
 
     function signerReferrals(address signer) external view returns (uint256);
@@ -49,12 +51,15 @@ interface IRouter {
 
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 
-    // For tests file compile succ
-    function executeWithFee(
-        IParam.Logic[] calldata logics,
-        IParam.Fee[] calldata fees,
-        address[] calldata tokensReturn
-    ) external payable;
+    function feeDecoder(bytes4 sig) external view returns (address);
+
+    function feeCollector() external view returns (address);
+
+    function owner() external view returns (address);
+
+    function nativeFeeRate() external view returns (uint256);
+
+    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 
     function newAgent() external returns (address payable);
 

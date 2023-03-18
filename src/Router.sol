@@ -18,16 +18,14 @@ contract Router is IRouter, EIP712, Ownable {
 
     address private constant _INIT_USER = address(1);
     uint256 private constant _INVALID_REFERRAL = 0;
-    uint256 private constant _FEE_RATE = 20;
-    address public constant ANY_ADDRESS = address(0xff);
-    uint256 public constant BPS_BASE = 10_000;
     
     address public immutable agentImplementation;
+    address public immutable feeCollector; // TODO: rebase executeWithSignature PR, this may change
 
+    uint256 public nativeFeeRate = 20;
     mapping(address owner => IAgent agent) public agents;
     mapping(address signer => uint256 referral) public signerReferrals;
-    mapping(bytes4 selector => mapping(address to => address feeDecodeContract)) public feeDecoder;
-    mapping(bytes4 selector => bool) public feeChargeSelector;
+    mapping(bytes4 sig => address feeDecodeContract) public feeDecoder;
     address public user;
 
     modifier checkCaller() {
@@ -47,6 +45,12 @@ contract Router is IRouter, EIP712, Ownable {
 
     function domainSeparator() external view returns (bytes32) {
         return _domainSeparatorV4();
+    }
+
+    constructor() {
+        user = _INIT_USER;
+        agentImplementation = address(new AgentImplementation());
+        feeCollector = address(this); // TODO: rebase executeWithSignature PR, this may change
     }
 
     function getAgent() external view returns (address) {
@@ -93,49 +97,19 @@ contract Router is IRouter, EIP712, Ownable {
         emit SignerRemoved(signer);
     }
     
-    // @notice Get fees by logics
-    function getFees(IParam.Logic[] calldata logics) external view returns (IParam.Fee[] memory ){
-        // Temporary fees array, assume fee length won't exceed 128
-        IParam.Fee[] memory feesTemp = new IParam.Fee[](128);
-        // Real fee length
-        uint256 feeLenthCounts;
-        bool isFeeTokenFind;
+    /// @notice Get updated logics and msg.value that contains fee    
+    function getUpdatedLogics(IParam.Logic[] memory logics, uint256 msgValue) external view returns (IParam.Logic[] memory, uint256){
+        // Update logics
         uint256 length = logics.length;
         for(uint256 i = 0; i < length; i++){
-            bytes calldata data = logics[i].data;
-            // TODO: how to charge native
-
-            (bool isCharged, address asset, uint256 amount) = _isChargingFee(data, logics[i].to);
-            if(isCharged == false){
-                continue;
+            bytes memory data = logics[i].data;
+            bytes4 sig = bytes4(data);
+            address feeDecodeContract = feeDecoder[sig];
+            if (feeDecodeContract != address(0)) {
+                // Update transaction data
+                logics[i].data = IFeeDecodeContract(feeDecodeContract).getUpdatedData(data);
             }
-
-            isFeeTokenFind = false;
-            for (uint256 j = 0; j < feeLenthCounts; j++ ) {
-                if (feesTemp[j].token == asset) {
-                    isFeeTokenFind = true;
-                    // TODO: check feeAmount correctiness
-                    feesTemp[j].feeAmount += (amount * (_FEE_RATE + BPS_BASE)) / BPS_BASE;
-                    break;
-                }
-                
-            }
-            
-            if(isFeeTokenFind == false){ // Need to charge fee, token not added into feesTemp
-                // TODO: check feeAmount correctiness
-                IParam.Fee memory fee = IParam.Fee({token: asset, feeAmount: (amount * (_FEE_RATE + BPS_BASE)) / BPS_BASE});
-                feesTemp[feeLenthCounts] = fee;
-                feeLenthCounts++;
-            }
-
         }
-
-        // Update final fees array and return
-        IParam.Fee[] memory fees = new IParam.Fee[](feeLenthCounts);
-        for (uint256 i = 0; i < feeLenthCounts; i++ ){
-            fees[i] = feesTemp[i];
-        }
-        return fees;
     }
 
     /// @notice Execute logics with signer's signature.
@@ -181,80 +155,25 @@ contract Router is IRouter, EIP712, Ownable {
         }
     }
 
-    function setFeeDecoder(bytes4[] calldata selector, address[] calldata tos, address[] calldata feeDecodeContracts) public onlyOwner{
-        uint256 length = selector.length;
-        require(length == tos.length);
-        require(length == feeDecodeContracts.length);
+    //TODO: only owner restrict
+    /// @notice Set fee decoder contract for each function signature
+    function setFeeDecoder(bytes4[] calldata sig, address[] calldata feeDecodeContracts) public{
+        uint256 length = sig.length;
+        if(length != feeDecodeContracts.length) revert LengthMismatch();
 
         for(uint256 i = 0; i < length; ){
-            feeDecoder[selector[i]][tos[i]] = feeDecodeContracts[i];
-            feeChargeSelector[selector[i]] = true;
-            unchecked{
-                ++i;
-            }
-        }
-    }
-    // Verify fees by decreasing memory fees which should be 0 in the end
-    function _verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees) internal view {
-        uint256 feesLength = fees.length;
-        uint256 logicsLength = logics.length;
-        for (uint256 i = 0; i < logicsLength; ) {
-            bytes calldata data = logics[i].data;
-            // TODO: how to charge native
-
-            (bool isCharged, address asset, uint256 amount) = _isChargingFee(data, logics[i].to);
-            if(isCharged == false){
-                unchecked{
-                    ++i;
-                }
-                continue;
-            }
-
-            // Deduct fee
-            for (uint256 j = 0; j < feesLength; ) {
-                if (fees[j].token == asset) {
-                    fees[j].feeAmount -= (amount * _FEE_RATE) / BPS_BASE;
-                    break;
-                }
-                
-                unchecked{
-                    ++j;
-                }
-            }
-
-            unchecked{
-                ++i;
-            }
-        }
-
-        // Verify all fee amounts are 0 to ensure the fees are valid
-        for (uint256 i = 0; i < feesLength; ) {
-            require(fees[i].feeAmount == 0, 'fee is not enough');
+            feeDecoder[sig[i]] = feeDecodeContracts[i];
             unchecked{
                 ++i;
             }
         }
     }
 
-    /// @notice Check transaction `data` is need to charge fee or not
-    function _isChargingFee(bytes calldata data, address to) internal view returns(bool isCharged, address asset, uint256 amount){
-        // Check if selector need charge
-        bytes4 selector = bytes4(data[:4]);
-        if(feeChargeSelector[selector] == false){
-            return (false, address(0), 0);
-        }
-
-        // Check if `to` need charge    
-        mapping(address to => address feeDecodeContract) storage feeDecodeContracts = feeDecoder[selector];
-        address decodeContract = feeDecodeContracts[to];
-        decodeContract = decodeContract != address(0)? decodeContract : feeDecodeContracts[ANY_ADDRESS]; 
-        if(decodeContract == address(0)){
-            return (false, address(0), 0);
-        }
-
-        // Get charged asset and input amount
-        (asset, amount) = IFeeDecodeContract(decodeContract).decodeData(data);
-        return (true, asset, amount);
+    //TODO: rebase executeWithSignature PR, this may change
+    function setNativeFeeRate(uint256 nativeFeeRate_) public{
+        require(msg.sender == owner, 'Invalid sender');
+        require(nativeFeeRate < _BPS_BASE, 'Invalid rate');
+        nativeFeeRate = nativeFeeRate_;
     }
     
 }
