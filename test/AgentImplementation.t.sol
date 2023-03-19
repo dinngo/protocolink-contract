@@ -59,7 +59,7 @@ contract AgentImplementationTest is Test {
             address(0), // approveTo
             address(0) // callback
         );
-        bytes memory data = abi.encodeWithSelector(IRouter.execute.selector, callbacks, tokensReturnEmpty);
+        bytes memory data = abi.encodeWithSelector(IAgent.execute.selector, callbacks, tokensReturnEmpty);
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
             address(mockCallback),

@@ -2,6 +2,11 @@
 pragma solidity ^0.8.0;
 
 interface IParam {
+    struct LogicBatch {
+        Logic[] logics;
+        uint256 deadline;
+    }
+
     struct Logic {
         address to;
         bytes data;
