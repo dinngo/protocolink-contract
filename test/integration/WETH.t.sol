@@ -41,11 +41,14 @@ contract WETHTest is Test {
         amountIn = bound(amountIn, BPS_BASE, WETH.totalSupply());
         address tokenIn = NATIVE;
         IERC20 tokenOut = WETH;
-        deal(user, amountIn + 1 ether);
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicWETHDeposit(amountIn, BPS_BASE / 2); // 50% amount
+
+        // Get updated logic and msg.value
+        (logics, amountIn) = router.getUpdatedLogics(logics, amountIn);
+        deal(user, amountIn + 1 ether);
 
         // Execute
         address[] memory tokensReturn = new address[](2);

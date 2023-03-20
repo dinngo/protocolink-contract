@@ -54,9 +54,10 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         address[] calldata tokensReturn,
         bool feeEnable
     ) external payable checkCaller {
-        // Execute each logic
-        address feeCollector = IRouter(router).feeCollector();
+        address feeCollector;
+        if (feeEnable) feeCollector = IRouter(router).feeCollector();
 
+        // Execute each logic
         uint256 logicsLength = logics.length;
         for (uint256 i = 0; i < logicsLength; ) {
             address to = logics[i].to;
@@ -166,7 +167,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             (address asset, uint256 chargeAmount, uint256 feeRate) = IFeeDecodeContract(feeDecodeContract).decodeData(
                 data
             );
-            uint256 fee = chargeAmount - chargeAmount / (1 + feeRate);
+            uint256 fee = chargeAmount - (chargeAmount * _BPS_BASE) / (_BPS_BASE + feeRate);
             IERC20(asset).safeTransfer(feeCollector, fee);
             emit ChargeFee(asset, fee);
         }
@@ -174,7 +175,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
     function _chargeNativeFee(address feeCollector) private {
         uint256 feeRate = IRouter(router).nativeFeeRate();
-        uint256 nativeFee = msg.value - msg.value / (1 + feeRate);
+        uint256 nativeFee = msg.value - (msg.value * _BPS_BASE) / (_BPS_BASE + feeRate);
         payable(feeCollector).sendValue(nativeFee);
         emit ChargeFee(_NATIVE, nativeFee);
     }

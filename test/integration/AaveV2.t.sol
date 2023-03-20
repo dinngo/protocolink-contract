@@ -133,7 +133,14 @@ contract AaveV2IntegrationTest is Test {
         return
             IParam.Logic(
                 address(pool), // to
-                abi.encodeWithSelector(IAaveV2Pool.borrow.selector, token, amount, interestRateMode, _REFERRAL_CODE, user),
+                abi.encodeWithSelector(
+                    IAaveV2Pool.borrow.selector,
+                    token,
+                    amount,
+                    interestRateMode,
+                    _REFERRAL_CODE,
+                    user
+                ),
                 inputsEmpty,
                 address(0), // approveTo
                 address(0) // callback
@@ -193,6 +200,6 @@ contract AaveV2IntegrationTest is Test {
         }
 
         // Encode execute data
-        return abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty);
+        return abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty, false);
     }
 }

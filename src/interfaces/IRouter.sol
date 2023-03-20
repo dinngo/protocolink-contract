@@ -40,6 +40,17 @@ interface IRouter {
 
     function calcAgent(address user) external view returns (address);
 
+    function getUpdatedLogics(
+        IParam.Logic[] memory logics,
+        uint256 msgValue
+    ) external view returns (IParam.Logic[] memory, uint256);
+
+    function feeDecoder(bytes4 sig) external view returns (address);
+
+    function feeCollector() external view returns (address);
+
+    function nativeFeeRate() external view returns (uint256);
+
     function addSigner(address newSigner, uint256 referral) external;
 
     function removeSigner(address signer) external;
@@ -52,12 +63,6 @@ interface IRouter {
     ) external payable;
 
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
-
-    function feeDecoder(bytes4 sig) external view returns (address);
-
-    function feeCollector() external view returns (address);
-
-    function nativeFeeRate() external view returns (uint256);
 
     function newAgent() external returns (address payable);
 
