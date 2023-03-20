@@ -39,15 +39,13 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
         nft = IERC721(address(market.nft()));
 
         // User permit token
-        spenderSetUp(user, userPrivateKey, router);
+        spenderSetUp(user, userPrivateKey, router, agent);
         permitToken(USDC);
-        spenderERC721SetUp(user, address(router));
+        spenderERC721SetUp(user, address(agent));
         permitERC721Token(address(nft));
 
         vm.label(address(router), 'Router');
         vm.label(address(agent), 'Agent');
-        vm.label(address(spender), 'SpenderPermit2ERC20');
-        vm.label(address(erc721Spender), 'SpenderERC721Approval');
         vm.label(address(USDC), 'USDC');
         vm.label(address(market), 'ERC721Market');
     }

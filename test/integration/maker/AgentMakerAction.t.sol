@@ -105,13 +105,12 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         vm.stopPrank();
 
         // Setup permit2
-        spenderSetUp(user2, user2PrivateKey, router);
+        spenderSetUp(user2, user2PrivateKey, router, user2Agent);
         permitToken(IERC20(GEM));
         permitToken(IERC20(DAI_TOKEN));
 
         // Label
         vm.label(address(router), 'Router');
-        vm.label(address(spender), 'SpenderPermit2ERC20');
         vm.label(address(userDSProxy), 'UserDSProxy');
         vm.label(address(userAgent), 'UserAgent');
         vm.label(address(user2Agent), 'User2Agent');

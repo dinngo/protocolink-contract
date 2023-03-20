@@ -91,7 +91,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         agent = IAgent(router.newAgent());
 
         // User permit token
-        spenderSetUp(user, userPrivateKey, router);
+        spenderSetUp(user, userPrivateKey, router, agent);
         permitToken(USDT);
         permitToken(USDC);
 
@@ -102,7 +102,6 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
 
         vm.label(address(router), 'Router');
         vm.label(address(agent), 'Agent');
-        vm.label(address(spender), 'SpenderPermit2ERC20');
         vm.label(NATIVE, 'NATIVE');
         vm.label(address(WRAPPED_NATIVE), 'WrappedNative');
         vm.label(address(USDT), 'USDT');

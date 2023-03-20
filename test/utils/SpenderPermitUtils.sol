@@ -3,9 +3,10 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IAgent} from '../../src/interfaces/IAgent.sol';
 import {Router, IRouter} from '../../src/Router.sol';
 import {IParam} from '../../src/interfaces/IParam.sol';
-import {SpenderPermit2ERC20, ISpenderPermit2ERC20, ISignatureTransfer, IAllowanceTransfer} from '../../src/SpenderPermit2ERC20.sol';
+import {IAllowanceTransfer} from '../../src/interfaces/permit2/IAllowanceTransfer.sol';
 import {PermitSignature} from './PermitSignature.sol';
 import {EIP712} from './EIP712.sol';
 
@@ -14,18 +15,18 @@ contract SpenderPermitUtils is Test, PermitSignature {
 
     address internal constant permit2Addr = address(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
-    ISpenderPermit2ERC20 public spender;
 
     address private _user;
+    address private _spender;
     uint256 private _userPrivateKey;
     IRouter private _router;
     bytes32 DOMAIN_SEPARATOR;
 
-    function spenderSetUp(address user_, uint256 userPrivateKey_, IRouter router_) internal {
+    function spenderSetUp(address user_, uint256 userPrivateKey_, IRouter router_, IAgent agent) internal {
         _user = user_;
         _userPrivateKey = userPrivateKey_;
         _router = router_;
-        spender = new SpenderPermit2ERC20(address(router_), permit2Addr);
+        _spender = address(agent);
         DOMAIN_SEPARATOR = EIP712(permit2Addr).DOMAIN_SEPARATOR();
     }
 
@@ -51,7 +52,7 @@ contract SpenderPermitUtils is Test, PermitSignature {
         IAllowanceTransfer.PermitSingle memory permit = defaultERC20PermitAllowance(
             address(token),
             type(uint160).max,
-            address(spender),
+            _spender,
             defaultExpiration,
             defaultNonce
         );
@@ -81,8 +82,8 @@ contract SpenderPermitUtils is Test, PermitSignature {
 
         return
             IParam.Logic(
-                address(spender), // to
-                abi.encodeWithSelector(spender.pullToken.selector, address(token), amount),
+                address(permit2Addr), // to
+                abi.encodeWithSignature('transferFrom(address,address,uint160,address)', _user, _spender, amount, token),
                 inputsEmpty,
                 address(0), // approveTo
                 address(0) // callback
