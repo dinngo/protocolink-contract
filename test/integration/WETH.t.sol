@@ -25,7 +25,8 @@ contract WETHTest is Test {
     function setUp() external {
         user = makeAddr('User');
 
-        router = new Router();
+        address feeCollector = makeAddr('FeeCollector');
+        router = new Router(feeCollector);
 
         // Empty router the balance
         vm.prank(address(router));

@@ -26,7 +26,8 @@ contract BalancerV2IntegrationTest is Test {
     function setUp() external {
         user = makeAddr('User');
 
-        router = new Router();
+        address feeCollector = makeAddr('FeeCollector');
+        router = new Router(feeCollector);
         flashLoanCallback = new FlashLoanCallbackBalancerV2(address(router), address(balancerV2Vault));
 
         vm.label(address(router), 'Router');
@@ -99,6 +100,6 @@ contract BalancerV2IntegrationTest is Test {
         }
 
         // Encode execute data
-        return abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty);
+        return abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty, false);
     }
 }

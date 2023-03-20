@@ -46,7 +46,8 @@ contract AaveV2IntegrationTest is Test {
     function setUp() external {
         user = makeAddr('User');
 
-        router = new Router();
+        address feeCollector = makeAddr('FeeCollector');
+        router = new Router(feeCollector);
         vm.prank(user);
         agent = IAgent(router.newAgent());
         flashLoanCallback = new FlashLoanCallbackAaveV2(address(router), address(AAVE_V2_PROVIDER));
