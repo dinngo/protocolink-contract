@@ -18,6 +18,7 @@ contract Router is IRouter, EIP712, Ownable {
 
     address private constant _INIT_USER = address(1);
     uint256 private constant _INVALID_REFERRAL = 0;
+    uint256 private constant _BPS_BASE = 10_000;
     
     address public immutable agentImplementation;
     address public immutable feeCollector; // TODO: rebase executeWithSignature PR, this may change
@@ -41,16 +42,11 @@ contract Router is IRouter, EIP712, Ownable {
     constructor() EIP712('Composable Router', '1'){
         user = _INIT_USER;
         agentImplementation = address(new AgentImplementation());
+        feeCollector = address(this); // TODO: rebase executeWithSignature PR, this may change
     }
 
     function domainSeparator() external view returns (bytes32) {
         return _domainSeparatorV4();
-    }
-
-    constructor() {
-        user = _INIT_USER;
-        agentImplementation = address(new AgentImplementation());
-        feeCollector = address(this); // TODO: rebase executeWithSignature PR, this may change
     }
 
     function getAgent() external view returns (address) {
@@ -110,6 +106,10 @@ contract Router is IRouter, EIP712, Ownable {
                 logics[i].data = IFeeDecodeContract(feeDecodeContract).getUpdatedData(data);
             }
         }
+        
+        // Update value
+        msgValue = msgValue * (_BPS_BASE + nativeFeeRate) / _BPS_BASE;
+        return (logics, msgValue);
     }
 
     /// @notice Execute logics with signer's signature.
@@ -155,9 +155,8 @@ contract Router is IRouter, EIP712, Ownable {
         }
     }
 
-    //TODO: only owner restrict
     /// @notice Set fee decoder contract for each function signature
-    function setFeeDecoder(bytes4[] calldata sig, address[] calldata feeDecodeContracts) public{
+    function setFeeDecoder(bytes4[] calldata sig, address[] calldata feeDecodeContracts) public onlyOwner{
         uint256 length = sig.length;
         if(length != feeDecodeContracts.length) revert LengthMismatch();
 
@@ -170,8 +169,7 @@ contract Router is IRouter, EIP712, Ownable {
     }
 
     //TODO: rebase executeWithSignature PR, this may change
-    function setNativeFeeRate(uint256 nativeFeeRate_) public{
-        require(msg.sender == owner, 'Invalid sender');
+    function setNativeFeeRate(uint256 nativeFeeRate_) public onlyOwner{
         require(nativeFeeRate < _BPS_BASE, 'Invalid rate');
         nativeFeeRate = nativeFeeRate_;
     }

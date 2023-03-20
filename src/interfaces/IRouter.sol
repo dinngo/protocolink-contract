@@ -55,11 +55,7 @@ interface IRouter {
 
     function feeCollector() external view returns (address);
 
-    function owner() external view returns (address);
-
     function nativeFeeRate() external view returns (uint256);
-
-    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 
     function newAgent() external returns (address payable);
 
