@@ -21,7 +21,7 @@ contract Router is IRouter, EIP712, Ownable {
     uint256 private constant _BPS_BASE = 10_000;
     
     address public immutable agentImplementation;
-    address public immutable feeCollector; // TODO: rebase executeWithSignature PR, this may change
+    address public immutable feeCollector;
 
     uint256 public nativeFeeRate = 20;
     mapping(address owner => IAgent agent) public agents;
@@ -39,10 +39,14 @@ contract Router is IRouter, EIP712, Ownable {
         user = _INIT_USER;
     }
     
-    constructor() EIP712('Composable Router', '1'){
+    constructor(address feeCollector_) EIP712('Composable Router', '1'){
         user = _INIT_USER;
         agentImplementation = address(new AgentImplementation());
-        feeCollector = address(this); // TODO: rebase executeWithSignature PR, this may change
+        feeCollector = feeCollector_;
+    }
+
+    function owner() public view override(IRouter, Ownable) returns (address) {
+        return super.owner();
     }
 
     function domainSeparator() external view returns (bytes32) {
@@ -125,7 +129,13 @@ contract Router is IRouter, EIP712, Ownable {
         if (signerReferrals[signer] == _INVALID_REFERRAL) revert InvalidSigner(signer);
         if (!signer.isValidSignatureNow(_hashTypedDataV4(logicBatch._hash()), signature)) revert InvalidSignature();
 
-        execute(logicBatch.logics, tokensReturn);
+        IAgent agent = agents[user];
+        
+        if (address(agent) == address(0)) {
+            agent = IAgent(newAgent(user));
+        }
+
+        agent.execute{value: msg.value}(logicBatch.logics, tokensReturn, false);
     }
 
     /// @notice Execute logics through user's agent. Create agent for user if not created.
@@ -136,7 +146,7 @@ contract Router is IRouter, EIP712, Ownable {
             agent = IAgent(newAgent(user));
         }
 
-        agent.execute{value: msg.value}(logics, tokensReturn);
+        agent.execute{value: msg.value}(logics, tokensReturn, true);
     }
 
     /// @notice Create an agent for `msg.sender`
@@ -168,7 +178,6 @@ contract Router is IRouter, EIP712, Ownable {
         }
     }
 
-    //TODO: rebase executeWithSignature PR, this may change
     function setNativeFeeRate(uint256 nativeFeeRate_) public onlyOwner{
         require(nativeFeeRate < _BPS_BASE, 'Invalid rate');
         nativeFeeRate = nativeFeeRate_;

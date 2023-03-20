@@ -49,9 +49,13 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     }
 
     /// @notice Execute logics and return tokens to user
-    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable checkCaller {
+    function execute(
+        IParam.Logic[] calldata logics,
+        address[] calldata tokensReturn,
+        bool feeEnable
+    ) external payable checkCaller {
         // Execute each logic
-        address feeCollector = IRouter(router).feeCollector(); // TODO: rebase executeWithSignature PR, this may change
+        address feeCollector = IRouter(router).feeCollector();
 
         uint256 logicsLength = logics.length;
         for (uint256 i = 0; i < logicsLength; ) {
@@ -119,7 +123,9 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             if (_caller != router) revert UnresetCallback();
 
             // Charge fees
-            _chargeFee(data, feeCollector);
+            if (feeEnable) {
+                _chargeFee(data, feeCollector);
+            }
 
             unchecked {
                 ++i;
@@ -127,7 +133,9 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         }
 
         // Charge native token fee
-        _chargeNativeFee(feeCollector);
+        if (feeEnable) {
+            _chargeNativeFee(feeCollector);
+        }
 
         // Push tokensReturn if any balance
         uint256 tokensReturnLength = tokensReturn.length;

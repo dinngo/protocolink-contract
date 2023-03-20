@@ -26,6 +26,8 @@ interface IRouter {
 
     function signerReferrals(address signer) external view returns (uint256);
 
+    function owner() external view returns (address);
+
     function user() external view returns (address);
 
     function domainSeparator() external view returns (bytes32);
