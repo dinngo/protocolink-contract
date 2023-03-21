@@ -18,12 +18,11 @@ contract Router is IRouter, EIP712, Ownable {
 
     address private constant _INIT_USER = address(1);
     uint256 private constant _INVALID_REFERRAL = 0;
-    uint256 private constant _BPS_BASE = 10_000;
+    bytes4 private constant _NATIVE_TOKEN_SIG = 0xeeeeeeee;
     
     address public immutable agentImplementation;
     address public immutable feeCollector;
 
-    uint256 public nativeFeeRate = 20;
     mapping(address owner => IAgent agent) public agents;
     mapping(address signer => uint256 referral) public signerReferrals;
     mapping(bytes4 sig => address feeDecodeContract) public feeDecoder;
@@ -112,7 +111,12 @@ contract Router is IRouter, EIP712, Ownable {
         }
         
         // Update value
-        msgValue = msgValue * (_BPS_BASE + nativeFeeRate) / _BPS_BASE;
+        address nativeFeeDecodeContract = feeDecoder[_NATIVE_TOKEN_SIG];
+        if(nativeFeeDecodeContract != address(0)){
+            (, uint256 fee) = IFeeDecodeContract(nativeFeeDecodeContract).decodeData(abi.encodePacked(msgValue));
+            msgValue += fee;
+        }
+        
         return (logics, msgValue);
     }
 
@@ -122,7 +126,7 @@ contract Router is IRouter, EIP712, Ownable {
         address signer,
         bytes calldata signature,
         address[] calldata tokensReturn
-    ) external payable {
+    ) external payable checkCaller{
         // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
@@ -177,10 +181,4 @@ contract Router is IRouter, EIP712, Ownable {
             }
         }
     }
-
-    function setNativeFeeRate(uint256 nativeFeeRate_) public onlyOwner{
-        require(nativeFeeRate < _BPS_BASE, 'Invalid rate');
-        nativeFeeRate = nativeFeeRate_;
-    }
-    
 }

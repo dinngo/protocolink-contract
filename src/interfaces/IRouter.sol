@@ -49,8 +49,6 @@ interface IRouter {
 
     function feeCollector() external view returns (address);
 
-    function nativeFeeRate() external view returns (uint256);
-
     function addSigner(address newSigner, uint256 referral) external;
 
     function removeSigner(address signer) external;

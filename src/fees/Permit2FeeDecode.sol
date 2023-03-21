@@ -7,9 +7,9 @@ import {IFeeDecodeContract} from '../interfaces/IFeeDecodeContract.sol';
 contract Permit2FeeDecode is IFeeDecodeContract, FeeBase {
     constructor(address router) FeeBase(router) {}
 
-    function decodeData(bytes calldata data) external view returns (address, uint256, uint256) {
+    function decodeData(bytes calldata data) external view returns (address, uint256) {
         (, , uint160 amount, address token) = abi.decode(data, (address, address, uint160, address));
-        return (token, uint256(amount), feeRate);
+        return (token, calculateFee(uint256(amount)));
     }
 
     function getUpdatedData(bytes calldata data) external view returns (bytes memory) {

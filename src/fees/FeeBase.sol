@@ -18,4 +18,8 @@ abstract contract FeeBase {
         require(feeRate_ < BPS_BASE, 'Invalid rate');
         feeRate = feeRate_;
     }
+
+    function calculateFee(uint256 amount) public view returns (uint256) {
+        return (amount * feeRate) / (BPS_BASE + feeRate);
+    }
 }

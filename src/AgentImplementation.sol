@@ -22,6 +22,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     uint256 private constant _BPS_BASE = 10_000;
     uint256 private constant _SKIP = type(uint256).max;
+    bytes4 private constant _NATIVE_TOKEN_SIG = 0xeeeeeeee;
 
     address public immutable router;
 
@@ -134,8 +135,8 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         }
 
         // Charge native token fee
-        if (feeEnable) {
-            _chargeNativeFee(feeCollector);
+        if (feeEnable && msg.value > 0) {
+            _chargeFee('', feeCollector);
         }
 
         // Push tokensReturn if any balance
@@ -160,24 +161,20 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
     /// @notice Check transaction `data` and charge fee
     function _chargeFee(bytes memory data, address feeCollector) private {
-        bytes4 sig = bytes4(data);
+        bool isNative = data.length == 0 ? true : false;
+        bytes4 sig = isNative ? _NATIVE_TOKEN_SIG : bytes4(data);
         address feeDecodeContract = IRouter(router).feeDecoder(sig);
         if (feeDecodeContract != address(0)) {
-            // Get charge asset, amount and fee rate
-            (address asset, uint256 chargeAmount, uint256 feeRate) = IFeeDecodeContract(feeDecodeContract).decodeData(
-                data
-            );
-            uint256 fee = (chargeAmount * feeRate) / (_BPS_BASE + feeRate);
-            IERC20(asset).safeTransfer(feeCollector, fee);
+            data = isNative ? abi.encodePacked(msg.value) : data;
+            // Get charge asset and fee
+            (address asset, uint256 fee) = IFeeDecodeContract(feeDecodeContract).decodeData(data);
+            if (isNative) {
+                payable(feeCollector).sendValue(fee);
+            } else {
+                IERC20(asset).safeTransfer(feeCollector, fee);
+            }
             emit ChargeFee(asset, fee);
         }
-    }
-
-    function _chargeNativeFee(address feeCollector) private {
-        uint256 feeRate = IRouter(router).nativeFeeRate();
-        uint256 nativeFee = (msg.value * feeRate) / (_BPS_BASE + feeRate);
-        payable(feeCollector).sendValue(nativeFee);
-        emit ChargeFee(_NATIVE, nativeFee);
     }
 
     function _getBalance(address token) private view returns (uint256 balance) {
