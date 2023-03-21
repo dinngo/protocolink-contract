@@ -3,21 +3,21 @@ pragma solidity ^0.8.0;
 
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IRouter} from './interfaces/IRouter.sol';
-import {IFlashLoanCallbackAaveV2} from './interfaces/IFlashLoanCallbackAaveV2.sol';
-import {IAaveV2Provider} from './interfaces/aaveV2/IAaveV2Provider.sol';
+import {IFlashLoanCallbackAaveV3} from './interfaces/IFlashLoanCallbackAaveV3.sol';
+import {IAaveV3Provider} from './interfaces/aaveV3/IAaveV3Provider.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
-/// @title Aave V2 flash loan callback
-contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
+/// @title Aave V3 flash loan callback
+contract FlashLoanCallbackAaveV3 is IFlashLoanCallbackAaveV3 {
     using SafeERC20 for IERC20;
     using Address for address;
 
     address public immutable router;
-    address public immutable aaveV2Provider;
+    address public immutable aaveV3Provider;
 
-    constructor(address router_, address aaveV2Provider_) {
+    constructor(address router_, address aaveV3Provider_) {
         router = router_;
-        aaveV2Provider = aaveV2Provider_;
+        aaveV3Provider = aaveV3Provider_;
     }
 
     /// @dev No need to check whether `initiator` is Agent as it's certain when the below conditions are satisfied:
@@ -32,7 +32,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
         address, // initiator
         bytes calldata params
     ) external returns (bool) {
-        address pool = IAaveV2Provider(aaveV2Provider).getLendingPool();
+        address pool = IAaveV3Provider(aaveV3Provider).getPool();
 
         if (msg.sender != pool) revert InvalidCaller();
         address agent = IRouter(router).getAgent();
@@ -52,7 +52,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
         }
 
         // Call Agent::execute
-        agent.functionCall(params, 'ERROR_AAVE_V2_FLASH_LOAN_CALLBACK');
+        agent.functionCall(params, 'ERROR_AAVE_V3_FLASH_LOAN_CALLBACK');
 
         // Approve assets for pulling from Aave Pool
         for (uint256 i = 0; i < assetsLength; ) {
