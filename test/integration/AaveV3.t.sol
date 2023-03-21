@@ -182,7 +182,7 @@ contract AaveV3IntegrationTest is Test {
         uint256 percentage = pool.FLASHLOAN_PREMIUM_TOTAL();
 
         for (uint256 i = 0; i < tokens.length; ) {
-            // Airdrop fee to Router
+            // Airdrop fee to Agent
             uint256 fee = _percentMul(amounts[i], percentage);
             deal(address(tokens[i]), address(agent), fee);
 

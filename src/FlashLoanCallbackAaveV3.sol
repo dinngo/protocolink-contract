@@ -20,9 +20,9 @@ contract FlashLoanCallbackAaveV3 is IFlashLoanCallbackAaveV3 {
         aaveV3Provider = aaveV3Provider_;
     }
 
-    /// @dev No need to check whether `initiator` is Router as it's certain when the below conditions are satisfied:
-    ///      1. `to` in Router is Aave Pool, i.e, user signed a correct `to`
-    ///      2. `_callback` in Router is set to this callback, i.e, user signed a correct `callback`
+    /// @dev No need to check whether `initiator` is Agent as it's certain when the below conditions are satisfied:
+    ///      1. `to` in Agent is Aave Pool, i.e, user signed a correct `to`
+    ///      2. `_callback` in Agent is set to this callback, i.e, user signed a correct `callback`
     ///      3. `msg.sender` of this callback is Aave Pool
     ///      4. Aave Pool contract is benign
     function executeOperation(
@@ -37,7 +37,7 @@ contract FlashLoanCallbackAaveV3 is IFlashLoanCallbackAaveV3 {
         if (msg.sender != pool) revert InvalidCaller();
         address agent = IRouter(router).getAgent();
 
-        // Transfer assets to Router and record initial balances
+        // Transfer assets to Agent and record initial balances
         uint256 assetsLength = assets.length;
         uint256[] memory initBalances = new uint256[](assetsLength);
         for (uint256 i = 0; i < assetsLength; ) {
