@@ -119,7 +119,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router();
+        router = new Router(address(0));
         vm.prank(user);
         agent = IAgent(router.newAgent());
 

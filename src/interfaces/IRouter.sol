@@ -8,6 +8,12 @@ interface IRouter {
 
     event SignerRemoved(address indexed signer);
 
+    event PauserSet(address indexed pauser);
+
+    event RouterPaused();
+
+    event RouterResumed();
+
     error Reentrancy();
 
     error AgentCreated();
@@ -20,11 +26,21 @@ interface IRouter {
 
     error InvalidSignature();
 
+    error InvalidPauser();
+
+    error RouterInPaused();
+
+    error InvalidNewPauser();
+
     function agentImplementation() external view returns (address);
 
     function signerReferrals(address signer) external view returns (uint256);
 
     function user() external view returns (address);
+
+    function pauser() external view returns (address);
+
+    function paused() external view returns (bool);
 
     function domainSeparator() external view returns (bytes32);
 
@@ -39,6 +55,12 @@ interface IRouter {
     function addSigner(address newSigner, uint256 referral) external;
 
     function removeSigner(address signer) external;
+
+    function setPauser(address pauser_) external;
+
+    function pauseRouter() external;
+
+    function resumeRouter() external;
 
     function executeWithSignature(
         IParam.LogicBatch calldata logicBatch,

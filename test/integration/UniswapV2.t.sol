@@ -86,7 +86,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router();
+        router = new Router(address(0));
         vm.prank(user);
         agent = IAgent(router.newAgent());
 
