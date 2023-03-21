@@ -132,7 +132,14 @@ contract AaveV2IntegrationTest is Test {
         return
             IParam.Logic(
                 address(pool), // to
-                abi.encodeWithSelector(IAaveV2Pool.borrow.selector, token, amount, interestRateMode, _REFERRAL_CODE, user),
+                abi.encodeWithSelector(
+                    IAaveV2Pool.borrow.selector,
+                    token,
+                    amount,
+                    interestRateMode,
+                    _REFERRAL_CODE,
+                    user
+                ),
                 inputsEmpty,
                 address(0), // approveTo
                 address(0) // callback
@@ -173,7 +180,7 @@ contract AaveV2IntegrationTest is Test {
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](tokens.length);
         for (uint256 i = 0; i < tokens.length; ) {
-            // Airdrop fee to Router
+            // Airdrop fee to Agent
             uint256 fee = (amounts[i] * 9) / 10000;
             deal(address(tokens[i]), address(agent), fee);
 
