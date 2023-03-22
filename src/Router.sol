@@ -36,8 +36,8 @@ contract Router is IRouter, EIP712, Ownable {
         user = _INIT_USER;
     }
 
-    modifier checkPaused() {
-        if (paused == true) revert RouterInPaused();
+    modifier isPaused() {
+        if (paused) revert RouterIsPaused();
         _;
     }
 
@@ -106,14 +106,14 @@ contract Router is IRouter, EIP712, Ownable {
         emit PauserSet(pauser_);
     }
 
-    function pauseRouter() external onlyPauser {
+    function pause() external onlyPauser {
         paused = true;
-        emit RouterPaused();
+        emit Paused();
     }
 
-    function resumeRouter() external onlyPauser {
+    function resume() external onlyPauser {
         paused = false;
-        emit RouterResumed();
+        emit Resumed();
     }
 
     /// @notice Execute logics with signer's signature.
@@ -136,7 +136,7 @@ contract Router is IRouter, EIP712, Ownable {
     function execute(
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn
-    ) public payable checkCaller checkPaused {
+    ) public payable isPaused checkCaller {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {

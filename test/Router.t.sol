@@ -33,8 +33,8 @@ contract RouterTest is Test, LogicSignature {
     event SignerAdded(address indexed signer, uint256 referral);
     event SignerRemoved(address indexed signer);
     event PauserSet(address indexed pauser);
-    event RouterPaused();
-    event RouterResumed();
+    event Paused();
+    event Resumed();
 
     function setUp() external {
         user = makeAddr('User');
@@ -206,29 +206,21 @@ contract RouterTest is Test, LogicSignature {
         router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty);
     }
 
-    function testCannotExecuteRouterPaused() external {
+    function testCannotExecutePaused() external {
         vm.prank(pauser);
-        router.pauseRouter();
+        router.pause();
         assertTrue(router.paused());
 
         // Execution revert when router paused
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo), // to
-            '',
-            inputsEmpty,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        vm.expectRevert(IRouter.RouterInPaused.selector);
+        vm.expectRevert(IRouter.RouterIsPaused.selector);
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty);
+        router.execute(logicsEmpty, tokensReturnEmpty);
 
         // Execution success when router resumed
         vm.prank(pauser);
-        router.resumeRouter();
+        router.resume();
         assertFalse(router.paused());
-        router.execute(logics, tokensReturnEmpty);
+        router.execute(logicsEmpty, tokensReturnEmpty);
     }
 
     function testCannotExecuteSignatureExpired() external {
@@ -294,40 +286,40 @@ contract RouterTest is Test, LogicSignature {
         router.setPauser(INVALID_PAUSER);
     }
 
-    function testPauseRouter() external {
+    function testPause() external {
         assertFalse(router.paused());
         vm.expectEmit(true, true, true, true, address(router));
-        emit RouterPaused();
+        emit Paused();
         vm.prank(pauser);
-        router.pauseRouter();
+        router.pause();
         assertTrue(router.paused());
     }
 
-    function testCannotPauseRouterByNonPauser() external {
+    function testCannotPauseByNonPauser() external {
         vm.expectRevert(IRouter.InvalidPauser.selector);
         vm.prank(user);
-        router.pauseRouter();
+        router.pause();
     }
 
-    function testResumeRouter() external {
+    function testResume() external {
         vm.prank(pauser);
-        router.pauseRouter();
+        router.pause();
         assertTrue(router.paused());
 
         vm.expectEmit(true, true, true, true, address(router));
-        emit RouterResumed();
+        emit Resumed();
         vm.prank(pauser);
-        router.resumeRouter();
+        router.resume();
         assertFalse(router.paused());
     }
 
-    function testCannotResumeRouterByNonPauser() external {
+    function testCannotResumeByNonPauser() external {
         vm.prank(pauser);
-        router.pauseRouter();
+        router.pause();
         assertTrue(router.paused());
 
         vm.expectRevert(IRouter.InvalidPauser.selector);
         vm.prank(user);
-        router.resumeRouter();
+        router.resume();
     }
 }

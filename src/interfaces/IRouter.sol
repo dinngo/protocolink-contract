@@ -10,9 +10,9 @@ interface IRouter {
 
     event PauserSet(address indexed pauser);
 
-    event RouterPaused();
+    event Paused();
 
-    event RouterResumed();
+    event Resumed();
 
     error Reentrancy();
 
@@ -28,7 +28,7 @@ interface IRouter {
 
     error InvalidPauser();
 
-    error RouterInPaused();
+    error RouterIsPaused();
 
     error InvalidNewPauser();
 
@@ -58,9 +58,9 @@ interface IRouter {
 
     function setPauser(address pauser_) external;
 
-    function pauseRouter() external;
+    function pause() external;
 
-    function resumeRouter() external;
+    function resume() external;
 
     function executeWithSignature(
         IParam.LogicBatch calldata logicBatch,

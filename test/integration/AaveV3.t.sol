@@ -46,7 +46,7 @@ contract AaveV3IntegrationTest is Test {
     function setUp() external {
         user = makeAddr('User');
 
-        router = new Router();
+        router = new Router(address(0));
         vm.prank(user);
         agent = IAgent(router.newAgent());
         flashLoanCallback = new FlashLoanCallbackAaveV3(address(router), address(AAVE_V3_PROVIDER));
