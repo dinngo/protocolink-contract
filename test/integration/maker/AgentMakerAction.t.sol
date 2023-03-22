@@ -95,6 +95,8 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         gemCdp = uint256(ret);
         assertEq(IERC20(DAI_TOKEN).balanceOf(user), DRAW_DAI_AMOUNT * 2);
 
+        _allowCdp(userDSProxy, ethCdp, userAgentDSProxy);
+        _allowCdp(userDSProxy, gemCdp, userAgentDSProxy);
         vm.stopPrank();
 
         // Build user2's agent
@@ -144,6 +146,66 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         assertEq(collateralAfter - collateralBefore, lockETHAmount);
     }
 
+    function testFreeETH() external {
+        // Setup
+        uint256 freeETHAmount = 1 ether;
+        uint256 userEthBalanceBefore = user.balance;
+
+        // Encode logic
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicFreeETH(userAgentDSProxy, ethCdp, freeETHAmount);
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(NATIVE);
+        vm.prank(user);
+        router.execute(logics, tokensReturn);
+
+        assertEq(user.balance - userEthBalanceBefore, freeETHAmount);
+        assertEq(address(router).balance, 0);
+        assertEq(address(userAgent).balance, 0);
+    }
+
+    function testFreeETHWithAuthority() external {
+        // Setup
+        uint256 freeETHAmount = 1 ether;
+        uint256 user2EthBalanceBefore = user2.balance;
+
+        // User approve to user2
+        vm.prank(user);
+        _allowCdp(userDSProxy, ethCdp, user2AgentDSProxy);
+
+        // Encode logic
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicFreeETH(user2AgentDSProxy, ethCdp, freeETHAmount);
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(NATIVE);
+        vm.prank(user2);
+        router.execute(logics, tokensReturn);
+
+        assertEq(user2.balance - user2EthBalanceBefore, freeETHAmount);
+        assertEq(address(router).balance, 0);
+        assertEq(address(user2Agent).balance, 0);
+    }
+
+    function testFreeETHWithoutAuthority() external {
+        // Setup
+        uint256 freeETHAmount = 1 ether;
+
+        // Encode logic
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicFreeETH(user2AgentDSProxy, ethCdp, freeETHAmount);
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(NATIVE);
+        vm.expectRevert('ERROR_ROUTER_EXECUTE');
+        vm.prank(user2);
+        router.execute(logics, tokensReturn);
+    }
+
     function testLockGem() external {
         // Setup
         uint256 lockGemAmount = 100 ether;
@@ -169,6 +231,28 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         assertEq(IERC20(GEM).balanceOf(address(user2AgentDSProxy)), 0);
         assertEq(user2GemBalanceBefore - user2GemBalanceAfter, lockGemAmount);
         assertEq(collateralAfter - collateralBefore, lockGemAmount);
+    }
+
+    function testFreeGem() external {
+        // Setup
+        uint256 freeGemAmount = 100 ether;
+        uint256 userEthBalanceBefore = IERC20(GEM).balanceOf(user);
+
+        // Encode logic
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicFreeGem(gemCdp, freeGemAmount);
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(GEM);
+        vm.prank(user);
+        router.execute(logics, tokensReturn);
+
+        uint256 userEthBalanceAfter = IERC20(GEM).balanceOf(user);
+
+        assertEq(userEthBalanceAfter - userEthBalanceBefore, freeGemAmount);
+        assertEq(IERC20(GEM).balanceOf(address(router)), 0);
+        assertEq(IERC20(GEM).balanceOf(address(userAgent)), 0);
     }
 
     function testWipe() external {
@@ -227,6 +311,50 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         assertEq(debtAfter, 0);
     }
 
+    function testDraw() external {
+        // Setup
+        uint256 drawDaiAmount = 1000 ether;
+        uint256 userDaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user);
+
+        // Encode logic
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicDraw(ethCdp, drawDaiAmount);
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(DAI_TOKEN);
+        vm.prank(user);
+        router.execute(logics, tokensReturn);
+
+        uint256 userDaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user);
+
+        assertEq(userDaiBalanceAfter - userDaiBalanceBefore, drawDaiAmount);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(userAgent)), 0);
+    }
+
+    function _allowCdp(address dsProxy, uint256 cdp, address usr) internal {
+        IDSProxy(dsProxy).execute(
+            PROXY_ACTIONS,
+            abi.encodeWithSelector(
+                0xba727a95, // selector of "cdpAllow(address,uint256,address,uint256)"
+                CDP_MANAGER,
+                cdp,
+                usr,
+                1
+            )
+        );
+    }
+
+    function _getCdpInfo(uint256 cdp) internal view returns (uint256, uint256) {
+        address urn = IMakerManager(CDP_MANAGER).urns(cdp);
+        bytes32 ilk = IMakerManager(CDP_MANAGER).ilks(cdp);
+        (, uint256 rate, , , ) = IMakerVat(VAT).ilks(ilk);
+        (uint256 ink, uint256 art) = IMakerVat(VAT).urns(ilk, urn);
+        uint256 debt = art * rate;
+        return (debt, ink);
+    }
+
     function _logicBuildAgentDSProxy() internal view returns (IParam.Logic[] memory) {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
@@ -238,15 +366,6 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         );
 
         return logics;
-    }
-
-    function _getCdpInfo(uint256 cdp) internal view returns (uint256, uint256) {
-        address urn = IMakerManager(CDP_MANAGER).urns(cdp);
-        bytes32 ilk = IMakerManager(CDP_MANAGER).ilks(cdp);
-        (, uint256 rate, , , ) = IMakerVat(VAT).ilks(ilk);
-        (uint256 ink, uint256 art) = IMakerVat(VAT).urns(ilk, urn);
-        uint256 debt = art * rate;
-        return (debt, ink);
     }
 
     function _logicAgentERC20ApprovalToDSProxy(
@@ -293,6 +412,30 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
             );
     }
 
+    function _logicFreeETH(address dsProxy, uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+        // Prepare data
+        bytes memory data = abi.encodeWithSelector(
+            IDSProxy.execute.selector,
+            PROXY_ACTIONS,
+            abi.encodeWithSelector(
+                0x7b5a3b43, // selector of "freeETH(address,address,uint256,uint256)"
+                CDP_MANAGER,
+                ETH_JOIN_A,
+                cdp,
+                amount
+            )
+        );
+
+        return
+            IParam.Logic(
+                dsProxy,
+                data,
+                inputsEmpty,
+                address(0), // approveTo
+                address(0) // callback
+            );
+    }
+
     function _logicLockGem(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
@@ -311,6 +454,30 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         return
             IParam.Logic(
                 user2AgentDSProxy,
+                data,
+                inputsEmpty,
+                address(0), // approveTo
+                address(0) // callback
+            );
+    }
+
+    function _logicFreeGem(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+        // Prepare datas
+        bytes memory data = abi.encodeWithSelector(
+            IDSProxy.execute.selector,
+            PROXY_ACTIONS,
+            abi.encodeWithSelector(
+                0x6ab6a491, // selector of "freeGem(address,address,uint256,uint256)"
+                CDP_MANAGER,
+                GEM_JOIN_LINK_A,
+                cdp,
+                amount
+            )
+        );
+
+        return
+            IParam.Logic(
+                userAgentDSProxy,
                 data,
                 inputsEmpty,
                 address(0), // approveTo
@@ -358,6 +525,31 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         return
             IParam.Logic(
                 user2AgentDSProxy,
+                data,
+                inputsEmpty,
+                address(0), // approveTo
+                address(0) // callback
+            );
+    }
+
+    function _logicDraw(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+        // Prepare datas
+        bytes memory data = abi.encodeWithSelector(
+            IDSProxy.execute.selector,
+            PROXY_ACTIONS,
+            abi.encodeWithSelector(
+                0x9f6f3d5b, // selector of "draw(address,address,address,uint256,uint256)"
+                CDP_MANAGER,
+                JUG,
+                DAI_JOIN,
+                cdp,
+                amount
+            )
+        );
+
+        return
+            IParam.Logic(
+                userAgentDSProxy,
                 data,
                 inputsEmpty,
                 address(0), // approveTo
