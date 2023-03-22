@@ -26,7 +26,7 @@ contract BalancerV2IntegrationTest is Test {
     function setUp() external {
         user = makeAddr('User');
 
-        router = new Router();
+        router = new Router(address(0));
         flashLoanCallback = new FlashLoanCallbackBalancerV2(address(router), address(balancerV2Vault));
 
         vm.label(address(router), 'Router');

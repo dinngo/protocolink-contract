@@ -39,7 +39,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
     function setUp() external {
         user = makeAddr('User');
         (user2, user2PrivateKey) = makeAddrAndKey('User2');
-        router = new Router();
+        router = new Router(address(0));
 
         // Empty router the balance
         vm.prank(address(router));
