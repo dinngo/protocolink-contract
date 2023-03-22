@@ -124,29 +124,24 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
     function testLockETH() external {
         // Setup
         uint256 lockETHAmount = 10 ether;
+        deal(user2, lockETHAmount);
+        uint256 user2BalanceBefore = user2.balance;
         (, uint256 collateralBefore) = _getCdpInfo(ethCdp);
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicLockETH(ethCdp, lockETHAmount);
 
-        // Get updated logic and msg.value
-        uint256 lockETHAmountWithFee;
-        (logics, lockETHAmountWithFee) = router.getUpdatedLogics(logics, lockETHAmount);
-        deal(user2, lockETHAmountWithFee);
-
-        uint256 user2BalanceBefore = user2.balance;
-
         // Execute
         vm.prank(user2);
-        router.execute{value: lockETHAmountWithFee}(logics, tokensReturnEmpty);
+        router.execute{value: lockETHAmount}(logics, tokensReturnEmpty);
 
         (, uint256 collateralAfter) = _getCdpInfo(ethCdp);
 
         assertEq(address(router).balance, 0);
         assertEq(address(user2Agent).balance, 0);
         assertEq(address(user2AgentDSProxy).balance, 0);
-        assertEq(user2BalanceBefore - user2.balance, lockETHAmountWithFee);
+        assertEq(user2BalanceBefore - user2.balance, lockETHAmount);
         assertEq(collateralAfter - collateralBefore, lockETHAmount);
     }
 

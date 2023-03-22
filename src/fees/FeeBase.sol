@@ -4,22 +4,30 @@ pragma solidity ^0.8.0;
 import {IRouter} from '../interfaces/IRouter.sol';
 
 abstract contract FeeBase {
-    uint256 public constant BPS_BASE = 10_000;
+    error InvalidSender();
+    error InvalidRate();
+
+    uint256 private constant _BPS_BASE = 10_000;
     address public immutable router;
 
-    uint256 public feeRate = 20; // Default 0.2% fee rate
+    uint256 public feeRate; // In bps, 20 means 0.2%
 
-    constructor(address router_) {
+    constructor(address router_, uint256 feeRate_) {
         router = router_;
+        feeRate = feeRate_;
     }
 
     function setFeeRate(uint256 feeRate_) public {
-        require(msg.sender == IRouter(router).owner(), 'Invalid sender');
-        require(feeRate_ < BPS_BASE, 'Invalid rate');
+        if (msg.sender != IRouter(router).owner()) revert InvalidSender();
+        if (feeRate >= _BPS_BASE) revert InvalidRate();
         feeRate = feeRate_;
     }
 
     function calculateFee(uint256 amount) public view returns (uint256) {
-        return (amount * feeRate) / (BPS_BASE + feeRate);
+        return (amount * feeRate) / (_BPS_BASE + feeRate);
+    }
+
+    function calculateAmountWithFee(uint256 amount) public view returns (uint256) {
+        return (amount * (_BPS_BASE + feeRate)) / _BPS_BASE;
     }
 }

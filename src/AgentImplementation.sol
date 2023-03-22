@@ -8,7 +8,7 @@ import {ERC1155Holder} from 'openzeppelin-contracts/contracts/token/ERC1155/util
 import {IAgent} from './interfaces/IAgent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
-import {IFeeDecodeContract} from './interfaces/IFeeDecodeContract.sol';
+import {IFeeCalculator} from './interfaces/IFeeCalculator.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 /// @title Implemtation contract of agent logics
@@ -17,12 +17,13 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     using Address for address;
     using Address for address payable;
 
-    event ChargeFee(address indexed token, uint256 amount);
+    event FeeCharged(address indexed token, uint256 amount);
 
     address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
+    bytes private constant _NATIVE_TOKEN_FEE_CHARGE_DATA = '';
     uint256 private constant _BPS_BASE = 10_000;
     uint256 private constant _SKIP = type(uint256).max;
-    bytes4 private constant _NATIVE_TOKEN_SIG = 0xeeeeeeee;
 
     address public immutable router;
 
@@ -53,10 +54,10 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     function execute(
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
-        bool feeEnable
+        bool isFeeEnabled
     ) external payable checkCaller {
         address feeCollector;
-        if (feeEnable) feeCollector = IRouter(router).feeCollector();
+        if (isFeeEnabled) feeCollector = IRouter(router).feeCollector();
 
         // Execute each logic
         uint256 logicsLength = logics.length;
@@ -125,7 +126,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             if (_caller != router) revert UnresetCallback();
 
             // Charge fees
-            if (feeEnable) {
+            if (isFeeEnabled) {
                 _chargeFee(data, feeCollector);
             }
 
@@ -135,8 +136,8 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         }
 
         // Charge native token fee
-        if (feeEnable && msg.value > 0) {
-            _chargeFee('', feeCollector);
+        if (isFeeEnabled && msg.value > 0) {
+            _chargeFee(_NATIVE_TOKEN_FEE_CHARGE_DATA, feeCollector);
         }
 
         // Push tokensReturn if any balance
@@ -162,18 +163,20 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     /// @notice Check transaction `data` and charge fee
     function _chargeFee(bytes memory data, address feeCollector) private {
         bool isNative = data.length == 0 ? true : false;
-        bytes4 sig = isNative ? _NATIVE_TOKEN_SIG : bytes4(data);
-        address feeDecodeContract = IRouter(router).feeDecoder(sig);
-        if (feeDecodeContract != address(0)) {
+        bytes4 selector = isNative ? _NATIVE_FEE_SELECTOR : bytes4(data);
+        address feeCalculator = IRouter(router).feeCalculators(selector);
+        if (feeCalculator != address(0)) {
             data = isNative ? abi.encodePacked(msg.value) : data;
-            // Get charge asset and fee
-            (address asset, uint256 fee) = IFeeDecodeContract(feeDecodeContract).decodeData(data);
-            if (isNative) {
-                payable(feeCollector).sendValue(fee);
-            } else {
-                IERC20(asset).safeTransfer(feeCollector, fee);
+            // Get charge token and fee
+            (address token, uint256 fee) = IFeeCalculator(feeCalculator).getFee(data);
+            if (fee > 0) {
+                if (isNative) {
+                    payable(feeCollector).sendValue(fee);
+                } else {
+                    IERC20(token).safeTransfer(feeCollector, fee);
+                }
+                emit FeeCharged(token, fee);
             }
-            emit ChargeFee(asset, fee);
         }
     }
 

@@ -113,14 +113,11 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
     function testExecuteUniswapV2SwapNativeToToken(uint256 amountIn) external {
         IERC20 tokenOut = USDT;
         amountIn = bound(amountIn, 1e12, 1e22);
+        deal(user, amountIn);
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicUniswapV2SwapNativeToToken(amountIn, SKIP, tokenOut); // Fixed amount
-
-        // Get updated logic and msg.value
-        (logics, amountIn) = router.getUpdatedLogics(logics, amountIn);
-        deal(user, amountIn);
 
         // Execute
         address[] memory tokensReturn = new address[](1);

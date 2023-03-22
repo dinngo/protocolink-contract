@@ -9,7 +9,7 @@ import {Agent} from './Agent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
-import {IFeeDecodeContract} from './interfaces/IFeeDecodeContract.sol';
+import {IFeeCalculator} from './interfaces/IFeeCalculator.sol';
 
 /// @title Router executes arbitrary logics
 contract Router is IRouter, EIP712, Ownable {
@@ -18,15 +18,15 @@ contract Router is IRouter, EIP712, Ownable {
 
     address private constant _INIT_USER = address(1);
     uint256 private constant _INVALID_REFERRAL = 0;
-    bytes4 private constant _NATIVE_TOKEN_SIG = 0xeeeeeeee;
-    
+    bytes4 private constant _NATIVE_TOKEN_SELECTOR = 0xeeeeeeee;
+
     address public immutable agentImplementation;
-    address public immutable feeCollector;
 
     mapping(address owner => IAgent agent) public agents;
     mapping(address signer => uint256 referral) public signerReferrals;
-    mapping(bytes4 sig => address feeDecodeContract) public feeDecoder;
+    mapping(bytes4 selector => address feeCalculator) public feeCalculators;
     address public user;
+    address public feeCollector;
 
     modifier checkCaller() {
         if (user == _INIT_USER) {
@@ -37,8 +37,8 @@ contract Router is IRouter, EIP712, Ownable {
         _;
         user = _INIT_USER;
     }
-    
-    constructor(address feeCollector_) EIP712('Composable Router', '1'){
+
+    constructor(address feeCollector_) EIP712('Composable Router', '1') {
         user = _INIT_USER;
         agentImplementation = address(new AgentImplementation());
         feeCollector = feeCollector_;
@@ -83,6 +83,33 @@ contract Router is IRouter, EIP712, Ownable {
         return result;
     }
 
+    /// @notice Get updated logics and msg.value that contains fee
+    function getUpdatedLogics(
+        IParam.Logic[] memory logics,
+        uint256 msgValue
+    ) external view returns (IParam.Logic[] memory, uint256) {
+        // Update logics
+        uint256 length = logics.length;
+        for (uint256 i = 0; i < length; i++) {
+            bytes memory data = logics[i].data;
+            bytes4 selector = bytes4(data);
+            address feeCalculator = feeCalculators[selector];
+            if (feeCalculator != address(0)) {
+                // Update transaction data
+                logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
+            }
+        }
+
+        // Update value
+        address nativeFeeCalculator = feeCalculators[_NATIVE_TOKEN_SELECTOR];
+        if (nativeFeeCalculator != address(0)) {
+            (, uint256 fee) = IFeeCalculator(nativeFeeCalculator).getFee(abi.encodePacked(msgValue));
+            msgValue += fee;
+        }
+
+        return (logics, msgValue);
+    }
+
     function addSigner(address signer, uint256 referral) external onlyOwner {
         if (referral == _INVALID_REFERRAL) revert InvalidReferral(referral);
         signerReferrals[signer] = referral;
@@ -95,30 +122,6 @@ contract Router is IRouter, EIP712, Ownable {
 
         emit SignerRemoved(signer);
     }
-    
-    /// @notice Get updated logics and msg.value that contains fee    
-    function getUpdatedLogics(IParam.Logic[] memory logics, uint256 msgValue) external view returns (IParam.Logic[] memory, uint256){
-        // Update logics
-        uint256 length = logics.length;
-        for(uint256 i = 0; i < length; i++){
-            bytes memory data = logics[i].data;
-            bytes4 sig = bytes4(data);
-            address feeDecodeContract = feeDecoder[sig];
-            if (feeDecodeContract != address(0)) {
-                // Update transaction data
-                logics[i].data = IFeeDecodeContract(feeDecodeContract).getUpdatedData(data);
-            }
-        }
-        
-        // Update value
-        address nativeFeeDecodeContract = feeDecoder[_NATIVE_TOKEN_SIG];
-        if(nativeFeeDecodeContract != address(0)){
-            (, uint256 fee) = IFeeDecodeContract(nativeFeeDecodeContract).decodeData(abi.encodePacked(msgValue));
-            msgValue += fee;
-        }
-        
-        return (logics, msgValue);
-    }
 
     /// @notice Execute logics with signer's signature.
     function executeWithSignature(
@@ -126,7 +129,7 @@ contract Router is IRouter, EIP712, Ownable {
         address signer,
         bytes calldata signature,
         address[] calldata tokensReturn
-    ) external payable checkCaller{
+    ) external payable checkCaller {
         // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
@@ -134,7 +137,7 @@ contract Router is IRouter, EIP712, Ownable {
         if (!signer.isValidSignatureNow(_hashTypedDataV4(logicBatch._hash()), signature)) revert InvalidSignature();
 
         IAgent agent = agents[user];
-        
+
         if (address(agent) == address(0)) {
             agent = IAgent(newAgent(user));
         }
@@ -143,7 +146,7 @@ contract Router is IRouter, EIP712, Ownable {
     }
 
     /// @notice Execute logics through user's agent. Create agent for user if not created.
-    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) public payable checkCaller {
+    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable checkCaller {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
@@ -169,16 +172,21 @@ contract Router is IRouter, EIP712, Ownable {
         }
     }
 
-    /// @notice Set fee decoder contract for each function signature
-    function setFeeDecoder(bytes4[] calldata sig, address[] calldata feeDecodeContracts) public onlyOwner{
-        uint256 length = sig.length;
-        if(length != feeDecodeContracts.length) revert LengthMismatch();
+    /// @notice Set fee calculator contract for each function selector
+    function setFeeCalculator(bytes4[] calldata selectors, address[] calldata feeCalculators_) external onlyOwner {
+        uint256 length = selectors.length;
+        if (length != feeCalculators_.length) revert LengthMismatch();
 
-        for(uint256 i = 0; i < length; ){
-            feeDecoder[sig[i]] = feeDecodeContracts[i];
-            unchecked{
+        for (uint256 i = 0; i < length; ) {
+            feeCalculators[selectors[i]] = feeCalculators_[i];
+            unchecked {
                 ++i;
             }
         }
+    }
+
+    function setFeeCollector(address feeCollector_) external onlyOwner {
+        feeCollector = feeCollector_;
+        emit FeeCollectorSet(feeCollector_);
     }
 }

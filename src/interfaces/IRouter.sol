@@ -8,6 +8,8 @@ interface IRouter {
 
     event SignerRemoved(address indexed signer);
 
+    event FeeCollectorSet(address indexed feeCollector_);
+
     error Reentrancy();
 
     error AgentCreated();
@@ -45,7 +47,7 @@ interface IRouter {
         uint256 msgValue
     ) external view returns (IParam.Logic[] memory, uint256);
 
-    function feeDecoder(bytes4 sig) external view returns (address);
+    function feeCalculators(bytes4 selector) external view returns (address);
 
     function feeCollector() external view returns (address);
 
@@ -65,4 +67,8 @@ interface IRouter {
     function newAgent() external returns (address payable);
 
     function newAgent(address user) external returns (address payable);
+
+    function setFeeCalculator(bytes4[] calldata selector, address[] calldata feeCalculators_) external;
+
+    function setFeeCollector(address feeCollector_) external;
 }

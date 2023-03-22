@@ -70,16 +70,13 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
         (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust);
 
         ethLockAmount = bound(ethLockAmount, minCollateral, 1e22);
+        deal(user, ethLockAmount);
         uint256 daiDrawMax = _getDAIDrawMaxAmount(ethLockAmount, daiDrawMin, spot, rate);
         daiDrawAmount = bound(daiDrawAmount, daiDrawMin, daiDrawMax);
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicOpenLockETHAndDraw(ethLockAmount, daiDrawAmount);
-
-        // Get updated logic and msg.value
-        (logics, ethLockAmount) = router.getUpdatedLogics(logics, ethLockAmount);
-        deal(user, ethLockAmount);
 
         // Get param before execute
         uint256 userDAIBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user);
