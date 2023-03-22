@@ -42,7 +42,7 @@ interface IRouter {
 
     function calcAgent(address user) external view returns (address);
 
-    function getUpdatedLogics(
+    function getLogicsWithFee(
         IParam.Logic[] memory logics,
         uint256 msgValue
     ) external view returns (IParam.Logic[] memory, uint256);
@@ -54,6 +54,10 @@ interface IRouter {
     function addSigner(address newSigner, uint256 referral) external;
 
     function removeSigner(address signer) external;
+
+    function setFeeCalculators(bytes4[] calldata selector, address[] calldata feeCalculators_) external;
+
+    function setFeeCollector(address feeCollector_) external;
 
     function executeWithSignature(
         IParam.LogicBatch calldata logicBatch,
@@ -67,8 +71,4 @@ interface IRouter {
     function newAgent() external returns (address payable);
 
     function newAgent(address user) external returns (address payable);
-
-    function setFeeCalculator(bytes4[] calldata selector, address[] calldata feeCalculators_) external;
-
-    function setFeeCollector(address feeCollector_) external;
 }

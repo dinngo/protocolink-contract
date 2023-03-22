@@ -21,7 +21,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
     address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
-    bytes private constant _NATIVE_TOKEN_FEE_CHARGE_DATA = '';
+    bytes private constant _NATIVE_FEE_CHARGE_DATA = new bytes(0);
     uint256 private constant _BPS_BASE = 10_000;
     uint256 private constant _SKIP = type(uint256).max;
 
@@ -137,7 +137,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
         // Charge native token fee
         if (isFeeEnabled && msg.value > 0) {
-            _chargeFee(_NATIVE_TOKEN_FEE_CHARGE_DATA, feeCollector);
+            _chargeFee(_NATIVE_FEE_CHARGE_DATA, feeCollector);
         }
 
         // Push tokensReturn if any balance
