@@ -15,8 +15,10 @@ contract RouterTest is Test, LogicSignature {
     uint256 public constant SKIP = type(uint256).max;
     uint256 public constant INVALID_REFERRAL = 0;
     uint256 public constant SIGNER_REFERRAL = 1;
+    address public constant INVALID_PAUSER = address(0);
 
     address public user;
+    address public pauser;
     address public signer;
     uint256 public signerPrivateKey;
     IRouter public router;
@@ -30,13 +32,16 @@ contract RouterTest is Test, LogicSignature {
 
     event SignerAdded(address indexed signer, uint256 referral);
     event SignerRemoved(address indexed signer);
+    event PauserSet(address indexed pauser);
+    event Paused();
+    event Resumed();
 
     function setUp() external {
         user = makeAddr('User');
+        pauser = makeAddr('Pauser');
         (signer, signerPrivateKey) = makeAddrAndKey('Signer');
-
         address feeCollector = makeAddr('FeeCollector');
-        router = new Router(feeCollector);
+        router = new Router(pauser, feeCollector);
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockTo = address(new MockFallback());
 
@@ -201,6 +206,23 @@ contract RouterTest is Test, LogicSignature {
         router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty);
     }
 
+    function testCannotExecutePaused() external {
+        vm.prank(pauser);
+        router.pause();
+        assertTrue(router.paused());
+
+        // Execution revert when router paused
+        vm.expectRevert(IRouter.RouterIsPaused.selector);
+        vm.prank(user);
+        router.execute(logicsEmpty, tokensReturnEmpty);
+
+        // Execution success when router resumed
+        vm.prank(pauser);
+        router.resume();
+        assertFalse(router.paused());
+        router.execute(logicsEmpty, tokensReturnEmpty);
+    }
+
     function testCannotExecuteSignatureExpired() external {
         uint256 deadline = block.timestamp - 1; // Expired
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, deadline);
@@ -242,5 +264,62 @@ contract RouterTest is Test, LogicSignature {
         vm.prank(user);
         vm.expectRevert(IRouter.InvalidSignature.selector);
         router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty);
+    }
+
+    function testSetPauser(address pauser_) external {
+        vm.assume(pauser_ != INVALID_PAUSER);
+        vm.expectEmit(true, true, true, true, address(router));
+        emit PauserSet(pauser_);
+        router.setPauser(pauser_);
+        assertEq(router.pauser(), pauser_);
+    }
+
+    function testCannotSetPauserByNonOwner(address pauser_) external {
+        vm.assume(pauser_ != INVALID_PAUSER);
+        vm.expectRevert('Ownable: caller is not the owner');
+        vm.prank(user);
+        router.setPauser(pauser_);
+    }
+
+    function testCannotSetPauserInvalidNewPauser() external {
+        vm.expectRevert(IRouter.InvalidNewPauser.selector);
+        router.setPauser(INVALID_PAUSER);
+    }
+
+    function testPause() external {
+        assertFalse(router.paused());
+        vm.expectEmit(true, true, true, true, address(router));
+        emit Paused();
+        vm.prank(pauser);
+        router.pause();
+        assertTrue(router.paused());
+    }
+
+    function testCannotPauseByNonPauser() external {
+        vm.expectRevert(IRouter.InvalidPauser.selector);
+        vm.prank(user);
+        router.pause();
+    }
+
+    function testResume() external {
+        vm.prank(pauser);
+        router.pause();
+        assertTrue(router.paused());
+
+        vm.expectEmit(true, true, true, true, address(router));
+        emit Resumed();
+        vm.prank(pauser);
+        router.resume();
+        assertFalse(router.paused());
+    }
+
+    function testCannotResumeByNonPauser() external {
+        vm.prank(pauser);
+        router.pause();
+        assertTrue(router.paused());
+
+        vm.expectRevert(IRouter.InvalidPauser.selector);
+        vm.prank(user);
+        router.resume();
     }
 }

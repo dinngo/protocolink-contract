@@ -33,7 +33,7 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
         address feeCollector = makeAddr('FeeCollector');
-        router = new Router(feeCollector);
+        router = new Router(address(0), feeCollector);
         vm.prank(user);
         agent = IAgent(router.newAgent());
         market = new MockERC721Market(USDC);

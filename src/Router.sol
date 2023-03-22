@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-
 import {Ownable} from 'openzeppelin-contracts/contracts/access/Ownable.sol';
 import {EIP712} from 'openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol';
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
@@ -17,6 +16,7 @@ contract Router is IRouter, EIP712, Ownable {
     using SignatureChecker for address;
 
     address private constant _INIT_USER = address(1);
+    address private constant _INVALID_PAUSER = address(0);
     uint256 private constant _INVALID_REFERRAL = 0;
     bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
 
@@ -25,8 +25,10 @@ contract Router is IRouter, EIP712, Ownable {
     mapping(address owner => IAgent agent) public agents;
     mapping(address signer => uint256 referral) public signerReferrals;
     mapping(bytes4 selector => address feeCalculator) public feeCalculators;
-    address public user;
     address public feeCollector;
+    address public pauser;
+    address public user;
+    bool public paused;
 
     modifier checkCaller() {
         if (user == _INIT_USER) {
@@ -38,9 +40,20 @@ contract Router is IRouter, EIP712, Ownable {
         user = _INIT_USER;
     }
 
-    constructor(address feeCollector_) EIP712('Composable Router', '1') {
+    modifier isPaused() {
+        if (paused) revert RouterIsPaused();
+        _;
+    }
+
+    modifier onlyPauser() {
+        if (msg.sender != pauser) revert InvalidPauser();
+        _;
+    }
+
+    constructor(address pauser_, address feeCollector_) EIP712('Composable Router', '1') {
         user = _INIT_USER;
         agentImplementation = address(new AgentImplementation());
+        pauser = pauser_;
         feeCollector = feeCollector_;
     }
 
@@ -125,6 +138,22 @@ contract Router is IRouter, EIP712, Ownable {
         emit SignerRemoved(signer);
     }
 
+    function setPauser(address pauser_) external onlyOwner {
+        if (pauser_ == _INVALID_PAUSER) revert InvalidNewPauser();
+        pauser = pauser_;
+        emit PauserSet(pauser_);
+    }
+
+    function pause() external onlyPauser {
+        paused = true;
+        emit Paused();
+    }
+
+    function resume() external onlyPauser {
+        paused = false;
+        emit Resumed();
+    }
+
     /// @notice Set fee calculator contract for each function selector
     function setFeeCalculators(bytes4[] calldata selectors, address[] calldata feeCalculators_) external onlyOwner {
         uint256 length = selectors.length;
@@ -166,7 +195,10 @@ contract Router is IRouter, EIP712, Ownable {
     }
 
     /// @notice Execute logics through user's agent. Create agent for user if not created.
-    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable checkCaller {
+    function execute(
+        IParam.Logic[] calldata logics,
+        address[] calldata tokensReturn
+    ) public payable isPaused checkCaller {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {

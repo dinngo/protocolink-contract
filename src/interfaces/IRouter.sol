@@ -10,6 +10,12 @@ interface IRouter {
 
     event FeeCollectorSet(address indexed feeCollector_);
 
+    event PauserSet(address indexed pauser);
+
+    event Paused();
+
+    event Resumed();
+
     error Reentrancy();
 
     error AgentCreated();
@@ -24,6 +30,12 @@ interface IRouter {
 
     error LengthMismatch();
 
+    error InvalidPauser();
+
+    error RouterIsPaused();
+
+    error InvalidNewPauser();
+
     function agentImplementation() external view returns (address);
 
     function signerReferrals(address signer) external view returns (uint256);
@@ -31,6 +43,10 @@ interface IRouter {
     function owner() external view returns (address);
 
     function user() external view returns (address);
+
+    function pauser() external view returns (address);
+
+    function paused() external view returns (bool);
 
     function domainSeparator() external view returns (bytes32);
 
@@ -54,6 +70,12 @@ interface IRouter {
     function addSigner(address newSigner, uint256 referral) external;
 
     function removeSigner(address signer) external;
+
+    function setPauser(address pauser_) external;
+
+    function pause() external;
+
+    function resume() external;
 
     function setFeeCalculators(bytes4[] calldata selector, address[] calldata feeCalculators_) external;
 

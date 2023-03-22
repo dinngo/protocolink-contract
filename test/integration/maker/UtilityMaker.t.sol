@@ -38,7 +38,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
         address feeCollector = makeAddr('FeeCollector');
-        router = new Router(feeCollector);
+        router = new Router(address(0), feeCollector);
         utilityMaker = new UtilityMaker(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
         utilityMakerDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(utilityMaker));
 

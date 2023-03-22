@@ -6,9 +6,9 @@ import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ut
 import {IAgent} from '../../src/interfaces/IAgent.sol';
 import {Router, IRouter} from '../../src/Router.sol';
 import {IParam} from '../../src/interfaces/IParam.sol';
-import {IAaveV2Provider} from '../../src/interfaces/aaveV2/IAaveV2Provider.sol';
-import {FlashLoanCallbackAaveV2, IFlashLoanCallbackAaveV2} from '../../src/FlashLoanCallbackAaveV2.sol';
-import {IAaveV2Pool} from '../../src/interfaces/aaveV2/IAaveV2Pool.sol';
+import {IAaveV3Provider} from '../../src/interfaces/aaveV3/IAaveV3Provider.sol';
+import {FlashLoanCallbackAaveV3, IFlashLoanCallbackAaveV3} from '../../src/FlashLoanCallbackAaveV3.sol';
+import {IAaveV3Pool} from '../../src/interfaces/aaveV3/IAaveV3Pool.sol';
 
 interface IDebtToken {
     function UNDERLYING_ASSET_ADDRESS() external view returns (address);
@@ -18,7 +18,7 @@ interface IDebtToken {
     function totalSupply() external view returns (uint256);
 }
 
-contract AaveV2IntegrationTest is Test {
+contract AaveV3IntegrationTest is Test {
     using SafeERC20 for IERC20;
 
     enum InterestRateMode {
@@ -28,16 +28,16 @@ contract AaveV2IntegrationTest is Test {
     }
 
     uint16 private constant _REFERRAL_CODE = 56;
-    IAaveV2Provider public constant AAVE_V2_PROVIDER = IAaveV2Provider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
+    IAaveV3Provider public constant AAVE_V3_PROVIDER = IAaveV3Provider(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    address public constant AUSDC_V2 = 0xBcca60bB61934080951369a648Fb03DF4F96263C;
-    IDebtToken public constant AUSDC_V2_DEBT_VARIABLE = IDebtToken(0x619beb58998eD2278e08620f97007e1116D5D25b);
+    address public constant AUSDC_V3 = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
+    IDebtToken public constant AUSDC_V3_DEBT_VARIABLE = IDebtToken(0x72E95b8931767C79bA4EeE721354d6E99a61D004);
 
     address public user;
     IRouter public router;
     IAgent public agent;
-    IFlashLoanCallbackAaveV2 public flashLoanCallback;
-    IAaveV2Pool pool = IAaveV2Pool(IAaveV2Provider(AAVE_V2_PROVIDER).getLendingPool());
+    IFlashLoanCallbackAaveV3 public flashLoanCallback;
+    IAaveV3Pool pool = IAaveV3Pool(IAaveV3Provider(AAVE_V3_PROVIDER).getPool());
 
     // Empty arrays
     address[] tokensReturnEmpty;
@@ -49,25 +49,25 @@ contract AaveV2IntegrationTest is Test {
         router = new Router(address(0), feeCollector);
         vm.prank(user);
         agent = IAgent(router.newAgent());
-        flashLoanCallback = new FlashLoanCallbackAaveV2(address(router), address(AAVE_V2_PROVIDER));
+        flashLoanCallback = new FlashLoanCallbackAaveV3(address(router), address(AAVE_V3_PROVIDER));
 
-        // User approved agent aave v2 delegation
+        // User approved agent aave v3 delegation
         vm.startPrank(user);
-        AUSDC_V2_DEBT_VARIABLE.approveDelegation(address(agent), type(uint256).max);
+        AUSDC_V3_DEBT_VARIABLE.approveDelegation(address(agent), type(uint256).max);
         vm.stopPrank();
 
         vm.label(address(router), 'Router');
         vm.label(address(agent), 'Agent');
-        vm.label(address(AAVE_V2_PROVIDER), 'AaveV2Provider');
-        vm.label(address(pool), 'AaveV2Pool');
+        vm.label(address(AAVE_V3_PROVIDER), 'AaveV3Provider');
+        vm.label(address(pool), 'AaveV3Pool');
         vm.label(address(USDC), 'USDC');
-        vm.label(address(AUSDC_V2), 'aUSDC');
-        vm.label(address(AUSDC_V2_DEBT_VARIABLE), 'variableDebtUSDC');
+        vm.label(address(AUSDC_V3), 'aUSDC');
+        vm.label(address(AUSDC_V3_DEBT_VARIABLE), 'variableDebtUSDC');
     }
 
-    function testExecuteAaveV2Borrow(uint256 amountIn) external {
+    function testExecuteAaveV3Borrow(uint256 amountIn) external {
         vm.assume(amountIn > 1e8);
-        IDebtToken tokenIn = AUSDC_V2_DEBT_VARIABLE;
+        IDebtToken tokenIn = AUSDC_V3_DEBT_VARIABLE;
         IERC20 tokenOut = IERC20(tokenIn.UNDERLYING_ASSET_ADDRESS());
         amountIn = bound(amountIn, 1, tokenIn.totalSupply());
         vm.label(address(tokenOut), 'Token');
@@ -77,12 +77,12 @@ contract AaveV2IntegrationTest is Test {
         uint256 collateralAmount = amountIn * 3;
         deal(address(tokenOut), user, collateralAmount);
         tokenOut.safeApprove(address(pool), collateralAmount);
-        pool.deposit(address(tokenOut), collateralAmount, user, 0);
+        pool.supply(address(tokenOut), collateralAmount, user, 0);
         vm.stopPrank();
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicSpenderAaveV2Delegation(tokenOut, amountIn, uint256(InterestRateMode.VARIABLE));
+        logics[0] = _logicSpenderAaveV3Delegation(tokenOut, amountIn, uint256(InterestRateMode.VARIABLE));
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -95,10 +95,10 @@ contract AaveV2IntegrationTest is Test {
         assertEq(tokenOut.balanceOf(user), amountIn);
     }
 
-    function testExecuteAaveV2FlashLoan(uint256 amountIn) external {
+    function testExecuteAaveV3FlashLoan(uint256 amountIn) external {
         vm.assume(amountIn > 1e6);
         IERC20 token = USDC;
-        amountIn = bound(amountIn, 1, token.balanceOf(AUSDC_V2));
+        amountIn = bound(amountIn, 1, token.balanceOf(AUSDC_V3));
         vm.label(address(token), 'Token');
 
         address[] memory tokens = new address[](1);
@@ -112,7 +112,7 @@ contract AaveV2IntegrationTest is Test {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicAaveV2FlashLoan(tokens, amounts, modes);
+        logics[0] = _logicAaveV3FlashLoan(tokens, amounts, modes);
 
         // Execute
         vm.prank(user);
@@ -124,7 +124,7 @@ contract AaveV2IntegrationTest is Test {
         assertEq(token.balanceOf(user), 0);
     }
 
-    function _logicSpenderAaveV2Delegation(
+    function _logicSpenderAaveV3Delegation(
         IERC20 token,
         uint256 amount,
         uint256 interestRateMode
@@ -133,7 +133,7 @@ contract AaveV2IntegrationTest is Test {
             IParam.Logic(
                 address(pool), // to
                 abi.encodeWithSelector(
-                    IAaveV2Pool.borrow.selector,
+                    IAaveV3Pool.borrow.selector,
                     token,
                     amount,
                     interestRateMode,
@@ -146,7 +146,7 @@ contract AaveV2IntegrationTest is Test {
             );
     }
 
-    function _logicAaveV2FlashLoan(
+    function _logicAaveV3FlashLoan(
         address[] memory tokens,
         uint256[] memory amounts,
         uint256[] memory modes
@@ -161,7 +161,7 @@ contract AaveV2IntegrationTest is Test {
             IParam.Logic(
                 address(pool), // to
                 abi.encodeWithSelector(
-                    IAaveV2Pool.flashLoan.selector,
+                    IAaveV3Pool.flashLoan.selector,
                     receiverAddress,
                     tokens,
                     amounts,
@@ -179,9 +179,11 @@ contract AaveV2IntegrationTest is Test {
     function _encodeExecute(address[] memory tokens, uint256[] memory amounts) public returns (bytes memory) {
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](tokens.length);
+        uint256 percentage = pool.FLASHLOAN_PREMIUM_TOTAL();
+
         for (uint256 i = 0; i < tokens.length; ) {
             // Airdrop fee to Agent
-            uint256 fee = (amounts[i] * 9) / 10000;
+            uint256 fee = _percentMul(amounts[i], percentage);
             deal(address(tokens[i]), address(agent), fee);
 
             // Encode transfering token + fee to the flash loan callback
@@ -199,6 +201,22 @@ contract AaveV2IntegrationTest is Test {
         }
 
         // Encode execute data
-        return abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty, false);
+        return abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty);
+    }
+
+    function _percentMul(uint256 value, uint256 percentage) internal pure returns (uint256 result) {
+        // Fork PercentageMath of AAVEV3.
+        // From https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/math/PercentageMath.sol#L48
+
+        // to avoid overflow, value <= (type(uint256).max - HALF_PERCENTAGE_FACTOR) / percentage
+        uint256 PERCENTAGE_FACTOR = 1e4;
+        uint256 HALF_PERCENTAGE_FACTOR = 0.5e4;
+        assembly {
+            if iszero(or(iszero(percentage), iszero(gt(value, div(sub(not(0), HALF_PERCENTAGE_FACTOR), percentage))))) {
+                revert(0, 0)
+            }
+
+            result := div(add(mul(value, percentage), HALF_PERCENTAGE_FACTOR), PERCENTAGE_FACTOR)
+        }
     }
 }
