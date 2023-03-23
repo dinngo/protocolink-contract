@@ -9,8 +9,13 @@ contract NativeFeeCalculator is IFeeCalculator, FeeBase {
 
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 
-    function getFee(bytes calldata data) external view returns (address, uint256) {
-        return (_NATIVE, calculateFee(uint256(bytes32(data))));
+    function getFees(bytes calldata data) external view returns (address[] memory, uint256[] memory) {
+        address[] memory tokens = new address[](1);
+        tokens[0] = _NATIVE;
+
+        uint256[] memory fees = new uint256[](1);
+        fees[0] = calculateFee(uint256(bytes32(data)));
+        return (tokens, fees);
     }
 
     function getDataWithFee(bytes calldata data) external pure returns (bytes memory) {

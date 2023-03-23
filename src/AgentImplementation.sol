@@ -22,6 +22,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     bytes private constant _NATIVE_FEE_CHARGE_DATA = new bytes(0);
+    address private constant _DUMMY_ERC20_TOKEN = address(0xe20); // For ERC20 transferFrom charge fee using
     uint256 private constant _BPS_BASE = 10_000;
     uint256 private constant _SKIP = type(uint256).max;
 
@@ -127,7 +128,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
             // Charge fees
             if (isFeeEnabled) {
-                _chargeFee(data, feeCollector);
+                _chargeFee(to, data, feeCollector);
             }
 
             unchecked {
@@ -137,7 +138,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
         // Charge native token fee
         if (isFeeEnabled && msg.value > 0) {
-            _chargeFee(_NATIVE_FEE_CHARGE_DATA, feeCollector);
+            _chargeNativeFee(feeCollector);
         }
 
         // Push tokensReturn if any balance
@@ -161,21 +162,37 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     }
 
     /// @notice Check transaction `data` and charge fee
-    function _chargeFee(bytes memory data, address feeCollector) private {
-        bool isNative = data.length == 0 ? true : false;
-        bytes4 selector = isNative ? _NATIVE_FEE_SELECTOR : bytes4(data);
+    function _chargeFee(address to, bytes memory data, address feeCollector) private {
+        bytes4 selector = bytes4(data);
         address feeCalculator = IRouter(router).feeCalculators(selector);
         if (feeCalculator != address(0)) {
-            data = isNative ? abi.encodePacked(msg.value) : data;
-            // Get charge token and fee
-            (address token, uint256 fee) = IFeeCalculator(feeCalculator).getFee(data);
-            if (fee > 0) {
-                if (isNative) {
-                    payable(feeCollector).sendValue(fee);
-                } else {
+            // Get charge tokens and fees
+            (address[] memory tokens, uint256[] memory fees) = IFeeCalculator(feeCalculator).getFees(data);
+            uint256 length = tokens.length;
+            for (uint256 i = 0; i < length; ) {
+                uint256 fee = fees[i];
+                if (fee > 0) {
+                    address token = tokens[i];
+                    if (token == _DUMMY_ERC20_TOKEN) token = to; // ERC20 transferFrom case
+
                     IERC20(token).safeTransfer(feeCollector, fee);
+                    emit FeeCharged(token, fee);
                 }
-                emit FeeCharged(token, fee);
+                unchecked {
+                    ++i;
+                }
+            }
+        }
+    }
+
+    function _chargeNativeFee(address feeCollector) private {
+        address feeCalculator = IRouter(router).feeCalculators(_NATIVE_FEE_SELECTOR);
+        if (feeCalculator != address(0)) {
+            (, uint256[] memory fees) = IFeeCalculator(feeCalculator).getFees(abi.encodePacked(msg.value));
+            uint256 nativeFee = fees[0];
+            if (nativeFee > 0) {
+                payable(feeCollector).sendValue(nativeFee);
+                emit FeeCharged(_NATIVE, nativeFee);
             }
         }
     }

@@ -4,14 +4,17 @@ pragma solidity ^0.8.0;
 import {FeeBase} from './FeeBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
-contract AaveV2BorrowFeeCalculator is IFeeCalculator, FeeBase {
+contract TokenTransferFeeCalculator is IFeeCalculator, FeeBase {
+    address private constant _DUMMY_ERC20_TOKEN = address(0xe20);
+
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 
     function getFees(bytes calldata data) external view returns (address[] memory, uint256[] memory) {
-        // AaveV2 borrow signature:'borrow(address,uint256,uint256,uint16,address)', selector:0xa415bcad
-        (address token, uint256 amount, , , ) = abi.decode(data, (address, uint256, uint256, uint256, address));
+        // Token transfrom signature:'transferFrom(address,address,uint256)', selector:0x23b872dd
+        (, , uint256 amount) = abi.decode(data, (address, address, uint256));
+
         address[] memory tokens = new address[](1);
-        tokens[0] = token;
+        tokens[0] = _DUMMY_ERC20_TOKEN; // The token address is `to` calling contract address. Return a dummy address here
 
         uint256[] memory fees = new uint256[](1);
         fees[0] = calculateFee(amount);
@@ -19,11 +22,8 @@ contract AaveV2BorrowFeeCalculator is IFeeCalculator, FeeBase {
     }
 
     function getDataWithFee(bytes calldata data) external view returns (bytes memory) {
-        (address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf) = abi.decode(
-            data,
-            (address, uint256, uint256, uint16, address)
-        );
+        (address from, address to, uint256 amount) = abi.decode(data, (address, address, uint256));
         amount = calculateAmountWithFee(amount);
-        return abi.encode(asset, amount, interestRateMode, referralCode, onBehalfOf);
+        return abi.encode(from, to, amount);
     }
 }

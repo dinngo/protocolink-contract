@@ -96,14 +96,14 @@ contract Router is IRouter, EIP712, Ownable {
         return result;
     }
 
-    /// @notice Get updated logics and msg.value that contains fee
+    /// @notice Get logics and msg.value that contains fee
     function getLogicsWithFee(
         IParam.Logic[] memory logics,
         uint256 msgValue
     ) external view returns (IParam.Logic[] memory, uint256) {
         // Update logics
         uint256 length = logics.length;
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < length; ) {
             bytes memory data = logics[i].data;
             bytes4 selector = bytes4(data);
             address feeCalculator = feeCalculators[selector];
@@ -111,14 +111,17 @@ contract Router is IRouter, EIP712, Ownable {
                 // Get transaction data with fee
                 logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
             }
+            unchecked {
+                ++i;
+            }
         }
 
         // Update value
         if (msgValue > 0) {
             address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR];
             if (nativeFeeCalculator != address(0)) {
-                (, uint256 fee) = IFeeCalculator(nativeFeeCalculator).getFee(abi.encodePacked(msgValue));
-                msgValue += fee;
+                (, uint256[] memory fees) = IFeeCalculator(nativeFeeCalculator).getFees(abi.encodePacked(msgValue));
+                msgValue += fees[0];
             }
         }
 
@@ -178,7 +181,7 @@ contract Router is IRouter, EIP712, Ownable {
         address signer,
         bytes calldata signature,
         address[] calldata tokensReturn
-    ) external payable checkCaller {
+    ) external payable isPaused checkCaller {
         // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
@@ -198,7 +201,7 @@ contract Router is IRouter, EIP712, Ownable {
     function execute(
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn
-    ) public payable isPaused checkCaller {
+    ) external payable isPaused checkCaller {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {

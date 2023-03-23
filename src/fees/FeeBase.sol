@@ -21,15 +21,28 @@ abstract contract FeeBase {
         return (amount * feeRate) / (_BPS_BASE + feeRate);
     }
 
+    function calculateFee(uint256[] memory amounts) public view returns (uint256[] memory) {
+        for (uint256 i = 0; i < amounts.length; ) {
+            amounts[i] = (amounts[i] * feeRate) / (_BPS_BASE + feeRate);
+            unchecked {
+                ++i;
+            }
+        }
+        return amounts;
+    }
+
     function calculateAmountWithFee(uint256 amount) public view returns (uint256) {
         return (amount * (_BPS_BASE + feeRate)) / _BPS_BASE;
     }
 
-    function calculateAmountWithFee(uint256[] memory amount) public view returns (uint256[] memory) {
-        for (uint256 i = 0; i < amount.length; i++) {
-            amount[i] = (amount[i] * (_BPS_BASE + feeRate)) / _BPS_BASE;
+    function calculateAmountWithFee(uint256[] memory amounts) public view returns (uint256[] memory) {
+        for (uint256 i = 0; i < amounts.length; ) {
+            amounts[i] = (amounts[i] * (_BPS_BASE + feeRate)) / _BPS_BASE;
+            unchecked {
+                ++i;
+            }
         }
-        return amount;
+        return amounts;
     }
 
     function setFeeRate(uint256 feeRate_) public {
