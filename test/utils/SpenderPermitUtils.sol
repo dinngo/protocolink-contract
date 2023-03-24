@@ -3,18 +3,17 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {IAgent} from '../../src/interfaces/IAgent.sol';
-import {Router, IRouter} from '../../src/Router.sol';
-import {IParam} from '../../src/interfaces/IParam.sol';
-import {IAllowanceTransfer} from '../../src/interfaces/permit2/IAllowanceTransfer.sol';
-import {PermitSignature} from './PermitSignature.sol';
-import {EIP712} from './EIP712.sol';
+import {IAgent} from 'src/interfaces/IAgent.sol';
+import {Router, IRouter} from 'src/Router.sol';
+import {IParam} from 'src/interfaces/IParam.sol';
+import {IAllowanceTransfer} from 'permit2/interfaces/IAllowanceTransfer.sol';
+import {PermitSignature} from './permit2/PermitSignature.sol';
+import {EIP712} from './permit2/Permit2EIP712.sol';
 
 contract SpenderPermitUtils is Test, PermitSignature {
     using SafeERC20 for IERC20;
 
     address internal constant permit2Addr = address(0x000000000022D473030F116dDEE9F6B43aC78BA3);
-
 
     address private _user;
     address private _spender;
@@ -83,7 +82,13 @@ contract SpenderPermitUtils is Test, PermitSignature {
         return
             IParam.Logic(
                 address(permit2Addr), // to
-                abi.encodeWithSignature('transferFrom(address,address,uint160,address)', _user, _spender, amount, token),
+                abi.encodeWithSignature(
+                    'transferFrom(address,address,uint160,address)',
+                    _user,
+                    _spender,
+                    amount,
+                    token
+                ),
                 inputsEmpty,
                 address(0), // approveTo
                 address(0) // callback

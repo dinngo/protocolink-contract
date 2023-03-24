@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {AgentImplementation, IAgent} from '../src/AgentImplementation.sol';
-import {Router, IRouter} from '../src/Router.sol';
-import {IParam} from '../src/interfaces/IParam.sol';
+import {AgentImplementation, IAgent} from 'src/AgentImplementation.sol';
+import {Router, IRouter} from 'src/Router.sol';
+import {IParam} from 'src/interfaces/IParam.sol';
 import {ICallback, MockCallback} from './mocks/MockCallback.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
 

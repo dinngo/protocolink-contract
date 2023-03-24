@@ -6,7 +6,5 @@ interface IDSProxy {
 }
 
 interface IDSProxyRegistry {
-    function proxies(address input) external view returns (address);
-
     function build() external returns (address);
 }

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {IParam} from '../../src/interfaces/IParam.sol';
+import {IParam} from 'src/interfaces/IParam.sol';
 import {MockLogicHash} from '../mocks/MockLogicHash.sol';
 
 contract LogicSignature is Test {

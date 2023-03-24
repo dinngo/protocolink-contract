@@ -34,3 +34,27 @@ contract MakerCommonUtils is Test {
         vm.label(GEM, 'GEM');
     }
 }
+
+interface IMakerManager {
+    function cdpCan(address, uint, address) external view returns (uint);
+
+    function ilks(uint) external view returns (bytes32);
+
+    function owns(uint) external view returns (address);
+
+    function urns(uint) external view returns (address);
+
+    function count(address) external view returns (uint256);
+}
+
+interface IMakerVat {
+    function ilks(bytes32) external view returns (uint, uint, uint, uint, uint);
+
+    function urns(bytes32, address) external view returns (uint, uint);
+}
+
+interface IDSProxyRegistry {
+    function proxies(address input) external view returns (address);
+
+    function build() external returns (address);
+}
