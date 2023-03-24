@@ -10,6 +10,8 @@ interface IRouter {
 
     event FeeCollectorSet(address indexed feeCollector_);
 
+    event FeeCalculatorSet(bytes4 indexed selector, address indexed feeCalculator);
+
     event PauserSet(address indexed pauser);
 
     event Paused();

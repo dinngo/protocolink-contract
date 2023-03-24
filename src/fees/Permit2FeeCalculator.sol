@@ -25,7 +25,7 @@ contract Permit2FeeCalculator is IFeeCalculator, FeeBase {
             (address, address, uint160, address)
         );
         uint256 amountWithFee = calculateAmountWithFee(amount);
-        if (amountWithFee > type(uint160).max) revert();
+        if (amountWithFee > type(uint160).max) revert('Amount overflow');
 
         amount = uint160(amountWithFee);
         return abi.encode(from, to, amount, token);

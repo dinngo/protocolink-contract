@@ -163,7 +163,10 @@ contract Router is IRouter, EIP712, Ownable {
         if (length != feeCalculators_.length) revert LengthMismatch();
 
         for (uint256 i = 0; i < length; ) {
-            feeCalculators[selectors[i]] = feeCalculators_[i];
+            bytes4 selector = selectors[i];
+            address feeCalculator = feeCalculators_[i];
+            feeCalculators[selector] = feeCalculator;
+            emit FeeCalculatorSet(selector, feeCalculator);
             unchecked {
                 ++i;
             }
