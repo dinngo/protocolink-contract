@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IParam} from '../../src/interfaces/IParam.sol';
-import {LogicHash} from '../../src/libraries/LogicHash.sol';
+import {IParam} from 'src/interfaces/IParam.sol';
+import {LogicHash} from 'src/libraries/LogicHash.sol';
 
 contract MockLogicHash {
     using LogicHash for IParam.LogicBatch;

@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {IAgent} from '../src/interfaces/IAgent.sol';
-import {IParam} from '../src/interfaces/IParam.sol';
-import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from '../src/FlashLoanCallbackBalancerV2.sol';
+import {IAgent} from 'src/interfaces/IAgent.sol';
+import {IParam} from 'src/interfaces/IParam.sol';
+import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from 'src/FlashLoanCallbackBalancerV2.sol';
 
 contract FlashLoanCallbackBalancerV2Test is Test {
     address public constant BALANCER_V2_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;

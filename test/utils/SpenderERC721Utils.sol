@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {IERC721} from 'openzeppelin-contracts/contracts/token/ERC721/ERC721.sol';
-import {IParam} from '../../src/interfaces/IParam.sol';
+import {IParam} from 'src/interfaces/IParam.sol';
 
 contract SpenderERC721Utils is Test {
     address private _erc721User;
@@ -24,7 +24,12 @@ contract SpenderERC721Utils is Test {
         return
             IParam.Logic(
                 address(token), // to
-                abi.encodeWithSignature("safeTransferFrom(address,address,uint256)", _erc721User, _erc721Spender, tokenId),
+                abi.encodeWithSignature(
+                    'safeTransferFrom(address,address,uint256)',
+                    _erc721User,
+                    _erc721Spender,
+                    tokenId
+                ),
                 inputsEmpty,
                 address(0), // approveTo
                 address(0) // callback

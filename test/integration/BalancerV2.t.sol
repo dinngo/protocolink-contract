@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {Router, IRouter} from '../../src/Router.sol';
-import {IAgent} from '../../src/interfaces/IAgent.sol';
-import {IParam} from '../../src/interfaces/IParam.sol';
-import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from '../../src/FlashLoanCallbackBalancerV2.sol';
+import {Router, IRouter} from 'src/Router.sol';
+import {IAgent} from 'src/interfaces/IAgent.sol';
+import {IParam} from 'src/interfaces/IParam.sol';
+import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from 'src/FlashLoanCallbackBalancerV2.sol';
 
 interface IBalancerV2Vault {
     function flashLoan(

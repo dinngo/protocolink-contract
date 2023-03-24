@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
-import {IParam} from '../src/interfaces/IParam.sol';
+import {IParam} from 'src/interfaces/IParam.sol';
 import {LogicSignature} from './utils/LogicSignature.sol';
 
 contract LogicTypehash is Test, LogicSignature {
