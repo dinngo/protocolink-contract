@@ -8,6 +8,7 @@ import {Agent} from './Agent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
+import {IFeeCalculator} from './interfaces/IFeeCalculator.sol';
 
 /// @title Router executes arbitrary logics
 contract Router is IRouter, EIP712, Ownable {
@@ -17,11 +18,14 @@ contract Router is IRouter, EIP712, Ownable {
     address private constant _INIT_USER = address(1);
     address private constant _INVALID_PAUSER = address(0);
     uint256 private constant _INVALID_REFERRAL = 0;
+    bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
 
     address public immutable agentImplementation;
 
     mapping(address owner => IAgent agent) public agents;
     mapping(address signer => uint256 referral) public signerReferrals;
+    mapping(bytes4 selector => address feeCalculator) public feeCalculators;
+    address public feeCollector;
     address public pauser;
     address public user;
     bool public paused;
@@ -46,10 +50,15 @@ contract Router is IRouter, EIP712, Ownable {
         _;
     }
 
-    constructor(address pauser_) EIP712('Composable Router', '1') {
+    constructor(address pauser_, address feeCollector_) EIP712('Composable Router', '1') {
         user = _INIT_USER;
         agentImplementation = address(new AgentImplementation());
         pauser = pauser_;
+        feeCollector = feeCollector_;
+    }
+
+    function owner() public view override(IRouter, Ownable) returns (address) {
+        return super.owner();
     }
 
     function domainSeparator() external view returns (bytes32) {
@@ -87,6 +96,38 @@ contract Router is IRouter, EIP712, Ownable {
         return result;
     }
 
+    /// @notice Get logics and msg.value that contains fee
+    function getLogicsWithFee(
+        IParam.Logic[] memory logics,
+        uint256 msgValue
+    ) external view returns (IParam.Logic[] memory, uint256) {
+        // Update logics
+        uint256 length = logics.length;
+        for (uint256 i = 0; i < length; ) {
+            bytes memory data = logics[i].data;
+            bytes4 selector = bytes4(data);
+            address feeCalculator = feeCalculators[selector];
+            if (feeCalculator != address(0)) {
+                // Get transaction data with fee
+                logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
+            }
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Update value
+        if (msgValue > 0) {
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR];
+            if (nativeFeeCalculator != address(0)) {
+                (, uint256[] memory fees) = IFeeCalculator(nativeFeeCalculator).getFees(abi.encodePacked(msgValue));
+                msgValue += fees[0];
+            }
+        }
+
+        return (logics, msgValue);
+    }
+
     function addSigner(address signer, uint256 referral) external onlyOwner {
         if (referral == _INVALID_REFERRAL) revert InvalidReferral(referral);
         signerReferrals[signer] = referral;
@@ -116,34 +157,61 @@ contract Router is IRouter, EIP712, Ownable {
         emit Resumed();
     }
 
+    /// @notice Set fee calculator contract for each function selector
+    function setFeeCalculators(bytes4[] calldata selectors, address[] calldata feeCalculators_) external onlyOwner {
+        uint256 length = selectors.length;
+        if (length != feeCalculators_.length) revert LengthMismatch();
+
+        for (uint256 i = 0; i < length; ) {
+            bytes4 selector = selectors[i];
+            address feeCalculator = feeCalculators_[i];
+            feeCalculators[selector] = feeCalculator;
+            emit FeeCalculatorSet(selector, feeCalculator);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function setFeeCollector(address feeCollector_) external onlyOwner {
+        feeCollector = feeCollector_;
+        emit FeeCollectorSet(feeCollector_);
+    }
+
     /// @notice Execute logics with signer's signature.
     function executeWithSignature(
         IParam.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
         address[] calldata tokensReturn
-    ) external payable {
+    ) external payable isPaused checkCaller {
         // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
         if (signerReferrals[signer] == _INVALID_REFERRAL) revert InvalidSigner(signer);
         if (!signer.isValidSignatureNow(_hashTypedDataV4(logicBatch._hash()), signature)) revert InvalidSignature();
 
-        execute(logicBatch.logics, tokensReturn);
-    }
-
-    /// @notice Execute logics through user's agent. Create agent for user if not created.
-    function execute(
-        IParam.Logic[] calldata logics,
-        address[] calldata tokensReturn
-    ) public payable isPaused checkCaller {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
             agent = IAgent(newAgent(user));
         }
 
-        agent.execute{value: msg.value}(logics, tokensReturn);
+        agent.execute{value: msg.value}(logicBatch.logics, tokensReturn, false);
+    }
+
+    /// @notice Execute logics through user's agent. Create agent for user if not created.
+    function execute(
+        IParam.Logic[] calldata logics,
+        address[] calldata tokensReturn
+    ) external payable isPaused checkCaller {
+        IAgent agent = agents[user];
+
+        if (address(agent) == address(0)) {
+            agent = IAgent(newAgent(user));
+        }
+
+        agent.execute{value: msg.value}(logics, tokensReturn, true);
     }
 
     /// @notice Create an agent for `msg.sender`

@@ -8,6 +8,7 @@ import {ERC1155Holder} from 'openzeppelin-contracts/contracts/token/ERC1155/util
 import {IAgent} from './interfaces/IAgent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
+import {IFeeCalculator} from './interfaces/IFeeCalculator.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 /// @title Implemtation contract of agent logics
@@ -16,7 +17,12 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     using Address for address;
     using Address for address payable;
 
+    event FeeCharged(address indexed token, uint256 amount);
+
     address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
+    bytes private constant _NATIVE_FEE_CHARGE_DATA = new bytes(0);
+    address private constant _DUMMY_ERC20_TOKEN = address(0xe20); // For ERC20 transferFrom charge fee using
     uint256 private constant _BPS_BASE = 10_000;
     uint256 private constant _SKIP = type(uint256).max;
 
@@ -46,7 +52,14 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     }
 
     /// @notice Execute logics and return tokens to user
-    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable checkCaller {
+    function execute(
+        IParam.Logic[] calldata logics,
+        address[] calldata tokensReturn,
+        bool isFeeEnabled
+    ) external payable checkCaller {
+        address feeCollector;
+        if (isFeeEnabled) feeCollector = IRouter(router).feeCollector();
+
         // Execute each logic
         uint256 logicsLength = logics.length;
         for (uint256 i = 0; i < logicsLength; ) {
@@ -113,9 +126,19 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             // Revert if the previous call didn't enter execute
             if (_caller != router) revert UnresetCallback();
 
+            // Charge fees
+            if (isFeeEnabled) {
+                _chargeFee(to, data, feeCollector);
+            }
+
             unchecked {
                 ++i;
             }
+        }
+
+        // Charge native token fee
+        if (isFeeEnabled && msg.value > 0) {
+            _chargeNativeFee(feeCollector);
         }
 
         // Push tokensReturn if any balance
@@ -134,6 +157,42 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 unchecked {
                     ++i;
                 }
+            }
+        }
+    }
+
+    /// @notice Check transaction `data` and charge fee
+    function _chargeFee(address to, bytes memory data, address feeCollector) private {
+        bytes4 selector = bytes4(data);
+        address feeCalculator = IRouter(router).feeCalculators(selector);
+        if (feeCalculator != address(0)) {
+            // Get charge tokens and fees
+            (address[] memory tokens, uint256[] memory fees) = IFeeCalculator(feeCalculator).getFees(data);
+            uint256 length = tokens.length;
+            for (uint256 i = 0; i < length; ) {
+                uint256 fee = fees[i];
+                if (fee > 0) {
+                    address token = tokens[i];
+                    if (token == _DUMMY_ERC20_TOKEN) token = to; // ERC20 transferFrom case
+
+                    IERC20(token).safeTransfer(feeCollector, fee);
+                    emit FeeCharged(token, fee);
+                }
+                unchecked {
+                    ++i;
+                }
+            }
+        }
+    }
+
+    function _chargeNativeFee(address feeCollector) private {
+        address feeCalculator = IRouter(router).feeCalculators(_NATIVE_FEE_SELECTOR);
+        if (feeCalculator != address(0)) {
+            (, uint256[] memory fees) = IFeeCalculator(feeCalculator).getFees(abi.encodePacked(msg.value));
+            uint256 nativeFee = fees[0];
+            if (nativeFee > 0) {
+                payable(feeCollector).sendValue(nativeFee);
+                emit FeeCharged(_NATIVE, nativeFee);
             }
         }
     }

@@ -8,6 +8,10 @@ interface IRouter {
 
     event SignerRemoved(address indexed signer);
 
+    event FeeCollectorSet(address indexed feeCollector_);
+
+    event FeeCalculatorSet(bytes4 indexed selector, address indexed feeCalculator);
+
     event PauserSet(address indexed pauser);
 
     event Paused();
@@ -26,6 +30,8 @@ interface IRouter {
 
     error InvalidSignature();
 
+    error LengthMismatch();
+
     error InvalidPauser();
 
     error RouterIsPaused();
@@ -35,6 +41,8 @@ interface IRouter {
     function agentImplementation() external view returns (address);
 
     function signerReferrals(address signer) external view returns (uint256);
+
+    function owner() external view returns (address);
 
     function user() external view returns (address);
 
@@ -52,6 +60,15 @@ interface IRouter {
 
     function calcAgent(address user) external view returns (address);
 
+    function getLogicsWithFee(
+        IParam.Logic[] memory logics,
+        uint256 msgValue
+    ) external view returns (IParam.Logic[] memory, uint256);
+
+    function feeCalculators(bytes4 selector) external view returns (address);
+
+    function feeCollector() external view returns (address);
+
     function addSigner(address newSigner, uint256 referral) external;
 
     function removeSigner(address signer) external;
@@ -61,6 +78,10 @@ interface IRouter {
     function pause() external;
 
     function resume() external;
+
+    function setFeeCalculators(bytes4[] calldata selector, address[] calldata feeCalculators_) external;
+
+    function setFeeCollector(address feeCollector_) external;
 
     function executeWithSignature(
         IParam.LogicBatch calldata logicBatch,

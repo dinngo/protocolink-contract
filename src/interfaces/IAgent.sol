@@ -14,5 +14,9 @@ interface IAgent {
 
     function initialize() external;
 
-    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
+    function execute(
+        IParam.Logic[] calldata logics,
+        address[] calldata tokensReturn,
+        bool isFeeEnabled
+    ) external payable;
 }

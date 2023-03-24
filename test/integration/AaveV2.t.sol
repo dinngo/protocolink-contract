@@ -45,8 +45,8 @@ contract AaveV2IntegrationTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
-
-        router = new Router(address(0));
+        address feeCollector = makeAddr('FeeCollector');
+        router = new Router(address(0), feeCollector);
         vm.prank(user);
         agent = IAgent(router.newAgent());
         flashLoanCallback = new FlashLoanCallbackAaveV2(address(router), address(AAVE_V2_PROVIDER));
@@ -199,6 +199,6 @@ contract AaveV2IntegrationTest is Test {
         }
 
         // Encode execute data
-        return abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty);
+        return abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty, false);
     }
 }

@@ -32,7 +32,8 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(address(0));
+        address feeCollector = makeAddr('FeeCollector');
+        router = new Router(address(0), feeCollector);
         vm.prank(user);
         agent = IAgent(router.newAgent());
         market = new MockERC1155Market(USDC);
