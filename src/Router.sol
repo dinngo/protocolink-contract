@@ -17,6 +17,7 @@ contract Router is IRouter, EIP712, Ownable {
 
     address private constant _INIT_USER = address(1);
     address private constant _INVALID_PAUSER = address(0);
+    address private constant _INVALID_FEE_COLLECTOR = address(0);
     uint256 private constant _INVALID_REFERRAL = 0;
     bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
 
@@ -25,9 +26,9 @@ contract Router is IRouter, EIP712, Ownable {
     mapping(address owner => IAgent agent) public agents;
     mapping(address signer => uint256 referral) public signerReferrals;
     mapping(bytes4 selector => address feeCalculator) public feeCalculators;
+    address public user;
     address public feeCollector;
     address public pauser;
-    address public user;
     bool public paused;
 
     modifier checkCaller() {
@@ -53,8 +54,8 @@ contract Router is IRouter, EIP712, Ownable {
     constructor(address pauser_, address feeCollector_) EIP712('Composable Router', '1') {
         user = _INIT_USER;
         agentImplementation = address(new AgentImplementation());
-        pauser = pauser_;
-        feeCollector = feeCollector_;
+        _setPauser(pauser_);
+        _setFeeCollector(feeCollector_);
     }
 
     function owner() public view override(IRouter, Ownable) returns (address) {
@@ -141,22 +142,6 @@ contract Router is IRouter, EIP712, Ownable {
         emit SignerRemoved(signer);
     }
 
-    function setPauser(address pauser_) external onlyOwner {
-        if (pauser_ == _INVALID_PAUSER) revert InvalidNewPauser();
-        pauser = pauser_;
-        emit PauserSet(pauser_);
-    }
-
-    function pause() external onlyPauser {
-        paused = true;
-        emit Paused();
-    }
-
-    function resume() external onlyPauser {
-        paused = false;
-        emit Resumed();
-    }
-
     /// @notice Set fee calculator contract for each function selector
     function setFeeCalculators(bytes4[] calldata selectors, address[] calldata feeCalculators_) external onlyOwner {
         uint256 length = selectors.length;
@@ -174,8 +159,47 @@ contract Router is IRouter, EIP712, Ownable {
     }
 
     function setFeeCollector(address feeCollector_) external onlyOwner {
+        _setFeeCollector(feeCollector_);
+    }
+
+    function _setFeeCollector(address feeCollector_) internal {
+        if (feeCollector_ == _INVALID_FEE_COLLECTOR) revert InvalidFeeCollector();
         feeCollector = feeCollector_;
         emit FeeCollectorSet(feeCollector_);
+    }
+
+    function setPauser(address pauser_) external onlyOwner {
+        _setPauser(pauser_);
+    }
+
+    function _setPauser(address pauser_) internal {
+        if (pauser_ == _INVALID_PAUSER) revert InvalidNewPauser();
+        pauser = pauser_;
+        emit PauserSet(pauser_);
+    }
+
+    function pause() external onlyPauser {
+        paused = true;
+        emit Paused();
+    }
+
+    function resume() external onlyPauser {
+        paused = false;
+        emit Resumed();
+    }
+
+    /// @notice Execute logics through user's agent. Create agent for user if not created.
+    function execute(
+        IParam.Logic[] calldata logics,
+        address[] calldata tokensReturn
+    ) external payable isPaused checkCaller {
+        IAgent agent = agents[user];
+
+        if (address(agent) == address(0)) {
+            agent = IAgent(newAgent(user));
+        }
+
+        agent.execute{value: msg.value}(logics, tokensReturn, true);
     }
 
     /// @notice Execute logics with signer's signature.
@@ -198,20 +222,6 @@ contract Router is IRouter, EIP712, Ownable {
         }
 
         agent.execute{value: msg.value}(logicBatch.logics, tokensReturn, false);
-    }
-
-    /// @notice Execute logics through user's agent. Create agent for user if not created.
-    function execute(
-        IParam.Logic[] calldata logics,
-        address[] calldata tokensReturn
-    ) external payable isPaused checkCaller {
-        IAgent agent = agents[user];
-
-        if (address(agent) == address(0)) {
-            agent = IAgent(newAgent(user));
-        }
-
-        agent.execute{value: msg.value}(logics, tokensReturn, true);
     }
 
     /// @notice Create an agent for `msg.sender`
