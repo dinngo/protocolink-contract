@@ -121,8 +121,9 @@ contract Router is IRouter, EIP712, Ownable {
         if (msgValue > 0) {
             address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR];
             if (nativeFeeCalculator != address(0)) {
-                (, uint256[] memory fees) = IFeeCalculator(nativeFeeCalculator).getFees(abi.encodePacked(msgValue));
-                msgValue += fees[0];
+                msgValue = uint256(
+                    bytes32(IFeeCalculator(nativeFeeCalculator).getDataWithFee(abi.encodePacked(msgValue)))
+                );
             }
         }
 
