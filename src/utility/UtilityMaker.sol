@@ -5,7 +5,7 @@ import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ut
 import {IRouter} from '../interfaces/IRouter.sol';
 import {IUtilityMaker} from '../interfaces/utility/IUtilityMaker.sol';
 import {IDSProxy, IDSProxyRegistry} from '../interfaces/maker/IDSProxy.sol';
-import {IMakerManager, IMakerGemJoin} from '../interfaces/maker/IMaker.sol';
+import {IMakerGemJoin} from '../interfaces/maker/IMaker.sol';
 import {ApproveHelper} from '../libraries/ApproveHelper.sol';
 
 contract UtilityMaker is IUtilityMaker {

@@ -8,14 +8,10 @@ import {Router, IRouter} from '../../../src/Router.sol';
 import {IAgent} from '../../../src/interfaces/IAgent.sol';
 import {IParam} from '../../../src/interfaces/IParam.sol';
 import {IDSProxy, IDSProxyRegistry} from '../../../src/interfaces/maker/IDSProxy.sol';
-import {IMakerManager} from '../../../src/interfaces/maker/IMaker.sol';
+import {IMakerManager, IMakerVat} from '../../../src/interfaces/maker/IMaker.sol';
 import {SpenderPermitUtils} from '../../utils/SpenderPermitUtils.sol';
 import {MakerCommonUtils} from '../../utils/MakerCommonUtils.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
-
-interface IMakerVat {
-    function ilks(bytes32) external view returns (uint256 art, uint256 rate, uint256 spot, uint256 line, uint256 dust);
-}
 
 contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
     using SafeCast160 for uint256;

@@ -8,7 +8,6 @@ import {Router, IRouter} from '../../src/Router.sol';
 import {IParam} from '../../src/interfaces/IParam.sol';
 import {IAaveV3Provider} from '../../src/interfaces/aaveV3/IAaveV3Provider.sol';
 import {FlashLoanCallbackAaveV3, IFlashLoanCallbackAaveV3} from '../../src/FlashLoanCallbackAaveV3.sol';
-import {IAaveV3Pool} from '../../src/interfaces/aaveV3/IAaveV3Pool.sol';
 
 interface IDebtToken {
     function UNDERLYING_ASSET_ADDRESS() external view returns (address);
@@ -16,6 +15,30 @@ interface IDebtToken {
     function approveDelegation(address delegatee, uint256 amount) external;
 
     function totalSupply() external view returns (uint256);
+}
+
+interface IAaveV3Pool {
+    function FLASHLOAN_PREMIUM_TOTAL() external view returns (uint128);
+
+    function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
+
+    function borrow(
+        address asset,
+        uint256 amount,
+        uint256 interestRateMode,
+        uint16 referralCode,
+        address onBehalfOf
+    ) external;
+
+    function flashLoan(
+        address receiverAddress,
+        address[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] calldata interestRateModes,
+        address onBehalfOf,
+        bytes calldata params,
+        uint16 referralCode
+    ) external;
 }
 
 contract AaveV3IntegrationTest is Test {

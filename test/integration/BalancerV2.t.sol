@@ -7,7 +7,15 @@ import {Router, IRouter} from '../../src/Router.sol';
 import {IAgent} from '../../src/interfaces/IAgent.sol';
 import {IParam} from '../../src/interfaces/IParam.sol';
 import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from '../../src/FlashLoanCallbackBalancerV2.sol';
-import {IBalancerV2Vault} from '../../src/interfaces/balancerV2/IBalancerV2Vault.sol';
+
+interface IBalancerV2Vault {
+    function flashLoan(
+        address receiver,
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        bytes calldata userData
+    ) external;
+}
 
 contract BalancerV2IntegrationTest is Test {
     using SafeERC20 for IERC20;
