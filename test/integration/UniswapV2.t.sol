@@ -212,7 +212,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         assertEq(tokenIn1.balanceOf(address(agent)), 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(agent)), 0);
-        assertApproxEqRel(tokenIn0.balanceOf(user), amountIn0, 0.03 * 1e18);
+        assertApproxEqRel(tokenIn0.balanceOf(user), amountIn0, 0.01 * 1e18);
     }
 
     function _logicUniswapV2SwapNativeToToken(
