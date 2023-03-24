@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {IAgent} from './IAgent.sol';
 import {IParam} from './IParam.sol';
 
 interface IRouter {
@@ -20,9 +21,17 @@ interface IRouter {
 
     error Reentrancy();
 
-    error AgentCreated();
+    error RouterIsPaused();
+
+    error InvalidPauser();
 
     error InvalidReferral(uint256 referral);
+
+    error InvalidFeeCollector();
+
+    error LengthMismatch();
+
+    error InvalidNewPauser();
 
     error SignatureExpired(uint256 deadline);
 
@@ -30,25 +39,25 @@ interface IRouter {
 
     error InvalidSignature();
 
-    error LengthMismatch();
-
-    error InvalidPauser();
-
-    error RouterIsPaused();
-
-    error InvalidNewPauser();
+    error AgentCreated();
 
     function agentImplementation() external view returns (address);
 
+    function agents(address owner) external view returns (IAgent);
+
     function signerReferrals(address signer) external view returns (uint256);
 
-    function owner() external view returns (address);
+    function feeCalculators(bytes4 selector) external view returns (address);
 
     function user() external view returns (address);
+
+    function feeCollector() external view returns (address);
 
     function pauser() external view returns (address);
 
     function paused() external view returns (bool);
+
+    function owner() external view returns (address);
 
     function domainSeparator() external view returns (bytes32);
 
@@ -65,13 +74,13 @@ interface IRouter {
         uint256 msgValue
     ) external view returns (IParam.Logic[] memory, uint256);
 
-    function feeCalculators(bytes4 selector) external view returns (address);
-
-    function feeCollector() external view returns (address);
-
     function addSigner(address newSigner, uint256 referral) external;
 
     function removeSigner(address signer) external;
+
+    function setFeeCalculators(bytes4[] calldata selector, address[] calldata feeCalculators_) external;
+
+    function setFeeCollector(address feeCollector_) external;
 
     function setPauser(address pauser_) external;
 
@@ -79,9 +88,7 @@ interface IRouter {
 
     function resume() external;
 
-    function setFeeCalculators(bytes4[] calldata selector, address[] calldata feeCalculators_) external;
-
-    function setFeeCollector(address feeCollector_) external;
+    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 
     function executeWithSignature(
         IParam.LogicBatch calldata logicBatch,
@@ -89,8 +96,6 @@ interface IRouter {
         bytes calldata signature,
         address[] calldata tokensReturn
     ) external payable;
-
-    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 
     function newAgent() external returns (address payable);
 
