@@ -45,7 +45,7 @@ abstract contract FeeBase {
         return amounts;
     }
 
-    function setFeeRate(uint256 feeRate_) public {
+    function setFeeRate(uint256 feeRate_) external {
         if (msg.sender != IRouter(router).owner()) revert InvalidSender();
         if (feeRate >= _BPS_BASE) revert InvalidRate();
         feeRate = feeRate_;
