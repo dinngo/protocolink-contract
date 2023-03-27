@@ -56,6 +56,7 @@ contract AgentImplementationTest is Test {
             address(mockFallback), // to
             '',
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -65,6 +66,7 @@ contract AgentImplementationTest is Test {
             address(mockCallback),
             abi.encodeWithSelector(ICallback.callback.selector, data),
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(router) // callback
         );
@@ -79,7 +81,6 @@ contract AgentImplementationTest is Test {
 
         // Revert if amountBps = 0
         inputs[0] = IParam.Input(
-            IParam.WrapMode.NONE,
             address(0),
             0, // amountBps
             0 // amountOrOffset
@@ -88,6 +89,7 @@ contract AgentImplementationTest is Test {
             address(0), // to
             '',
             inputs,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -97,7 +99,6 @@ contract AgentImplementationTest is Test {
 
         // Revert if amountBps = BPS_BASE + 1
         inputs[0] = IParam.Input(
-            IParam.WrapMode.NONE,
             address(0),
             BPS_BASE + 1, // amountBps
             0 // amountOrOffset
@@ -106,6 +107,7 @@ contract AgentImplementationTest is Test {
             address(0), // to
             '',
             inputs,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -120,6 +122,7 @@ contract AgentImplementationTest is Test {
             address(mockFallback), // to
             '',
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(mockCallback) // callback
         );
@@ -162,6 +165,7 @@ contract AgentImplementationTest is Test {
                 address(recipient), // to
                 '',
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -174,7 +178,6 @@ contract AgentImplementationTest is Test {
         IParam.Input[] memory inputs = new IParam.Input[](1);
 
         inputs[0] = IParam.Input(
-            IParam.WrapMode.NONE,
             address(mockERC20),
             SKIP, // amountBps
             amountIn // amountOrOffset
@@ -183,6 +186,7 @@ contract AgentImplementationTest is Test {
             address(mockFallback), // to
             '',
             inputs,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -212,7 +216,6 @@ contract AgentImplementationTest is Test {
         IParam.Input[] memory inputs = new IParam.Input[](1);
 
         inputs[0] = IParam.Input(
-            IParam.WrapMode.NONE,
             address(mockERC20),
             SKIP, // amountBps
             amountIn // amountOrOffset
@@ -221,6 +224,7 @@ contract AgentImplementationTest is Test {
             address(mockFallback), // to
             '',
             inputs,
+            IParam.WrapMode.NONE,
             approveTo, // approveTo
             address(0) // callback
         );

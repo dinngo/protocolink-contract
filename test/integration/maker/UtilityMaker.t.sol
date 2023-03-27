@@ -167,6 +167,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 address(utilityMaker),
                 data,
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -181,6 +182,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 token,
                 abi.encodeWithSelector(IERC20.transfer.selector, utilityMaker, amount),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -201,6 +203,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 address(utilityMaker),
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

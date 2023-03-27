@@ -75,6 +75,7 @@ contract WETHTest is Test {
                 address(WETH), // to
                 abi.encodeWithSelector(IWETH.deposit.selector),
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

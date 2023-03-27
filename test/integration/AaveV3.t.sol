@@ -164,6 +164,7 @@ contract AaveV3IntegrationTest is Test {
                     user
                 ),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -194,6 +195,7 @@ contract AaveV3IntegrationTest is Test {
                     referralCode
                 ),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(flashLoanCallback) // callback
             );
@@ -214,6 +216,7 @@ contract AaveV3IntegrationTest is Test {
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

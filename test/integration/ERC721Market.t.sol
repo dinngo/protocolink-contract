@@ -115,6 +115,7 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
                 address(token), // to
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -140,6 +141,7 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
                 address(market), // to
                 data,
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -153,6 +155,7 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
                 address(market), // to
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

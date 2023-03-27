@@ -42,6 +42,7 @@ contract SpenderERC1155Utils is Test {
                     ''
                 ),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

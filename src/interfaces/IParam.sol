@@ -11,13 +11,13 @@ interface IParam {
         address to;
         bytes data;
         Input[] inputs;
+        WrapMode wrapMode;
         // Approve to another contract instead of `to` since some protocols use spender contract to pull tokens from user
         address approveTo;
         address callback;
     }
 
     struct Input {
-        WrapMode wrapMode;
         address token;
         // 7_000 means the replacing amount is 70% of token balance. Set type(uint256).max to skip bps calculation so simply use amountOrOffset as amount
         uint256 amountBps;

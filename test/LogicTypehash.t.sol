@@ -39,13 +39,11 @@ contract LogicTypehash is Test, LogicSignature {
         // Create the logicBatch with the same parameters as above
         IParam.Input[] memory inputs = new IParam.Input[](2);
         inputs[0] = IParam.Input(
-            IParam.WrapMode.NONE,
             address(1), // token
             type(uint256).max, // amountBps
             0 // amountOrOffset
         );
         inputs[1] = IParam.Input(
-            IParam.WrapMode.NONE,
             address(2), // token
             10000, // amountBps
             0x20 // amountOrOffset
@@ -55,6 +53,7 @@ contract LogicTypehash is Test, LogicSignature {
             address(3), // to
             '0123456789abcdef',
             inputs,
+            IParam.WrapMode.NONE,
             address(4), // approveTo
             address(5) // callback
         );

@@ -71,6 +71,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             address to = logics[i].to;
             bytes memory data = logics[i].data;
             IParam.Input[] calldata inputs = logics[i].inputs;
+            IParam.WrapMode wrapMode = logics[i].wrapMode;
             address approveTo = logics[i].approveTo;
             address callback = logics[i].callback;
 
@@ -81,10 +82,9 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
             // Execute each input if need to modify the amount or do approve
             uint256 value;
-            uint256 wrappedNativeBeforePlusOne;
+            uint256 wrappedAmount;
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength; ) {
-                IParam.WrapMode wrapMode = inputs[j].wrapMode;
                 address token = inputs[j].token;
                 uint256 amountBps = inputs[j].amountBps;
 
@@ -97,9 +97,8 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 } else {
                     if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
 
-                    if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
-                        // Calculate native amount used for wrap
-                        if (token != address(wrappedNative)) revert OnlyWrappedNative();
+                    if (wrapMode == IParam.WrapMode.WRAP_BEFORE && token == address(wrappedNative)) {
+                        // Use native to calculate wrapped amount
                         amount = (_getBalance(_NATIVE) * amountBps) / _BPS_BASE;
                     } else {
                         amount = (_getBalance(token) * amountBps) / _BPS_BASE;
@@ -117,12 +116,11 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 }
 
                 if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
-                    wrappedNative.deposit{value: amount}();
+                    // Use += to accumulate amounts with multiple WRAP_BEFORE, although such cases are rare
+                    wrappedAmount += amount;
                 } else if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
-                    // Store the pre-wrapped native amount for calculation after the call
-                    // Add 1 to distinguish between initial value and 0 balance
-                    // Use += to accumulate amounts for inputs with multiple UNWRAP_AFTER, although such cases are rare
-                    wrappedNativeBeforePlusOne += _getBalance(address(wrappedNative)) + 1;
+                    // Store the before wrapped native amount for calculation after the call
+                    wrappedAmount = _getBalance(address(wrappedNative));
                 }
 
                 if (token == _NATIVE) {
@@ -134,6 +132,11 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 unchecked {
                     ++j;
                 }
+            }
+
+            // Wrap natvie before the call
+            if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
+                wrappedNative.deposit{value: wrappedAmount}();
             }
 
             // Set _callback who should enter one-time execute
@@ -149,14 +152,14 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             // Revert if the previous call didn't enter execute
             if (_caller != router) revert UnresetCallback();
 
+            // Unwrap to natvie after the call
+            if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
+                wrappedNative.withdraw(_getBalance(address(wrappedNative)) - wrappedAmount);
+            }
+
             // Charge fees
             if (isFeeEnabled) {
                 _chargeFee(to, data, feeCollector);
-            }
-
-            if (wrappedNativeBeforePlusOne > 0) {
-                uint256 amount = _getBalance(address(wrappedNative)) - (wrappedNativeBeforePlusOne - 1);
-                wrappedNative.withdraw(amount);
             }
 
             unchecked {

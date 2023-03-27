@@ -31,6 +31,7 @@ contract SpenderERC721Utils is Test {
                     tokenId
                 ),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

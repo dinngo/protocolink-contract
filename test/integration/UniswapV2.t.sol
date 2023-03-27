@@ -248,7 +248,6 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0] = IParam.Input(
-            wrapMode,
             address(tokenIn),
             amountBps,
             (amountBps == SKIP) ? amountIn : 0x0 // 0x0 is the amount offset in data
@@ -259,6 +258,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
                 address(uniswapRouter02), // to
                 data,
                 inputs,
+                wrapMode,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -302,6 +302,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
                 address(uniswapRouter02), // to
                 data,
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -341,6 +342,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
                 address(uniswapRouter02), // to
                 data,
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

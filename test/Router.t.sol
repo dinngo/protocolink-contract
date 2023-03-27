@@ -80,6 +80,7 @@ contract RouterTest is Test, LogicSignature {
             address(mockTo), // to
             '',
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -95,6 +96,7 @@ contract RouterTest is Test, LogicSignature {
             address(mockTo), // to
             '',
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -111,6 +113,7 @@ contract RouterTest is Test, LogicSignature {
             address(router), // to
             abi.encodeCall(IRouter.execute, (logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL)),
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -130,6 +133,7 @@ contract RouterTest is Test, LogicSignature {
             address(this), // to
             abi.encodeCall(this.checkExecutingAgent, (agent)),
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -178,7 +182,6 @@ contract RouterTest is Test, LogicSignature {
         // Ensure correct EIP-712 encodeData for non-empty Input and Logic
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0] = IParam.Input(
-            IParam.WrapMode.NONE,
             address(mockERC20),
             SKIP, // amountBps
             0 // amountOrOffset
@@ -188,6 +191,7 @@ contract RouterTest is Test, LogicSignature {
             address(mockTo),
             '',
             inputs,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
