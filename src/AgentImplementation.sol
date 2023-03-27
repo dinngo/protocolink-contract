@@ -97,7 +97,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 } else {
                     if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
 
-                    if (wrapMode == IParam.WrapMode.WRAP_BEFORE && token == address(wrappedNative)) {
+                    if (token == address(wrappedNative) && wrapMode == IParam.WrapMode.WRAP_BEFORE) {
                         // Use native to calculate wrapped amount
                         amount = (_getBalance(_NATIVE) * amountBps) / _BPS_BASE;
                     } else {
@@ -118,13 +118,10 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
                     // Use += to accumulate amounts with multiple WRAP_BEFORE, although such cases are rare
                     wrappedAmount += amount;
-                } else if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
-                    // Store the before wrapped native amount for calculation after the call
-                    wrappedAmount = _getBalance(address(wrappedNative));
                 }
 
                 if (token == _NATIVE) {
-                    value = amount;
+                    value += amount;
                 } else if (token != approveTo) {
                     ApproveHelper._approveMax(token, approveTo, amount);
                 }
@@ -134,9 +131,12 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 }
             }
 
-            // Wrap natvie before the call
             if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
+                // Wrap natvie before the call
                 wrappedNative.deposit{value: wrappedAmount}();
+            } else if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
+                // Or store the before wrapped native amount for calculation after the call
+                wrappedAmount = _getBalance(address(wrappedNative));
             }
 
             // Set _callback who should enter one-time execute
