@@ -9,6 +9,7 @@ import {IAgent} from './interfaces/IAgent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {IFeeCalculator} from './interfaces/IFeeCalculator.sol';
+import {IWrappedNative} from './interfaces/IWrappedNative.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 /// @title Implemtation contract of agent logics
@@ -27,6 +28,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     uint256 private constant _SKIP = type(uint256).max;
 
     address public immutable router;
+    IWrappedNative public immutable wrappedNative;
 
     address private _caller;
 
@@ -42,8 +44,11 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _;
     }
 
+    // constructor(address wrappedNative_) {
     constructor() {
         router = msg.sender;
+        // wrappedNative = IWrappedNative(wrappedNative_);
+        wrappedNative = IWrappedNative(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2));
     }
 
     function initialize() external {
@@ -76,24 +81,34 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
             // Execute each input if need to modify the amount or do approve
             uint256 value;
+            uint256 wrappedNativeBeforePlusOne;
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength; ) {
+                IParam.WrapMode wrapMode = inputs[j].wrapMode;
                 address token = inputs[j].token;
                 uint256 amountBps = inputs[j].amountBps;
 
                 // Calculate native or token amount
                 // 1. if amountBps is skip: read amountOrOffset as amount
-                // 2. if amountBps isn't skip: balance multiplied by amountBps as amount and replace the amount at offset equal to amountOrOffset with the calculated amount
+                // 2. if amountBps isn't skip: balance multiplied by amountBps as amount
                 uint256 amount;
                 if (amountBps == _SKIP) {
                     amount = inputs[j].amountOrOffset;
                 } else {
                     if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
-                    amount = (_getBalance(token) * amountBps) / _BPS_BASE;
+
+                    if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
+                        // Calculate native amount used for wrap
+                        if (token != address(wrappedNative)) revert OnlyWrappedNative();
+                        amount = (_getBalance(_NATIVE) * amountBps) / _BPS_BASE;
+                    } else {
+                        amount = (_getBalance(token) * amountBps) / _BPS_BASE;
+                    }
 
                     // Skip if don't need to replace, e.g., most protocols set native amount in call value
                     uint256 offset = inputs[j].amountOrOffset;
                     if (offset != _SKIP) {
+                        // Replace the amount at offset with the calculated amount
                         assembly {
                             let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
                             mstore(loc, amount)
@@ -101,7 +116,15 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                     }
                 }
 
-                // Set native token value for native token
+                if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
+                    wrappedNative.deposit{value: amount}();
+                } else if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
+                    // Store the pre-wrapped native amount for calculation after the call
+                    // Add 1 to distinguish between initial value and 0 balance
+                    // Use += to accumulate amounts for inputs with multiple UNWRAP_AFTER, although such cases are rare
+                    wrappedNativeBeforePlusOne += _getBalance(address(wrappedNative)) + 1;
+                }
+
                 if (token == _NATIVE) {
                     value = amount;
                 } else if (token != approveTo) {
@@ -129,6 +152,11 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             // Charge fees
             if (isFeeEnabled) {
                 _chargeFee(to, data, feeCollector);
+            }
+
+            if (wrappedNativeBeforePlusOne > 0) {
+                uint256 amount = _getBalance(address(wrappedNative)) - (wrappedNativeBeforePlusOne - 1);
+                wrappedNative.withdraw(amount);
             }
 
             unchecked {

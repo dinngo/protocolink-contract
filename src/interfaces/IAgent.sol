@@ -10,6 +10,8 @@ interface IAgent {
 
     error InvalidBps();
 
+    error OnlyWrappedNative();
+
     error UnresetCallback();
 
     function initialize() external;

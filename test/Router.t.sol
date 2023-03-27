@@ -178,6 +178,7 @@ contract RouterTest is Test, LogicSignature {
         // Ensure correct EIP-712 encodeData for non-empty Input and Logic
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0] = IParam.Input(
+            IParam.WrapMode.NONE,
             address(mockERC20),
             SKIP, // amountBps
             0 // amountOrOffset
