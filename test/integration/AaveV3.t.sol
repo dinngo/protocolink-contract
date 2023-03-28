@@ -64,12 +64,12 @@ contract AaveV3IntegrationTest is Test {
     IAaveV3Pool pool = IAaveV3Pool(IAaveV3Provider(AAVE_V3_PROVIDER).getPool());
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
-        router = new Router(makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
         vm.prank(user);
         agent = IAgent(router.newAgent());
         flashLoanCallback = new FlashLoanCallbackAaveV3(address(router), address(AAVE_V3_PROVIDER));

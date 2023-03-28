@@ -20,14 +20,15 @@ contract AgentImplementationTest is Test {
     address public user;
     address public recipient;
     address public router;
+    address public wrappedNative;
     IAgent public agent;
     IERC20 public mockERC20;
     ICallback public mockCallback;
     address public mockFallback;
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
@@ -35,9 +36,10 @@ contract AgentImplementationTest is Test {
         user = makeAddr('User');
         recipient = makeAddr('Recipient');
         router = makeAddr('Router');
+        wrappedNative = makeAddr('WrappedNative');
 
         vm.prank(router);
-        agent = new AgentImplementation();
+        agent = new AgentImplementation(wrappedNative);
         agent.initialize();
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockCallback = new MockCallback();
@@ -48,6 +50,14 @@ contract AgentImplementationTest is Test {
         vm.label(address(mockERC20), 'mERC20');
         vm.label(address(mockCallback), 'mCallback');
         vm.label(address(mockFallback), 'mFallback');
+    }
+
+    function testRouter() external {
+        assertEq(agent.router(), router);
+    }
+
+    function testWrappedNative() external {
+        assertEq(agent.wrappedNative(), wrappedNative);
     }
 
     function testCannotExecuteByInvalidCallback() external {

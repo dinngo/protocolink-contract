@@ -18,8 +18,8 @@ contract FlashLoanCallbackAaveV2Test is Test {
     IERC20 public mockERC20;
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');

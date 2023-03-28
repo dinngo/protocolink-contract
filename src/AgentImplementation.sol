@@ -28,7 +28,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     uint256 private constant _SKIP = type(uint256).max;
 
     address public immutable router;
-    IWrappedNative public immutable wrappedNative;
+    address public immutable wrappedNative;
 
     address private _caller;
 
@@ -44,11 +44,9 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _;
     }
 
-    // constructor(address wrappedNative_) {
-    constructor() {
+    constructor(address wrappedNative_) {
         router = msg.sender;
-        // wrappedNative = IWrappedNative(wrappedNative_);
-        wrappedNative = IWrappedNative(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2));
+        wrappedNative = wrappedNative_;
     }
 
     function initialize() external {
@@ -133,10 +131,10 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
             if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
                 // Wrap natvie before the call
-                wrappedNative.deposit{value: wrappedAmount}();
+                IWrappedNative(wrappedNative).deposit{value: wrappedAmount}();
             } else if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
                 // Or store the before wrapped native amount for calculation after the call
-                wrappedAmount = _getBalance(address(wrappedNative));
+                wrappedAmount = _getBalance(wrappedNative);
             }
 
             // Set _callback who should enter one-time execute
@@ -154,7 +152,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
             // Unwrap to natvie after the call
             if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
-                wrappedNative.withdraw(_getBalance(address(wrappedNative)) - wrappedAmount);
+                IWrappedNative(wrappedNative).withdraw(_getBalance(wrappedNative) - wrappedAmount);
             }
 
             // Charge fees

@@ -32,13 +32,13 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
     uint256 public gemCdp;
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
         (user2, user2PrivateKey) = makeAddrAndKey('User2');
-        router = new Router(makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
 
         // Empty router the balance
         vm.prank(address(router));

@@ -12,6 +12,10 @@ interface IAgent {
 
     error UnresetCallback();
 
+    function router() external returns (address);
+
+    function wrappedNative() external returns (address);
+
     function initialize() external;
 
     function execute(

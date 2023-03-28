@@ -18,21 +18,6 @@ interface IUniswapV2Router02 {
 
     function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts);
 
-    function swapExactETHForTokens(
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external payable returns (uint[] memory amounts);
-
-    function swapExactTokensForETH(
-        uint amountIn,
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external returns (uint[] memory amounts);
-
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -82,11 +67,11 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
     IAgent public agent;
 
     // Empty arrays
-    IParam.Input[] inputsEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(address(WRAPPED_NATIVE), makeAddr('Pauser'), makeAddr('FeeCollector'));
         vm.prank(user);
         agent = IAgent(router.newAgent());
 
@@ -209,8 +194,8 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         // Execute
         address[] memory tokensReturn = new address[](3);
         tokensReturn[0] = address(tokenIn0);
-        tokensReturn[1] = address(tokenIn1); // Push intermediate token to ensure clean up Router
-        tokensReturn[2] = address(tokenOut); // Push intermediate token to ensure clean up Router
+        tokensReturn[1] = address(tokenIn1); // Push intermediate token to ensure clean up Agent
+        tokensReturn[2] = address(tokenOut); // Push intermediate token to ensure clean up Agent
         vm.prank(user);
         router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 

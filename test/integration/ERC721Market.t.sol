@@ -28,11 +28,11 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
     MockERC721Market public market;
 
     // Empty arrays
-    IParam.Input[] inputsEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
         vm.prank(user);
         agent = IAgent(router.newAgent());
         market = new MockERC721Market(USDC);

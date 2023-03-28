@@ -31,9 +31,9 @@ contract LogicTypehash is Test, LogicSignature {
 
     function testLogicBatchTypehash() external {
         // Signed a logicBatch using metamask to obtain an external sig
-        bytes32 r = 0xae92e276a83c8b3bab88309dee49269a597eb5bf28a7a2883afcbd2381a86509;
-        bytes32 s = 0x195f1f918a6063d82202fe41e1c54b23072594a63dbf6c735fba86c9425329dc;
-        uint8 v = 0x1c;
+        bytes32 r = 0x230bc3f8128e8ea2fe9debb87e63aa36c20e25e6eb8ac38452667031a4ca0819;
+        bytes32 s = 0x632a3e53640ad6ed3ffa32a91ba0485a12a5b1b2b54d600afa280fbca78a27c2;
+        uint8 v = 0x1b;
         bytes memory sig = bytes.concat(r, s, bytes1(v));
 
         // Create the logicBatch with the same parameters as above
@@ -53,7 +53,7 @@ contract LogicTypehash is Test, LogicSignature {
             address(3), // to
             '0123456789abcdef',
             inputs,
-            IParam.WrapMode.NONE,
+            IParam.WrapMode.WRAP_BEFORE,
             address(4), // approveTo
             address(5) // callback
         );
