@@ -4,13 +4,15 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {Agent} from 'src/Agent.sol';
 import {AgentImplementation, IAgent} from 'src/AgentImplementation.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {ICallback, MockCallback} from './mocks/MockCallback.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
+import {MockWrappedNative, IWrappedNative} from './mocks/MockWrappedNative.sol';
 
-contract AgentImplementationTest is Test {
+contract AgentTest is Test {
     using SafeERC20 for IERC20;
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -20,8 +22,8 @@ contract AgentImplementationTest is Test {
     address public user;
     address public recipient;
     address public router;
-    address public wrappedNative;
     IAgent public agent;
+    address public mockWrappedNative;
     IERC20 public mockERC20;
     ICallback public mockCallback;
     address public mockFallback;
@@ -36,17 +38,17 @@ contract AgentImplementationTest is Test {
         user = makeAddr('User');
         recipient = makeAddr('Recipient');
         router = makeAddr('Router');
-        wrappedNative = makeAddr('WrappedNative');
 
+        mockWrappedNative = address(new MockWrappedNative());
         vm.prank(router);
-        agent = new AgentImplementation(wrappedNative);
-        agent.initialize();
+        agent = IAgent(address(new Agent(address(new AgentImplementation(mockWrappedNative)))));
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockCallback = new MockCallback();
         mockFallback = address(new MockFallback());
 
         vm.mockCall(router, 0, abi.encodeWithSignature('user()'), abi.encode(user));
         vm.label(address(agent), 'Agent');
+        vm.label(address(mockWrappedNative), 'mWrappedNative');
         vm.label(address(mockERC20), 'mERC20');
         vm.label(address(mockCallback), 'mCallback');
         vm.label(address(mockFallback), 'mFallback');
@@ -57,7 +59,7 @@ contract AgentImplementationTest is Test {
     }
 
     function testWrappedNative() external {
-        assertEq(agent.wrappedNative(), wrappedNative);
+        assertEq(agent.wrappedNative(), mockWrappedNative);
     }
 
     function testCannotExecuteByInvalidCallback() external {
@@ -139,6 +141,104 @@ contract AgentImplementationTest is Test {
         vm.expectRevert(IAgent.UnresetCallback.selector);
         vm.prank(router);
         agent.execute(logics, tokensReturnEmpty, false);
+    }
+
+    function testWrapBeforeFixedAmounts(uint128 amount1, uint128 amount2) external {
+        uint256 amount = uint256(amount1) + uint256(amount2);
+        deal(router, amount);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](2);
+
+        // Fixed amounts
+        inputs[0] = IParam.Input(
+            mockWrappedNative, // token
+            SKIP, // amountBps
+            amount1 // amountOrOffset
+        );
+        inputs[1] = IParam.Input(
+            mockWrappedNative, // token
+            SKIP, // amountBps
+            amount2 // amountOrOffset
+        );
+        logics[0] = IParam.Logic(
+            address(mockFallback), // to
+            '',
+            inputs,
+            IParam.WrapMode.WRAP_BEFORE,
+            address(0), // approveTo
+            address(0) // callback
+        );
+        if (amount > 0) {
+            vm.expectEmit(true, true, true, true, mockWrappedNative);
+            emit Approval(address(agent), address(mockFallback), type(uint256).max);
+        }
+        vm.prank(router);
+        agent.execute{value: amount}(logics, tokensReturnEmpty, false);
+        assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amount);
+    }
+
+    function testWrapBeforeReplacedAmounts(uint256 amount, uint256 bps) external {
+        vm.assume(amount < type(uint256).max / BPS_BASE); // Prevent overflow when calculates the replaced amount
+        vm.assume(bps > 0 && bps < BPS_BASE);
+        deal(router, amount);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](2);
+
+        // Replaced amounts
+        inputs[0] = IParam.Input(
+            mockWrappedNative, // token
+            bps, // amountBps
+            SKIP // amountOrOffset
+        );
+        inputs[1] = IParam.Input(
+            mockWrappedNative, // token
+            BPS_BASE - bps, // amountBps
+            SKIP // amountOrOffset
+        );
+        logics[0] = IParam.Logic(
+            address(mockFallback), // to
+            '',
+            inputs,
+            IParam.WrapMode.WRAP_BEFORE,
+            address(0), // approveTo
+            address(0) // callback
+        );
+
+        // Both replaced amounts are 0 when amount is 1
+        if (amount > 1) {
+            vm.expectEmit(true, true, true, true, mockWrappedNative);
+            emit Approval(address(agent), address(mockFallback), type(uint256).max);
+        }
+        vm.prank(router);
+        agent.execute{value: amount}(logics, tokensReturnEmpty, false);
+        assertApproxEqAbs(IERC20(mockWrappedNative).balanceOf(address(agent)), amount, 1); // 1 unit due to BPS_BASE / 2
+    }
+
+    function testUnwrapAfter(uint128 amount, uint128 amountBefore) external {
+        deal(router, amount);
+        deal(mockWrappedNative, address(agent), amountBefore); // Ensure agent handles differences
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
+
+        // Wrap native and immediately unwrap after
+        inputs[0] = IParam.Input(
+            NATIVE, // token
+            SKIP, // amountBps
+            amount // amountOrOffset
+        );
+        logics[0] = IParam.Logic(
+            address(mockWrappedNative), // to
+            abi.encodeWithSelector(IWrappedNative.deposit.selector),
+            inputs,
+            IParam.WrapMode.UNWRAP_AFTER,
+            address(0), // approveTo
+            address(0) // callback
+        );
+
+        vm.prank(router);
+        agent.execute{value: amount}(logics, tokensReturnEmpty, false);
+        assertEq((address(agent).balance), amount);
+        assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amountBefore);
     }
 
     function testSendNative(uint256 amountIn, uint256 amountBps) external {
