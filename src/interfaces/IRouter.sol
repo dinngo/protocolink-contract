@@ -5,7 +5,7 @@ import {IAgent} from './IAgent.sol';
 import {IParam} from './IParam.sol';
 
 interface IRouter {
-    event SignerAdded(address indexed signer, uint256 referral);
+    event SignerAdded(address indexed signer);
 
     event SignerRemoved(address indexed signer);
 
@@ -45,7 +45,7 @@ interface IRouter {
 
     function agents(address owner) external view returns (IAgent);
 
-    function signerReferrals(address signer) external view returns (uint256);
+    function signers(address signer) external view returns (bool);
 
     function feeCalculators(bytes4 selector) external view returns (address);
 
@@ -74,7 +74,7 @@ interface IRouter {
         uint256 msgValue
     ) external view returns (IParam.Logic[] memory, uint256);
 
-    function addSigner(address newSigner, uint256 referral) external;
+    function addSigner(address newSigner) external;
 
     function removeSigner(address signer) external;
 
@@ -88,13 +88,18 @@ interface IRouter {
 
     function resume() external;
 
-    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
+    function execute(
+        IParam.Logic[] calldata logics,
+        address[] calldata tokensReturn,
+        uint256 referral
+    ) external payable;
 
     function executeWithSignature(
         IParam.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
-        address[] calldata tokensReturn
+        address[] calldata tokensReturn,
+        uint256 referral
     ) external payable;
 
     function newAgent() external returns (address payable);

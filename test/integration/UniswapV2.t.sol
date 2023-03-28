@@ -122,7 +122,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute{value: amountIn}(logics, tokensReturn);
+        router.execute{value: amountIn}(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(address(router).balance, 0);
         assertEq(address(agent).balance, 0);
@@ -145,7 +145,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = NATIVE;
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenIn.balanceOf(address(agent)), 0);
@@ -169,7 +169,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(agent)), 0);
@@ -204,7 +204,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         tokensReturn[1] = address(tokenIn1); // Push intermediate token to ensure clean up Router
         tokensReturn[2] = address(tokenOut); // Push intermediate token to ensure clean up Router
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(tokenIn0.balanceOf(address(router)), 0);
         assertEq(tokenIn0.balanceOf(address(agent)), 0);

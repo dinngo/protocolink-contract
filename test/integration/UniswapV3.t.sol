@@ -186,7 +186,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn0.balanceOf(address(router)), 0);
@@ -257,7 +257,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         (, , , , , , , uint128 newLiquidity, , , , ) = NON_FUNGIBLE_POSITION_MANAGER.positions(tokenId);
@@ -328,7 +328,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
 
         // Execute remove liquidity action
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         // Verify remove liquidity
         (
@@ -378,7 +378,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
         userToken0Before = tokenIn0.balanceOf(user);
         userToken1Before = tokenIn1.balanceOf(user);
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify result of collect action
         assertEq(tokenIn0.balanceOf(address(router)), 0);

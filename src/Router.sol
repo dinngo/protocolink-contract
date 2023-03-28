@@ -18,13 +18,12 @@ contract Router is IRouter, EIP712, Ownable {
     address private constant _INIT_USER = address(1);
     address private constant _INVALID_PAUSER = address(0);
     address private constant _INVALID_FEE_COLLECTOR = address(0);
-    uint256 private constant _INVALID_REFERRAL = 0;
     bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
 
     address public immutable agentImplementation;
 
     mapping(address owner => IAgent agent) public agents;
-    mapping(address signer => uint256 referral) public signerReferrals;
+    mapping(address signer => bool valid) public signers;
     mapping(bytes4 selector => address feeCalculator) public feeCalculators;
     address public user;
     address public feeCollector;
@@ -130,16 +129,13 @@ contract Router is IRouter, EIP712, Ownable {
         return (logics, msgValue);
     }
 
-    function addSigner(address signer, uint256 referral) external onlyOwner {
-        if (referral == _INVALID_REFERRAL) revert InvalidReferral(referral);
-        signerReferrals[signer] = referral;
-
-        emit SignerAdded(signer, referral);
+    function addSigner(address signer) external onlyOwner {
+        signers[signer] = true;
+        emit SignerAdded(signer);
     }
 
     function removeSigner(address signer) external onlyOwner {
-        delete signerReferrals[signer];
-
+        delete signers[signer];
         emit SignerRemoved(signer);
     }
 
@@ -192,7 +188,8 @@ contract Router is IRouter, EIP712, Ownable {
     /// @notice Execute logics through user's agent. Create agent for user if not created.
     function execute(
         IParam.Logic[] calldata logics,
-        address[] calldata tokensReturn
+        address[] calldata tokensReturn,
+        uint256 referral
     ) external payable isPaused checkCaller {
         IAgent agent = agents[user];
 
@@ -201,6 +198,7 @@ contract Router is IRouter, EIP712, Ownable {
         }
 
         agent.execute{value: msg.value}(logics, tokensReturn, true);
+        // TODO: emit referral event
     }
 
     /// @notice Execute logics with signer's signature.
@@ -208,12 +206,13 @@ contract Router is IRouter, EIP712, Ownable {
         IParam.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
-        address[] calldata tokensReturn
+        address[] calldata tokensReturn,
+        uint256 referral
     ) external payable isPaused checkCaller {
         // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
-        if (signerReferrals[signer] == _INVALID_REFERRAL) revert InvalidSigner(signer);
+        if (!signers[signer]) revert InvalidSigner(signer);
         if (!signer.isValidSignatureNow(_hashTypedDataV4(logicBatch._hash()), signature)) revert InvalidSignature();
 
         IAgent agent = agents[user];
@@ -223,6 +222,7 @@ contract Router is IRouter, EIP712, Ownable {
         }
 
         agent.execute{value: msg.value}(logicBatch.logics, tokensReturn, false);
+        // TODO: emit referral event
     }
 
     /// @notice Create an agent for `msg.sender`

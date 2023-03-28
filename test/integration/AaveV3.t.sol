@@ -51,6 +51,7 @@ contract AaveV3IntegrationTest is Test {
     }
 
     uint16 private constant _REFERRAL_CODE = 56;
+    uint256 public constant SIGNER_REFERRAL = 1;
     IAaveV3Provider public constant AAVE_V3_PROVIDER = IAaveV3Provider(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address public constant AUSDC_V3 = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
@@ -110,7 +111,7 @@ contract AaveV3IntegrationTest is Test {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(agent)), 0);
@@ -138,7 +139,7 @@ contract AaveV3IntegrationTest is Test {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         assertEq(token.balanceOf(address(router)), 0);
         assertEq(token.balanceOf(address(agent)), 0);
