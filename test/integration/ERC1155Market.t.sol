@@ -67,7 +67,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
@@ -99,7 +99,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
         // Execute
         uint256 tokenBefore = tokenIn.balanceOf(user);
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
@@ -125,7 +125,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
@@ -157,7 +157,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
         // Execute
         uint256 tokenBefore = tokenIn.balanceOf(user);
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);

@@ -14,6 +14,7 @@ interface IWETH {
 contract WETHTest is Test {
     using SafeERC20 for IERC20;
 
+    uint256 public constant SIGNER_REFERRAL = 1;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     IERC20 public constant WETH = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     uint256 public constant BPS_BASE = 10_000;
@@ -50,7 +51,7 @@ contract WETHTest is Test {
         tokensReturn[0] = tokenIn;
         tokensReturn[1] = address(tokenOut);
         vm.prank(user);
-        router.execute{value: amountIn}(logics, tokensReturn);
+        router.execute{value: amountIn}(logics, tokensReturn, SIGNER_REFERRAL);
 
         address agent = router.getAgent(user);
         assertEq(address(router).balance, 0);

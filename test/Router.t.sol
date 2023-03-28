@@ -13,7 +13,6 @@ contract RouterTest is Test, LogicSignature {
     using SafeERC20 for IERC20;
 
     uint256 public constant SKIP = type(uint256).max;
-    uint256 public constant INVALID_REFERRAL = 0;
     uint256 public constant SIGNER_REFERRAL = 1;
     address public constant INVALID_PAUSER = address(0);
 
@@ -30,7 +29,7 @@ contract RouterTest is Test, LogicSignature {
     IParam.Input[] inputsEmpty;
     IParam.Logic[] logicsEmpty;
 
-    event SignerAdded(address indexed signer, uint256 referral);
+    event SignerAdded(address indexed signer);
     event SignerRemoved(address indexed signer);
     event PauserSet(address indexed pauser);
     event Paused();
@@ -86,7 +85,7 @@ contract RouterTest is Test, LogicSignature {
         );
         assertEq(router.getAgent(user), address(0));
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
         assertFalse(router.getAgent(user) == address(0));
     }
 
@@ -102,7 +101,7 @@ contract RouterTest is Test, LogicSignature {
         vm.startPrank(user);
         router.newAgent();
         assertFalse(router.getAgent(user) == address(0));
-        router.execute(logics, tokensReturnEmpty);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }
 
@@ -110,7 +109,7 @@ contract RouterTest is Test, LogicSignature {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
             address(router), // to
-            abi.encodeCall(IRouter.execute, (logicsEmpty, tokensReturnEmpty)),
+            abi.encodeCall(IRouter.execute, (logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL)),
             inputsEmpty,
             address(0), // approveTo
             address(0) // callback
@@ -118,7 +117,7 @@ contract RouterTest is Test, LogicSignature {
         vm.startPrank(user);
         router.newAgent();
         vm.expectRevert(IRouter.Reentrancy.selector);
-        router.execute(logics, tokensReturnEmpty);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }
 
@@ -135,7 +134,7 @@ contract RouterTest is Test, LogicSignature {
             address(0) // callback
         );
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
         agent = router.getAgent();
         // The executing agent should be reset to 0
         assertEq(agent, address(0));
@@ -146,32 +145,25 @@ contract RouterTest is Test, LogicSignature {
         if (agent != executingAgent) revert();
     }
 
-    function testAddSigner(address signer_, uint256 referral) external {
-        vm.assume(referral != INVALID_REFERRAL);
+    function testAddSigner(address signer_) external {
         vm.expectEmit(true, true, true, true, address(router));
-        emit SignerAdded(signer_, referral);
-        router.addSigner(signer_, referral);
-        assertEq(router.signerReferrals(signer_), referral);
+        emit SignerAdded(signer_);
+        router.addSigner(signer_);
+        assertTrue(router.signers(signer_));
     }
 
     function testCannotAddSignerByNonOwner() external {
         vm.expectRevert('Ownable: caller is not the owner');
         vm.prank(user);
-        router.addSigner(signer, SIGNER_REFERRAL);
+        router.addSigner(signer);
     }
 
-    function testCannotAddSignerInvalidReferral() external {
-        vm.expectRevert(abi.encodeWithSelector(IRouter.InvalidReferral.selector, INVALID_REFERRAL));
-        router.addSigner(signer, INVALID_REFERRAL);
-    }
-
-    function testRemoveSigner(address signer_, uint256 referral) external {
-        vm.assume(referral != INVALID_REFERRAL);
-        router.addSigner(signer_, referral);
+    function testRemoveSigner(address signer_) external {
+        router.addSigner(signer_);
         vm.expectEmit(true, true, true, true, address(router));
         emit SignerRemoved(signer_);
         router.removeSigner(signer_);
-        assertEq(router.signerReferrals(signer_), INVALID_REFERRAL);
+        assertFalse(router.signers(signer_));
     }
 
     function testCannotRemoveSignerByNonOwner() external {
@@ -181,7 +173,7 @@ contract RouterTest is Test, LogicSignature {
     }
 
     function testExecuteWithSignature() external {
-        router.addSigner(signer, SIGNER_REFERRAL);
+        router.addSigner(signer);
 
         // Ensure correct EIP-712 encodeData for non-empty Input and Logic
         IParam.Input[] memory inputs = new IParam.Input[](1);
@@ -203,7 +195,7 @@ contract RouterTest is Test, LogicSignature {
         bytes memory sigature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.prank(user);
-        router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty);
+        router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function testCannotExecutePaused() external {
@@ -214,13 +206,13 @@ contract RouterTest is Test, LogicSignature {
         // Execution revert when router paused
         vm.expectRevert(IRouter.RouterIsPaused.selector);
         vm.prank(user);
-        router.execute(logicsEmpty, tokensReturnEmpty);
+        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
 
         // Execution success when router resumed
         vm.prank(pauser);
         router.resume();
         assertFalse(router.paused());
-        router.execute(logicsEmpty, tokensReturnEmpty);
+        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function testCannotExecuteSignatureExpired() external {
@@ -230,7 +222,7 @@ contract RouterTest is Test, LogicSignature {
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.SignatureExpired.selector, deadline));
         vm.prank(user);
-        router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty);
+        router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function testCannotExecuteInvalidSigner() external {
@@ -241,11 +233,11 @@ contract RouterTest is Test, LogicSignature {
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.InvalidSigner.selector, signer));
         vm.prank(user);
-        router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty);
+        router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function testCannotExecuteInvalidSignature() external {
-        router.addSigner(signer, SIGNER_REFERRAL);
+        router.addSigner(signer);
 
         // Sign correct deadline and logicBatch
         uint256 deadline = block.timestamp;
@@ -256,14 +248,14 @@ contract RouterTest is Test, LogicSignature {
         logicBatch = IParam.LogicBatch(logicsEmpty, deadline + 1);
         vm.prank(user);
         vm.expectRevert(IRouter.InvalidSignature.selector);
-        router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty);
+        router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty, SIGNER_REFERRAL);
 
         // Tamper logics
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logicBatch = IParam.LogicBatch(logics, deadline);
         vm.prank(user);
         vm.expectRevert(IRouter.InvalidSignature.selector);
-        router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty);
+        router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function testSetPauser(address pauser_) external {
