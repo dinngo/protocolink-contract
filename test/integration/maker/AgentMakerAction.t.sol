@@ -33,6 +33,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
+    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -51,7 +52,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
         // Build user agent's DSProxy
         userAgent = IAgent(router.newAgent());
-        router.execute(_logicBuildAgentDSProxy(), new address[](0), SIGNER_REFERRAL);
+        router.execute(_logicBuildAgentDSProxy(), feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         userAgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(userAgent));
 
         // Open ETH Vault
@@ -101,7 +102,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         // Build user2's agent
         vm.startPrank(user2);
         user2Agent = IAgent(router.newAgent());
-        router.execute(_logicBuildAgentDSProxy(), new address[](0), SIGNER_REFERRAL);
+        router.execute(_logicBuildAgentDSProxy(), feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         user2AgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(user2Agent));
         vm.stopPrank();
 
@@ -134,7 +135,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
         // Execute
         vm.prank(user2);
-        router.execute{value: lockETHAmount}(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute{value: lockETHAmount}(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
 
         (, uint256 collateralAfter) = _getCdpInfo(ethCdp);
 
@@ -158,7 +159,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(NATIVE);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(user.balance - userEthBalanceBefore, freeETHAmount);
         assertEq(address(router).balance, 0);
@@ -182,7 +183,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(NATIVE);
         vm.prank(user2);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(user2.balance - user2EthBalanceBefore, freeETHAmount);
         assertEq(address(router).balance, 0);
@@ -202,7 +203,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         tokensReturn[0] = address(NATIVE);
         vm.expectRevert('ERROR_ROUTER_EXECUTE');
         vm.prank(user2);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
     }
 
     function testLockGem() external {
@@ -220,7 +221,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
         // Execute
         vm.prank(user2);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
 
         (, uint256 collateralAfter) = _getCdpInfo(gemCdp);
         uint256 user2GemBalanceAfter = IERC20(GEM).balanceOf(user2);
@@ -245,7 +246,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(GEM);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
         uint256 userEthBalanceAfter = IERC20(GEM).balanceOf(user);
 
@@ -269,7 +270,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
         // Execute
         vm.prank(user2);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
 
         (uint256 debtAfter, ) = _getCdpInfo(gemCdp);
         uint256 user2DaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user2);
@@ -298,7 +299,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user2);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
         (uint256 debtAfter, ) = _getCdpInfo(gemCdp);
         uint256 user2DaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user2);
@@ -323,7 +324,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
         uint256 userDaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user);
 

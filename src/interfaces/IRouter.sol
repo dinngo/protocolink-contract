@@ -90,6 +90,7 @@ interface IRouter {
 
     function execute(
         IParam.Logic[] calldata logics,
+        IParam.Fee[] calldata fees,
         address[] calldata tokensReturn,
         uint256 referral
     ) external payable;

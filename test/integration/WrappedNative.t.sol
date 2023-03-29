@@ -20,6 +20,9 @@ contract WrappedNativeTest is Test {
     address public user;
     IRouter public router;
 
+    // Empty arrays
+    IParam.Fee[] public feesEmpty;
+
     function setUp() external {
         user = makeAddr('User');
         router = new Router(address(WRAPPED_NATIVE), makeAddr('Pauser'), makeAddr('FeeCollector'));
@@ -48,7 +51,7 @@ contract WrappedNativeTest is Test {
         tokensReturn[0] = tokenIn;
         tokensReturn[1] = address(tokenOut);
         vm.prank(user);
-        router.execute{value: amountIn}(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute{value: amountIn}(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
         address agent = router.getAgent(user);
         assertEq(address(router).balance, 0);

@@ -27,6 +27,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
+    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -79,7 +80,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
-        router.execute{value: ethLockAmount}(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute{value: ethLockAmount}(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(utilityMaker)), 0);
@@ -117,7 +118,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(utilityMaker)), 0);

@@ -188,6 +188,7 @@ contract Router is IRouter, EIP712, Ownable {
     /// @notice Execute logics through user's agent. Create agent for user if not created.
     function execute(
         IParam.Logic[] calldata logics,
+        IParam.Fee[] calldata fees,
         address[] calldata tokensReturn,
         uint256 referral
     ) external payable isPaused checkCaller {

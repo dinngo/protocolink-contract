@@ -31,9 +31,9 @@ contract LogicTypehash is Test, LogicSignature {
 
     function testLogicBatchTypehash() external {
         // Signed a logicBatch using metamask to obtain an external sig
-        bytes32 r = 0x230bc3f8128e8ea2fe9debb87e63aa36c20e25e6eb8ac38452667031a4ca0819;
-        bytes32 s = 0x632a3e53640ad6ed3ffa32a91ba0485a12a5b1b2b54d600afa280fbca78a27c2;
-        uint8 v = 0x1b;
+        bytes32 r = 0xb2155e489c35b747610457550a11899e775bc4a1681260baaffc92b30c8bc892;
+        bytes32 s = 0x492c85b3613440c640debdc2cbf6ff960de6a363e238f42e0b7612229f2cc57b;
+        uint8 v = 0x1c;
         bytes memory sig = bytes.concat(r, s, bytes1(v));
 
         // Create the logicBatch with the same parameters as above
@@ -41,7 +41,7 @@ contract LogicTypehash is Test, LogicSignature {
         inputs[0] = IParam.Input(
             address(1), // token
             type(uint256).max, // amountBps
-            0 // amountOrOffset
+            1 // amountOrOffset
         );
         inputs[1] = IParam.Input(
             address(2), // token
@@ -58,8 +58,11 @@ contract LogicTypehash is Test, LogicSignature {
             address(5) // callback
         );
         logics[1] = logics[0]; // Duplicate logic
+        IParam.Fee[] memory fees = new IParam.Fee[](2);
+        fees[0] = IParam.Fee(address(6), 1, bytes32(abi.encodePacked('metadata')));
+        fees[1] = fees[0]; // Duplicate fee
         uint256 deadline = 1704067200;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, deadline);
+        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
 
         // Verify the locally generated signature using the private key is the same as the external sig
         assertEq(getLogicBatchSignature(logicBatch, _buildDomainSeparator(), PRIVATE_KEY), sig);

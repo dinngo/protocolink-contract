@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {IParam} from '../interfaces/IParam.sol';
 
 library LogicHash {
+    bytes32 internal constant _FEE_TYPEHASH = keccak256('Fee(address token,uint256 amount,bytes32 metadata)');
     bytes32 internal constant _INPUT_TYPEHASH =
         keccak256('Input(address token,uint256 amountBps,uint256 amountOrOffset)');
 
@@ -14,8 +15,12 @@ library LogicHash {
 
     bytes32 internal constant _LOGIC_BATCH_TYPEHASH =
         keccak256(
-            'LogicBatch(Logic[] logics,uint256 deadline)Input(address token,uint256 amountBps,uint256 amountOrOffset)Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)'
+            'LogicBatch(Logic[] logics,Fee[] fees,uint256 deadline)Fee(address token,uint256 amount,bytes32 metadata)Input(address token,uint256 amountBps,uint256 amountOrOffset)Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)'
         );
+
+    function _hash(IParam.Fee calldata fee) internal pure returns (bytes32) {
+        return keccak256(abi.encode(_FEE_TYPEHASH, fee));
+    }
 
     function _hash(IParam.Input calldata input) internal pure returns (bytes32) {
         return keccak256(abi.encode(_INPUT_TYPEHASH, input));
@@ -49,8 +54,11 @@ library LogicHash {
 
     function _hash(IParam.LogicBatch calldata logicBatch) internal pure returns (bytes32) {
         IParam.Logic[] calldata logics = logicBatch.logics;
+        IParam.Fee[] calldata fees = logicBatch.fees;
         uint256 logicsLength = logics.length;
+        uint256 feesLength = fees.length;
         bytes32[] memory logicHashes = new bytes32[](logicsLength);
+        bytes32[] memory feeHashes = new bytes32[](feesLength);
 
         for (uint256 i = 0; i < logicsLength; ) {
             logicHashes[i] = _hash(logics[i]);
@@ -59,7 +67,21 @@ library LogicHash {
             }
         }
 
+        for (uint256 i = 0; i < feesLength; ) {
+            feeHashes[i] = _hash(fees[i]);
+            unchecked {
+                ++i;
+            }
+        }
+
         return
-            keccak256(abi.encode(_LOGIC_BATCH_TYPEHASH, keccak256(abi.encodePacked(logicHashes)), logicBatch.deadline));
+            keccak256(
+                abi.encode(
+                    _LOGIC_BATCH_TYPEHASH,
+                    keccak256(abi.encodePacked(logicHashes)),
+                    keccak256(abi.encodePacked(feeHashes)),
+                    logicBatch.deadline
+                )
+            );
     }
 }
