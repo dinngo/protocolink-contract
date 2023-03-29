@@ -63,6 +63,7 @@ contract AaveV2IntegrationTest is Test {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
+    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -109,7 +110,7 @@ contract AaveV2IntegrationTest is Test {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(tokenOut.balanceOf(address(router)), 0);
         assertEq(tokenOut.balanceOf(address(agent)), 0);
@@ -137,7 +138,7 @@ contract AaveV2IntegrationTest is Test {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
 
         assertEq(token.balanceOf(address(router)), 0);
         assertEq(token.balanceOf(address(agent)), 0);

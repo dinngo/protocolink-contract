@@ -41,7 +41,8 @@ contract SpenderPermitUtils is Test, PermitSignature {
 
         // Encode execute
         address[] memory tokensReturnEmpty;
-        _router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        IParam.Fee[] memory feesEmpty;
+        _router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }
 

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 interface IParam {
     struct LogicBatch {
         Logic[] logics;
+        Fee[] fees;
         uint256 deadline;
     }
 
@@ -24,6 +25,12 @@ interface IParam {
         // If amountBps is skip, can simply read amountOrOffset as amount
         // If amountBps is not skip, amountOrOffset is byte offset of amount in Logic.data used for replacement. Set type(uint256).max to skip if don't need to replace.
         uint256 amountOrOffset;
+    }
+
+    struct Fee {
+        address token;
+        uint256 amount;
+        bytes32 metadata;
     }
 
     enum WrapMode {
