@@ -29,12 +29,12 @@ contract BalancerV2IntegrationTest is Test {
     IFlashLoanCallbackBalancerV2 public flashLoanCallback;
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
-        router = new Router(makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
         flashLoanCallback = new FlashLoanCallbackBalancerV2(address(router), address(balancerV2Vault));
 
         vm.label(address(router), 'Router');
@@ -83,6 +83,7 @@ contract BalancerV2IntegrationTest is Test {
                 address(balancerV2Vault), // to
                 abi.encodeWithSelector(IBalancerV2Vault.flashLoan.selector, receiver, tokens, amounts, userData),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(flashLoanCallback) // callback
             );
@@ -97,6 +98,7 @@ contract BalancerV2IntegrationTest is Test {
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i]),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

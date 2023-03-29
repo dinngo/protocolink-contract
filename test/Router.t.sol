@@ -25,9 +25,9 @@ contract RouterTest is Test, LogicSignature {
     address public mockTo;
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
-    IParam.Logic[] logicsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
+    IParam.Logic[] public logicsEmpty;
 
     event SignerAdded(address indexed signer);
     event SignerRemoved(address indexed signer);
@@ -40,7 +40,7 @@ contract RouterTest is Test, LogicSignature {
         pauser = makeAddr('Pauser');
         (signer, signerPrivateKey) = makeAddrAndKey('Signer');
         address feeCollector = makeAddr('FeeCollector');
-        router = new Router(pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockTo = address(new MockFallback());
 
@@ -80,6 +80,7 @@ contract RouterTest is Test, LogicSignature {
             address(mockTo), // to
             '',
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -95,6 +96,7 @@ contract RouterTest is Test, LogicSignature {
             address(mockTo), // to
             '',
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -111,6 +113,7 @@ contract RouterTest is Test, LogicSignature {
             address(router), // to
             abi.encodeCall(IRouter.execute, (logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL)),
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -130,6 +133,7 @@ contract RouterTest is Test, LogicSignature {
             address(this), // to
             abi.encodeCall(this.checkExecutingAgent, (agent)),
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -187,6 +191,7 @@ contract RouterTest is Test, LogicSignature {
             address(mockTo),
             '',
             inputs,
+            IParam.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );

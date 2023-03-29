@@ -62,12 +62,12 @@ contract AaveV2IntegrationTest is Test {
     IAaveV2Pool pool = IAaveV2Pool(IAaveV2Provider(AAVE_V2_PROVIDER).getLendingPool());
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
-        router = new Router(makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
         vm.prank(user);
         agent = IAgent(router.newAgent());
         flashLoanCallback = new FlashLoanCallbackAaveV2(address(router), address(AAVE_V2_PROVIDER));
@@ -162,6 +162,7 @@ contract AaveV2IntegrationTest is Test {
                     user
                 ),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -192,6 +193,7 @@ contract AaveV2IntegrationTest is Test {
                     referralCode
                 ),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(flashLoanCallback) // callback
             );
@@ -210,6 +212,7 @@ contract AaveV2IntegrationTest is Test {
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

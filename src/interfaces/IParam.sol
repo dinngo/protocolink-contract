@@ -11,6 +11,7 @@ interface IParam {
         address to;
         bytes data;
         Input[] inputs;
+        WrapMode wrapMode;
         // Approve to another contract instead of `to` since some protocols use spender contract to pull tokens from user
         address approveTo;
         address callback;
@@ -23,5 +24,11 @@ interface IParam {
         // If amountBps is skip, can simply read amountOrOffset as amount
         // If amountBps is not skip, amountOrOffset is byte offset of amount in Logic.data used for replacement. Set type(uint256).max to skip if don't need to replace.
         uint256 amountOrOffset;
+    }
+
+    enum WrapMode {
+        NONE,
+        WRAP_BEFORE,
+        UNWRAP_AFTER
     }
 }

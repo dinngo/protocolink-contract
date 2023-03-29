@@ -114,12 +114,12 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
     uint128 liquidity;
 
     // Empty arrays
-    IParam.Input[] inputsEmpty;
-    address[] tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
+    address[] public tokensReturnEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
         vm.prank(user);
         agent = IAgent(router.newAgent());
 
@@ -414,6 +414,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -443,6 +444,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -458,6 +460,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -473,6 +476,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

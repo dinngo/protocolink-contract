@@ -9,12 +9,12 @@ library LogicHash {
 
     bytes32 internal constant _LOGIC_TYPEHASH =
         keccak256(
-            'Logic(address to,bytes data,Input[] inputs,address approveTo,address callback)Input(address token,uint256 amountBps,uint256 amountOrOffset)'
+            'Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)Input(address token,uint256 amountBps,uint256 amountOrOffset)'
         );
 
     bytes32 internal constant _LOGIC_BATCH_TYPEHASH =
         keccak256(
-            'LogicBatch(Logic[] logics,uint256 deadline)Input(address token,uint256 amountBps,uint256 amountOrOffset)Logic(address to,bytes data,Input[] inputs,address approveTo,address callback)'
+            'LogicBatch(Logic[] logics,uint256 deadline)Input(address token,uint256 amountBps,uint256 amountOrOffset)Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)'
         );
 
     function _hash(IParam.Input calldata input) internal pure returns (bytes32) {
@@ -40,6 +40,7 @@ library LogicHash {
                     logic.to,
                     keccak256(logic.data),
                     keccak256(abi.encodePacked(inputHashes)),
+                    logic.wrapMode,
                     logic.approveTo,
                     logic.callback
                 )

@@ -9,6 +9,7 @@ import {IAgent} from './interfaces/IAgent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {IFeeCalculator} from './interfaces/IFeeCalculator.sol';
+import {IWrappedNative} from './interfaces/IWrappedNative.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
 /// @title Implemtation contract of agent logics
@@ -27,6 +28,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     uint256 private constant _SKIP = type(uint256).max;
 
     address public immutable router;
+    address public immutable wrappedNative;
 
     address private _caller;
 
@@ -42,8 +44,9 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _;
     }
 
-    constructor() {
+    constructor(address wrappedNative_) {
         router = msg.sender;
+        wrappedNative = wrappedNative_;
     }
 
     function initialize() external {
@@ -66,6 +69,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             address to = logics[i].to;
             bytes memory data = logics[i].data;
             IParam.Input[] calldata inputs = logics[i].inputs;
+            IParam.WrapMode wrapMode = logics[i].wrapMode;
             address approveTo = logics[i].approveTo;
             address callback = logics[i].callback;
 
@@ -76,6 +80,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
             // Execute each input if need to modify the amount or do approve
             uint256 value;
+            uint256 wrappedAmount;
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength; ) {
                 address token = inputs[j].token;
@@ -83,17 +88,24 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
                 // Calculate native or token amount
                 // 1. if amountBps is skip: read amountOrOffset as amount
-                // 2. if amountBps isn't skip: balance multiplied by amountBps as amount and replace the amount at offset equal to amountOrOffset with the calculated amount
+                // 2. if amountBps isn't skip: balance multiplied by amountBps as amount
                 uint256 amount;
                 if (amountBps == _SKIP) {
                     amount = inputs[j].amountOrOffset;
                 } else {
                     if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
-                    amount = (_getBalance(token) * amountBps) / _BPS_BASE;
+
+                    if (token == address(wrappedNative) && wrapMode == IParam.WrapMode.WRAP_BEFORE) {
+                        // Use the native balance for amount calculation as wrap will be executed later
+                        amount = (address(this).balance * amountBps) / _BPS_BASE;
+                    } else {
+                        amount = (_getBalance(token) * amountBps) / _BPS_BASE;
+                    }
 
                     // Skip if don't need to replace, e.g., most protocols set native amount in call value
                     uint256 offset = inputs[j].amountOrOffset;
                     if (offset != _SKIP) {
+                        // Replace the amount at offset in data with the calculated amount
                         assembly {
                             let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
                             mstore(loc, amount)
@@ -101,9 +113,13 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                     }
                 }
 
-                // Set native token value for native token
+                if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
+                    // Use += to accumulate amounts with multiple WRAP_BEFORE, although such cases are rare
+                    wrappedAmount += amount;
+                }
+
                 if (token == _NATIVE) {
-                    value = amount;
+                    value += amount;
                 } else if (token != approveTo) {
                     ApproveHelper._approveMax(token, approveTo, amount);
                 }
@@ -111,6 +127,14 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 unchecked {
                     ++j;
                 }
+            }
+
+            if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
+                // Wrap native before the call
+                IWrappedNative(wrappedNative).deposit{value: wrappedAmount}();
+            } else if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
+                // Or store the before wrapped native amount for calculation after the call
+                wrappedAmount = _getBalance(wrappedNative);
             }
 
             // Set _callback who should enter one-time execute
@@ -125,6 +149,11 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
             // Revert if the previous call didn't enter execute
             if (_caller != router) revert UnresetCallback();
+
+            // Unwrap to native after the call
+            if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
+                IWrappedNative(wrappedNative).withdraw(_getBalance(wrappedNative) - wrappedAmount);
+            }
 
             // Charge fees
             if (isFeeEnabled) {

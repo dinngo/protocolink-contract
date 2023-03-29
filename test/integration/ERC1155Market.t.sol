@@ -28,11 +28,11 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
     MockERC1155Market public market;
 
     // Empty arrays
-    IParam.Input[] inputsEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
         vm.prank(user);
         agent = IAgent(router.newAgent());
         market = new MockERC1155Market(USDC);
@@ -173,6 +173,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
                 address(token), // to
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -199,6 +200,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
                 address(market), // to
                 data,
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -229,6 +231,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
                 address(market), // to
                 data,
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -243,6 +246,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
                 address(market), // to
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -263,6 +267,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
                 address(market), // to
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

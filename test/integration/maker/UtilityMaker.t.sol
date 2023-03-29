@@ -26,12 +26,12 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
     address public utilityMakerDSProxy;
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
         utilityMaker = new UtilityMaker(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
         utilityMakerDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(utilityMaker));
 
@@ -167,6 +167,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 address(utilityMaker),
                 data,
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -181,6 +182,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 token,
                 abi.encodeWithSelector(IERC20.transfer.selector, utilityMaker, amount),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -201,6 +203,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 address(utilityMaker),
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

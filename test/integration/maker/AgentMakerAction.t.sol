@@ -32,13 +32,13 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
     uint256 public gemCdp;
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
         (user2, user2PrivateKey) = makeAddrAndKey('User2');
-        router = new Router(makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
 
         // Empty router the balance
         vm.prank(address(router));
@@ -360,6 +360,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
             PROXY_REGISTRY,
             abi.encodeWithSelector(IDSProxyRegistry.build.selector),
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0),
             address(0) // callback
         );
@@ -377,6 +378,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 token,
                 abi.encodeWithSelector(IERC20.approve.selector, dsProxy, amount),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -406,6 +408,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 user2AgentDSProxy,
                 data,
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -430,6 +433,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 dsProxy,
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -455,6 +459,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 user2AgentDSProxy,
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -479,6 +484,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 userAgentDSProxy,
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -503,6 +509,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 user2AgentDSProxy,
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -526,6 +533,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 user2AgentDSProxy,
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -551,6 +559,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
                 userAgentDSProxy,
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

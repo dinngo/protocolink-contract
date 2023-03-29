@@ -29,11 +29,11 @@ contract YearnV2Test is Test, SpenderPermitUtils {
     IAgent public agent;
 
     // Empty arrays
-    IParam.Input[] inputsEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
         vm.prank(user);
         agent = IAgent(router.newAgent());
 
@@ -87,6 +87,7 @@ contract YearnV2Test is Test, SpenderPermitUtils {
                 address(yVault), // to
                 abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

@@ -69,6 +69,7 @@ contract SpenderPermitUtils is Test, PermitSignature {
                     sig
                 ),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -91,6 +92,7 @@ contract SpenderPermitUtils is Test, PermitSignature {
                     token
                 ),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

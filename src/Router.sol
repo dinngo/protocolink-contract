@@ -50,9 +50,9 @@ contract Router is IRouter, EIP712, Ownable {
         _;
     }
 
-    constructor(address pauser_, address feeCollector_) EIP712('Composable Router', '1') {
+    constructor(address wrappedNative, address pauser_, address feeCollector_) EIP712('Composable Router', '1') {
         user = _INIT_USER;
-        agentImplementation = address(new AgentImplementation());
+        agentImplementation = address(new AgentImplementation(wrappedNative));
         _setPauser(pauser_);
         _setFeeCollector(feeCollector_);
     }
