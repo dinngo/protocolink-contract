@@ -178,8 +178,8 @@ contract AgentTest is Test {
     }
 
     function testWrapBeforeReplacedAmounts(uint256 amount, uint256 bps) external {
-        vm.assume(amount < type(uint256).max / BPS_BASE); // Prevent overflow when calculates the replaced amount
-        vm.assume(bps > 0 && bps < BPS_BASE);
+        amount = bound(amount, 0, type(uint256).max / BPS_BASE); // Prevent overflow when calculates the replaced amount
+        bps = bound(bps, 1, BPS_BASE - 1);
         deal(router, amount);
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         IParam.Input[] memory inputs = new IParam.Input[](2);

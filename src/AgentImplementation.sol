@@ -105,7 +105,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                     // Skip if don't need to replace, e.g., most protocols set native amount in call value
                     uint256 offset = inputs[j].amountOrOffset;
                     if (offset != _SKIP) {
-                        // Replace the amount at offset with the calculated amount
+                        // Replace the amount at offset in data with the calculated amount
                         assembly {
                             let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
                             mstore(loc, amount)
@@ -130,7 +130,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             }
 
             if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
-                // Wrap natvie before the call
+                // Wrap native before the call
                 IWrappedNative(wrappedNative).deposit{value: wrappedAmount}();
             } else if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
                 // Or store the before wrapped native amount for calculation after the call
@@ -150,7 +150,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             // Revert if the previous call didn't enter execute
             if (_caller != router) revert UnresetCallback();
 
-            // Unwrap to natvie after the call
+            // Unwrap to native after the call
             if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
                 IWrappedNative(wrappedNative).withdraw(_getBalance(wrappedNative) - wrappedAmount);
             }
