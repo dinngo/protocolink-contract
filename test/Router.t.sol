@@ -35,6 +35,7 @@ contract RouterTest is Test, LogicSignature {
     event PauserSet(address indexed pauser);
     event Paused();
     event Resumed();
+    event AgentCreated(address indexed agent, address indexed owner);
 
     function setUp() external {
         user = makeAddr('User');
@@ -56,6 +57,9 @@ contract RouterTest is Test, LogicSignature {
     }
 
     function testNewAgentForUser() external {
+        address calcAgent = router.calcAgent(user);
+        vm.expectEmit(true, true, true, true, address(router));
+        emit AgentCreated(calcAgent, user);
         address agent = router.newAgent(user);
         assertEq(router.getAgent(user), agent);
     }
@@ -70,7 +74,7 @@ contract RouterTest is Test, LogicSignature {
     function testCannotNewAgentAgain() external {
         vm.startPrank(user);
         router.newAgent();
-        vm.expectRevert(IRouter.AgentCreated.selector);
+        vm.expectRevert(IRouter.AgentAlreadyCreated.selector);
         router.newAgent();
         vm.stopPrank();
     }

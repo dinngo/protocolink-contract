@@ -19,6 +19,8 @@ interface IRouter {
 
     event Resumed();
 
+    event AgentCreated(address indexed agent, address indexed owner);
+
     error Reentrancy();
 
     error RouterIsPaused();
@@ -39,7 +41,7 @@ interface IRouter {
 
     error InvalidSignature();
 
-    error AgentCreated();
+    error AgentAlreadyCreated();
 
     function agentImplementation() external view returns (address);
 

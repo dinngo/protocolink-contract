@@ -111,6 +111,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                             mstore(loc, amount)
                         }
                     }
+                    emit AmountReplaced(i, j, amount);
                 }
 
                 if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
