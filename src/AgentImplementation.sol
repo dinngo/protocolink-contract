@@ -96,8 +96,8 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                     if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
 
                     if (token == address(wrappedNative) && wrapMode == IParam.WrapMode.WRAP_BEFORE) {
-                        // Use native to calculate wrapped amount
-                        amount = (_getBalance(_NATIVE) * amountBps) / _BPS_BASE;
+                        // Use the native balance for amount calculation as wrap will be executed later
+                        amount = (address(this).balance * amountBps) / _BPS_BASE;
                     } else {
                         amount = (_getBalance(token) * amountBps) / _BPS_BASE;
                     }
