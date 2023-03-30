@@ -85,7 +85,7 @@ contract AgentTest is Test {
         );
         vm.expectRevert(IAgent.InvalidCaller.selector);
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute(logics, feesEmpty, tokensReturnEmpty);
     }
 
     function testCannotBeInvalidBps() external {
@@ -108,7 +108,7 @@ contract AgentTest is Test {
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute(logics, feesEmpty, tokensReturnEmpty);
 
         // Revert if amountBps = BPS_BASE + 1
         inputs[0] = IParam.Input(
@@ -126,7 +126,7 @@ contract AgentTest is Test {
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute(logics, feesEmpty, tokensReturnEmpty);
     }
 
     function testCannotUnresetCallback() external {
@@ -141,7 +141,7 @@ contract AgentTest is Test {
         );
         vm.expectRevert(IAgent.UnresetCallback.selector);
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute(logics, feesEmpty, tokensReturnEmpty);
     }
 
     function testWrapBeforeFixedAmounts(uint128 amount1, uint128 amount2) external {
@@ -174,7 +174,7 @@ contract AgentTest is Test {
             emit Approval(address(agent), address(mockFallback), type(uint256).max);
         }
         vm.prank(router);
-        agent.execute{value: amount}(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute{value: amount}(logics, feesEmpty, tokensReturnEmpty);
         assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amount);
     }
 
@@ -211,7 +211,7 @@ contract AgentTest is Test {
             emit Approval(address(agent), address(mockFallback), type(uint256).max);
         }
         vm.prank(router);
-        agent.execute{value: amount}(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute{value: amount}(logics, feesEmpty, tokensReturnEmpty);
         assertApproxEqAbs(IERC20(mockWrappedNative).balanceOf(address(agent)), amount, 1); // 1 unit due to BPS_BASE / 2
     }
 
@@ -237,7 +237,7 @@ contract AgentTest is Test {
         );
 
         vm.prank(router);
-        agent.execute{value: amount}(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute{value: amount}(logics, feesEmpty, tokensReturnEmpty);
         assertEq((address(agent).balance), amount);
         assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amountBefore);
     }
@@ -254,7 +254,7 @@ contract AgentTest is Test {
 
         // Execute
         vm.prank(router);
-        agent.execute{value: amountIn}(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute{value: amountIn}(logics, feesEmpty, tokensReturnEmpty);
 
         uint256 recipientAmount = amountIn;
         if (amountBps != SKIP) recipientAmount = (amountIn * amountBps) / BPS_BASE;
@@ -306,7 +306,7 @@ contract AgentTest is Test {
         vm.expectEmit(true, true, true, true, address(mockERC20));
         emit Approval(address(agent), address(mockFallback), type(uint256).max);
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute(logics, feesEmpty, tokensReturnEmpty);
 
         // Execute again, mock approve to guarantee that approval is not called
         vm.mockCall(
@@ -316,7 +316,7 @@ contract AgentTest is Test {
             abi.encode(false)
         );
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute(logics, feesEmpty, tokensReturnEmpty);
     }
 
     function testApproveToIsSet(uint256 amountIn, address approveTo) external {
@@ -344,7 +344,7 @@ contract AgentTest is Test {
         vm.expectEmit(true, true, true, true, address(mockERC20));
         emit Approval(address(agent), approveTo, type(uint256).max);
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute(logics, feesEmpty, tokensReturnEmpty);
 
         // Execute again, mock approve to guarantee that approval is not called
         vm.mockCall(
@@ -354,6 +354,6 @@ contract AgentTest is Test {
             abi.encode(false)
         );
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty, feesEmpty);
+        agent.execute(logics, feesEmpty, tokensReturnEmpty);
     }
 }

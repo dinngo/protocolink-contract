@@ -50,8 +50,8 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     /// @notice Execute logics and return tokens to user
     function execute(
         IParam.Logic[] calldata logics,
-        address[] calldata tokensReturn,
-        IParam.Fee[] calldata fees
+        IParam.Fee[] calldata fees,
+        address[] calldata tokensReturn
     ) external payable checkCaller {
         // Execute each logic
         uint256 logicsLength = logics.length;
