@@ -19,6 +19,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
     uint256 public constant DRAW_DAI_AMOUNT = 20000 ether;
     uint256 public constant DRAW_DATA_START_INDEX = 104;
     uint256 public constant DRAW_DATA_END_INDEX = 264;
+    uint256 public constant SIGNER_REFERRAL = 1;
 
     address public user;
     address public userDSProxy;
@@ -30,8 +31,9 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
     uint256 public ethCdp;
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
+    IParam.Fee[] public feesEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -39,7 +41,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         address pauser = makeAddr('Pauser');
 
         // Depoly contracts
-        router = new Router(pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
         makerDrawFeeCalculator = new MakerDrawFeeCalculator(address(router), ZERO_FEE_RATE, DAI_TOKEN);
@@ -56,7 +58,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         userDSProxy = IDSProxyRegistry(PROXY_REGISTRY).build();
 
         // Build user agent's DSProxy
-        router.execute(_logicBuildDSProxy(), new address[](0));
+        router.execute(_logicBuildDSProxy(), feesEmpty, new address[](0), SIGNER_REFERRAL);
         userAgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(userAgent));
 
         // Open ETH Vault
@@ -121,13 +123,14 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         logics[0] = _logicFreeETH(userAgentDSProxy, ethCdp, freeETHAmount);
 
         // Get new logics
-        (logics, ) = router.getLogicsWithFee(logics, 0);
+        IParam.Fee[] memory fees;
+        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
 
         // Execute
         address[] memory tokensReturns = new address[](1);
         tokensReturns[0] = address(NATIVE);
         vm.prank(user);
-        router.execute(logics, tokensReturns);
+        router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
 
         assertEq(address(router).balance, 0);
         assertEq(address(userAgent).balance, 0);
@@ -151,7 +154,8 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         logics[0] = _logicDraw(ethCdp, amount);
 
         // Get new logics
-        (logics, ) = router.getLogicsWithFee(logics, 0);
+        IParam.Fee[] memory fees;
+        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);
@@ -164,7 +168,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
-        router.execute(logics, tokensReturn);
+        router.execute(logics, fees, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(userAgent)), 0);
@@ -179,6 +183,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
             PROXY_REGISTRY,
             abi.encodeWithSelector(IDSProxyRegistry.build.selector),
             inputsEmpty,
+            IParam.WrapMode.NONE,
             address(0),
             address(0)
         );
@@ -206,6 +211,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
                 userAgentDSProxy,
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -230,6 +236,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
                 dsProxy,
                 data,
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

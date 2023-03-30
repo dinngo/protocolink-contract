@@ -28,8 +28,8 @@ contract Permit2FeeCalculatorTest is Test, FeeCalculatorUtils, SpenderPermitUtil
     IFeeCalculator public permit2FeeCalculator;
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
@@ -37,7 +37,7 @@ contract Permit2FeeCalculatorTest is Test, FeeCalculatorUtils, SpenderPermitUtil
         address pauser = makeAddr('Pauser');
 
         // Depoly contracts
-        router = new Router(pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
         permit2FeeCalculator = new Permit2FeeCalculator(address(router), ZERO_FEE_RATE);
@@ -72,7 +72,8 @@ contract Permit2FeeCalculatorTest is Test, FeeCalculatorUtils, SpenderPermitUtil
         logics[0] = logicSpenderPermit2ERC20PullToken(USDC, amount.toUint160());
 
         // Get new logics
-        (logics, ) = router.getLogicsWithFee(logics, 0);
+        IParam.Fee[] memory fees;
+        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);
@@ -86,7 +87,7 @@ contract Permit2FeeCalculatorTest is Test, FeeCalculatorUtils, SpenderPermitUtil
         address[] memory tokensReturns = new address[](1);
         tokensReturns[0] = address(USDC);
         vm.prank(user);
-        router.execute(logics, tokensReturns);
+        router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
 
         assertEq(USDC.balanceOf(address(router)), 0);
         assertEq(USDC.balanceOf(address(userAgent)), 0);

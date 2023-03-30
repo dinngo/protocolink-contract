@@ -19,6 +19,7 @@ contract Router is IRouter, EIP712, Ownable {
     address private constant _INVALID_PAUSER = address(0);
     address private constant _INVALID_FEE_COLLECTOR = address(0);
     bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
+    address private constant _DUMMY_ERC20_TOKEN = address(0xe20);
 
     address public immutable agentImplementation;
 
@@ -116,9 +117,6 @@ contract Router is IRouter, EIP712, Ownable {
             }
         }
 
-        // Get fees
-        IParam.Fee[] memory fees = _getFeesByLogics(logics);
-
         // Update value
         if (msgValue > 0) {
             address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR];
@@ -128,6 +126,9 @@ contract Router is IRouter, EIP712, Ownable {
                 );
             }
         }
+
+        // Get fees
+        IParam.Fee[] memory fees = _getFeesByLogics(logics, msgValue);
 
         return (logics, fees, msgValue);
     }
@@ -195,7 +196,7 @@ contract Router is IRouter, EIP712, Ownable {
         address[] calldata tokensReturn,
         uint256 referral
     ) external payable isPaused checkCaller {
-        _verifyFees(logics, fees);
+        _verifyFees(logics, fees, msg.value);
 
         IAgent agent = agents[user];
 
@@ -248,8 +249,8 @@ contract Router is IRouter, EIP712, Ownable {
         }
     }
 
-    function _verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees) internal view {
-        IParam.Fee[] memory expectedFees = _getFeesByLogics(logics);
+    function _verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees, uint256 msgValue) internal view {
+        IParam.Fee[] memory expectedFees = _getFeesByLogics(logics, msgValue);
         uint256 expectedFeesLength = expectedFees.length;
         if (expectedFeesLength == 0) return;
 
@@ -274,12 +275,16 @@ contract Router is IRouter, EIP712, Ownable {
         }
     }
 
-    function _getFeesByLogics(IParam.Logic[] memory logics) internal view returns (IParam.Fee[] memory) {
+    function _getFeesByLogics(
+        IParam.Logic[] memory logics,
+        uint256 msgValue
+    ) internal view returns (IParam.Fee[] memory) {
         IParam.Fee[] memory tempFees = new IParam.Fee[](32); // Create a temporary `tempFees` with size 32 to store fee
         uint256 realFeeLength;
         uint256 logicsLength = logics.length;
         for (uint256 i = 0; i < logicsLength; ++i) {
             bytes memory data = logics[i].data;
+            address to = logics[i].to;
             bytes4 selector = bytes4(data);
             address feeCalculator = feeCalculators[selector];
             if (feeCalculator == address(0)) {
@@ -307,12 +312,25 @@ contract Router is IRouter, EIP712, Ownable {
 
                 if (isFeeTokenExist == false) {
                     tempFees[realFeeLength] = IParam.Fee({
-                        token: tokens[feeIndex],
+                        token: tokens[feeIndex] == _DUMMY_ERC20_TOKEN ? to : tokens[feeIndex],
                         amount: amounts[feeIndex],
                         metadata: metadata
                     });
                     realFeeLength++;
                 }
+            }
+        }
+
+        if (msgValue > 0) {
+            // For native fee
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR];
+            if (nativeFeeCalculator != address(0)) {
+                (address[] memory tokens, uint256[] memory amounts, bytes32 metadata) = IFeeCalculator(
+                    nativeFeeCalculator
+                ).getFees(abi.encodePacked(msgValue));
+
+                tempFees[realFeeLength] = IParam.Fee({token: tokens[0], amount: amounts[0], metadata: metadata});
+                realFeeLength++;
             }
         }
 

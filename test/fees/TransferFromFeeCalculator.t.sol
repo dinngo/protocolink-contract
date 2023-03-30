@@ -13,6 +13,7 @@ import {FeeCalculatorUtils, IFeeBase} from 'test/utils/FeeCalculatorUtils.sol';
 contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
     bytes4 public constant TRANSFER_FROM_SELECTOR = bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    uint256 public constant SIGNER_REFERRAL = 1;
 
     address public user;
     address public feeCollector;
@@ -30,7 +31,7 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
         address pauser = makeAddr('Pauser');
 
         // Depoly contracts
-        router = new Router(pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
         transferFromFeeCalculator = new TransferFromFeeCalculator(address(router), ZERO_FEE_RATE);
@@ -61,7 +62,8 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
         logics[0] = _logicTransferFrom(address(USDC), user, address(userAgent), amount);
 
         // Get new logics
-        (logics, ) = router.getLogicsWithFee(logics, 0);
+        IParam.Fee[] memory fees;
+        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);
@@ -78,7 +80,7 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
         address[] memory tokensReturns = new address[](1);
         tokensReturns[0] = address(USDC);
         vm.prank(user);
-        router.execute(logics, tokensReturns);
+        router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
 
         assertEq(USDC.balanceOf(address(router)), 0);
         assertEq(USDC.balanceOf(address(userAgent)), 0);
@@ -104,6 +106,7 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
                 token,
                 abi.encodeWithSelector(TRANSFER_FROM_SELECTOR, from, to, amount),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

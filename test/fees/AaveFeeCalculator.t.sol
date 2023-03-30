@@ -18,6 +18,7 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)')));
     bytes4 public constant AAVE_BORROW_SELECTOR =
         bytes4(keccak256(bytes('borrow(address,uint256,uint256,uint16,address)')));
+    uint256 public constant SIGNER_REFERRAL = 1;
 
     address public user;
     address public feeCollector;
@@ -29,8 +30,8 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
     MockAavePool mockAavePool;
 
     // Empty arrays
-    address[] tokensReturnEmpty;
-    IParam.Input[] inputsEmpty;
+    address[] public tokensReturnEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -38,7 +39,7 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         address pauser = makeAddr('Pauser');
 
         // Depoly contracts
-        router = new Router(pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
         flashLoanFeeCalculator = new AaveFlashLoanFeeCalculator(address(router), ZERO_FEE_RATE);
@@ -83,8 +84,9 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicAaveV2FlashLoan(tokens, amounts);
 
-        // Get new logics
-        (logics, ) = router.getLogicsWithFee(logics, 0);
+        // Get new logics and fees
+        IParam.Fee[] memory fees;
+        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
 
         _distributeToken(tokens, amounts, feeRate);
 
@@ -96,7 +98,7 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty);
+        router.execute(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
 
         assertEq(IERC20(mockERC20).balanceOf(address(router)), 0);
         assertEq(IERC20(mockERC20).balanceOf(address(userAgent)), 0);
@@ -116,7 +118,8 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         logics[0] = _logicAaveBorrow(address(mockERC20), amount);
 
         // Get new logics
-        (logics, ) = router.getLogicsWithFee(logics, 0);
+        IParam.Fee[] memory fees;
+        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);
@@ -128,7 +131,7 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         address[] memory tokensReturns = new address[](1);
         tokensReturns[0] = address(mockERC20);
         vm.prank(user);
-        router.execute(logics, tokensReturns);
+        router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
 
         assertEq(IERC20(mockERC20).balanceOf(address(router)), 0);
         assertEq(IERC20(mockERC20).balanceOf(address(userAgent)), 0);
@@ -170,6 +173,7 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
                     0 // referralCode
                 ),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -188,6 +192,7 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
                     address(0) // onBehalfOf
                 ),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

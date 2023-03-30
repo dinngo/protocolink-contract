@@ -15,6 +15,7 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     bytes public constant EMPTY_LOGIC_DATA = new bytes(0);
     uint256 public constant SKIP = type(uint256).max;
+    uint256 public constant SIGNER_REFERRAL = 1;
 
     address public user;
     address public receiver;
@@ -31,7 +32,7 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
         receiver = makeAddr('Receiver');
         feeCollector = makeAddr('FeeCollector');
         address pauser = makeAddr('Pauser');
-        router = new Router(pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         userAgent = IAgent(router.newAgent());
 
         // Deploy native fee calculator
@@ -73,8 +74,9 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
         logics[0] = _logicSendNative(value);
 
         // Get new logics and msgValue
+        IParam.Fee[] memory fees;
         uint256 newValue;
-        (logics, newValue) = router.getLogicsWithFee(logics, value);
+        (logics, fees, newValue) = router.getLogicsAndFees(logics, value);
         deal(user, newValue);
 
         // Prepare assert data
@@ -84,7 +86,7 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
 
         // Execute
         vm.prank(user);
-        router.execute{value: newValue}(logics, tokensReturnEmpty);
+        router.execute{value: newValue}(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
 
         assertEq(address(router).balance, 0);
         assertEq(address(userAgent).balance, 0);
@@ -105,6 +107,7 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
                 receiver,
                 EMPTY_LOGIC_DATA,
                 inputs,
+                IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

@@ -20,6 +20,6 @@ contract NativeFeeCalculator is IFeeCalculator, FeeBase {
     }
 
     function getDataWithFee(bytes calldata data) external view returns (bytes memory) {
-        return abi.encode(calculateAmountWithFee(uint256(bytes32(data))));
+        return abi.encodePacked(calculateAmountWithFee(uint256(bytes32(data))));
     }
 }
