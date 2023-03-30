@@ -23,6 +23,8 @@ interface IRouter {
 
     event AgentCreated(address indexed agent, address indexed owner);
 
+    event Withdraw(address indexed token, address indexed receiver, uint256 amount);
+
     error Reentrancy();
 
     error RouterIsPaused();
@@ -34,6 +36,8 @@ interface IRouter {
     error InvalidFeeCollector();
 
     error InvalidNewPauser();
+
+    error InvalidWithdrawal(address token, uint256 amount);
 
     error SignatureExpired(uint256 deadline);
 
@@ -108,4 +112,6 @@ interface IRouter {
     function newAgent() external returns (address payable);
 
     function newAgent(address user) external returns (address payable);
+
+    function withdraw(address token, address receiver, uint256 amount) external;
 }

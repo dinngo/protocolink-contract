@@ -37,6 +37,7 @@ contract RouterTest is Test, LogicSignature {
     event Resumed();
     event AgentCreated(address indexed agent, address indexed owner);
     event Execute(address indexed user, address indexed agent, uint256 indexed referral);
+    event Withdraw(address indexed token, address indexed receiver, uint256 amount);
 
     function setUp() external {
         user = makeAddr('User');
@@ -332,5 +333,48 @@ contract RouterTest is Test, LogicSignature {
         vm.expectRevert(IRouter.InvalidPauser.selector);
         vm.prank(user);
         router.resume();
+    }
+
+    function testWithdraw(uint256 amount) external {
+        deal(address(mockERC20), address(router), amount);
+
+        vm.expectEmit(true, true, true, true, address(router));
+        emit Withdraw(address(mockERC20), user, amount);
+        router.withdraw(address(mockERC20), user, amount);
+
+        assertEq(mockERC20.balanceOf(address(router)), 0);
+        assertEq(mockERC20.balanceOf(user), amount);
+    }
+
+    function testCannotWithdrawByNonOwner() external {
+        uint256 amount = 1 ether;
+        deal(address(mockERC20), address(router), amount);
+
+        vm.expectRevert('Ownable: caller is not the owner');
+        vm.prank(user);
+        router.withdraw(address(mockERC20), user, amount);
+    }
+
+    function testCannotWithdrawInvalidToken() external {
+        uint256 amount = 1 ether;
+        address invalidToken = user;
+
+        vm.expectRevert();
+        router.withdraw(invalidToken, user, amount);
+    }
+
+    function testCannotWithdrawInvalidAmount() external {
+        uint256 amount = 1 ether;
+
+        vm.expectRevert(abi.encodeWithSelector(IRouter.InvalidWithdrawal.selector, address(mockERC20), amount));
+        router.withdraw(address(mockERC20), user, amount);
+    }
+
+    function testCannotReceiveNativeToken() external {
+        uint256 value = 1 ether;
+        vm.deal(address(this), value);
+
+        vm.expectRevert();
+        address(router).call{value: value}('');
     }
 }
