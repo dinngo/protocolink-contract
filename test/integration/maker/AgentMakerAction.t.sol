@@ -95,9 +95,10 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         gemCdp = uint256(ret);
         assertEq(IERC20(DAI_TOKEN).balanceOf(user), DRAW_DAI_AMOUNT * 2);
 
-        _allowCdp(userDSProxy, ethCdp, userAgentDSProxy);
-        _allowCdp(userDSProxy, gemCdp, userAgentDSProxy);
         vm.stopPrank();
+
+        _allowCdp(user, userDSProxy, ethCdp, userAgentDSProxy);
+        _allowCdp(user, userDSProxy, gemCdp, userAgentDSProxy);
 
         // Build user2's agent
         vm.startPrank(user2);
@@ -119,7 +120,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         vm.label(address(userAgentDSProxy), 'UserAgentDSProxy');
         vm.label(address(user2AgentDSProxy), 'User2AgentDSProxy');
 
-        makerCommonSetUp();
+        _makerCommonSetUp();
     }
 
     function testLockETH() external {
@@ -172,8 +173,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         uint256 user2EthBalanceBefore = user2.balance;
 
         // User approve to user2
-        vm.prank(user);
-        _allowCdp(userDSProxy, ethCdp, user2AgentDSProxy);
+        _allowCdp(user, userDSProxy, ethCdp, user2AgentDSProxy);
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -331,19 +331,6 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         assertEq(userDaiBalanceAfter - userDaiBalanceBefore, drawDaiAmount);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(userAgent)), 0);
-    }
-
-    function _allowCdp(address dsProxy, uint256 cdp, address usr) internal {
-        IDSProxy(dsProxy).execute(
-            PROXY_ACTIONS,
-            abi.encodeWithSelector(
-                0xba727a95, // selector of "cdpAllow(address,uint256,address,uint256)"
-                CDP_MANAGER,
-                cdp,
-                usr,
-                1
-            )
-        );
     }
 
     function _getCdpInfo(uint256 cdp) internal view returns (uint256, uint256) {

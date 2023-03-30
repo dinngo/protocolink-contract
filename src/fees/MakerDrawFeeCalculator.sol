@@ -8,7 +8,6 @@ contract MakerDrawFeeCalculator is IFeeCalculator, FeeBase {
     bytes32 private constant _META_DATA = bytes32(bytes('Maker:Draw'));
     bytes4 private constant _DRAW_FUNCTION_SELECTOR =
         bytes4(keccak256(bytes('draw(address,address,address,uint256,uint256)')));
-
     uint256 private constant _DRAW_SELECTOR_START_INDEX = 100;
     uint256 private constant _DRAW_SELECTOR_END_INDEX = 104;
     uint256 private constant _DRAW_DATA_START_INDEX = 104;
@@ -42,6 +41,7 @@ contract MakerDrawFeeCalculator is IFeeCalculator, FeeBase {
 
         uint256[] memory fees = new uint256[](1);
         fees[0] = calculateFee(amount);
+
         return (tokens, fees, _META_DATA);
     }
 

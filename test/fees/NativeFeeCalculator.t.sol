@@ -2,23 +2,19 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {Router, IRouter} from '../../src/Router.sol';
-import {IParam} from '../../src/interfaces/IParam.sol';
-import {IAgent} from '../../src/interfaces/IAgent.sol';
-import {NativeFeeCalculator} from '../../src/fees/NativeFeeCalculator.sol';
-import {IFeeCalculator} from '../../src/interfaces/IFeeCalculator.sol';
+import {Router, IRouter} from 'src/Router.sol';
+import {NativeFeeCalculator} from 'src/fees/NativeFeeCalculator.sol';
+import {FeeBase} from 'src/fees/FeeBase.sol';
+import {IParam} from 'src/interfaces/IParam.sol';
+import {IAgent} from 'src/interfaces/IAgent.sol';
+import {IFeeCalculator} from 'src/interfaces/IFeeCalculator.sol';
+import {FeeCalculatorUtils, IFeeBase} from 'test/utils/FeeCalculatorUtils.sol';
 
-interface IFeeBase {
-    function setFeeRate(uint256 feeRate_) external;
-}
-
-contract NativeFeeCalculatorTest is Test {
+contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     bytes public constant EMPTY_LOGIC_DATA = new bytes(0);
-    uint256 public constant ZERO_FEE_RATE = 0;
     uint256 public constant SKIP = type(uint256).max;
-    uint256 public constant BPS_BASE = 10_000;
 
     address public user;
     address public receiver;
@@ -28,7 +24,7 @@ contract NativeFeeCalculatorTest is Test {
     IFeeCalculator public feeCalculator;
 
     // Empty arrays
-    address[] tokensReturnEmpty;
+    address[] public tokensReturnEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -54,44 +50,29 @@ contract NativeFeeCalculatorTest is Test {
         vm.label(address(feeCalculator), 'FeeCalculator');
     }
 
-    function testZeroNativeFee(uint256 value) external {
-        value = bound(value, 1e3, 1e8 ether);
-
-        // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicSendNative(value);
-
-        // Get new logics and msg.value
-        uint256 newValue;
-        (logics, newValue) = router.getLogicsWithFee(logics, value);
-        deal(user, newValue);
-
-        uint256 receiverBalanceBefore = receiver.balance;
-        uint256 feeCollectorBalanceBefore = feeCollector.balance;
-
-        // Execute
+    function testInvalidFeeRateSender() external {
+        vm.expectRevert(FeeBase.InvalidSender.selector);
         vm.prank(user);
-        router.execute{value: newValue}(logics, tokensReturnEmpty);
-
-        assertEq(address(router).balance, 0);
-        assertEq(address(userAgent).balance, 0);
-        assertEq(newValue, value);
-        assertEq(receiver.balance - receiverBalanceBefore, value);
-        assertEq(feeCollectorBalanceBefore, feeCollector.balance);
+        IFeeBase(address(feeCalculator)).setFeeRate(99);
     }
 
-    function testDynamicNativeFee(uint256 value, uint256 feeRate) external {
-        value = bound(value, 1e10, 1e8 ether);
-        feeRate = bound(feeRate, 1, BPS_BASE - 1);
+    function testInvalidFeeRate() external {
+        vm.expectRevert(FeeBase.InvalidRate.selector);
+        IFeeBase(address(feeCalculator)).setFeeRate(BPS_BASE);
+    }
 
-        // Set fee
+    function testChargeNativeFee(uint256 value, uint256 feeRate) external {
+        value = bound(value, 1e10, 1e8 ether);
+        feeRate = bound(feeRate, 0, BPS_BASE - 1);
+
+        // Set fee rate
         IFeeBase(address(feeCalculator)).setFeeRate(feeRate);
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicSendNative(value);
 
-        // Get new logics and msg.value
+        // Get new logics and msgValue
         uint256 newValue;
         (logics, newValue) = router.getLogicsWithFee(logics, value);
         deal(user, newValue);
@@ -127,9 +108,5 @@ contract NativeFeeCalculatorTest is Test {
                 address(0), // approveTo
                 address(0) // callback
             );
-    }
-
-    function _calculateFee(uint256 amount, uint256 feeRate) internal pure returns (uint256) {
-        return (amount * feeRate) / (BPS_BASE + feeRate);
     }
 }

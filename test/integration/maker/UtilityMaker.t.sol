@@ -53,7 +53,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
         vm.label(address(utilityMaker), 'UtilityMaker');
         vm.label(address(utilityMakerDSProxy), 'UtilityMakerDSProxy');
 
-        makerCommonSetUp();
+        _makerCommonSetUp();
     }
 
     function testOpenLockETHAndDraw(uint256 ethLockAmount, uint256 daiDrawAmount) external {

@@ -13,7 +13,7 @@ contract TransferFromFeeCalculator is IFeeCalculator, FeeBase {
 
     function getFees(bytes calldata data) external view returns (address[] memory, uint256[] memory, bytes32) {
         // Token transfrom signature:'transferFrom(address,address,uint256)', selector:0x23b872dd
-        (, , uint256 amount) = abi.decode(data, (address, address, uint256));
+        (, , uint256 amount) = abi.decode(data[4:], (address, address, uint256));
 
         address[] memory tokens = new address[](1);
         tokens[0] = _DUMMY_ERC20_TOKEN; // The token address is `to` calling contract address. Return a dummy address here
@@ -24,8 +24,8 @@ contract TransferFromFeeCalculator is IFeeCalculator, FeeBase {
     }
 
     function getDataWithFee(bytes calldata data) external view returns (bytes memory) {
-        (address from, address to, uint256 amount) = abi.decode(data, (address, address, uint256));
+        (address from, address to, uint256 amount) = abi.decode(data[4:], (address, address, uint256));
         amount = calculateAmountWithFee(amount);
-        return abi.encode(from, to, amount);
+        return abi.encodePacked(data[:4], abi.encode(from, to, amount));
     }
 }
