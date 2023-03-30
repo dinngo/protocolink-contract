@@ -11,7 +11,7 @@ contract Permit2FeeCalculator is IFeeCalculator, FeeBase {
 
     function getFees(bytes calldata data) external view returns (address[] memory, uint256[] memory, bytes32) {
         // Permit2 transfrom signature:'transferFrom(address,address,uint160,address)', selector:0x36c78516
-        (, , uint160 amount, address token) = abi.decode(data, (address, address, uint160, address));
+        (, , uint160 amount, address token) = abi.decode(data[4:], (address, address, uint160, address));
 
         address[] memory tokens = new address[](1);
         tokens[0] = token;
@@ -23,13 +23,13 @@ contract Permit2FeeCalculator is IFeeCalculator, FeeBase {
 
     function getDataWithFee(bytes calldata data) external view returns (bytes memory) {
         (address from, address to, uint160 amount, address token) = abi.decode(
-            data,
+            data[4:],
             (address, address, uint160, address)
         );
         uint256 amountWithFee = calculateAmountWithFee(amount);
         if (amountWithFee > type(uint160).max) revert('Amount overflow');
 
         amount = uint160(amountWithFee);
-        return abi.encode(from, to, amount, token);
+        return abi.encodePacked(data[:4], abi.encode(from, to, amount, token));
     }
 }
