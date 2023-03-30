@@ -69,56 +69,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             }
 
             // Execute each input if need to modify the amount or do approve
-            uint256 value;
-            uint256 wrappedAmount;
-            uint256 inputsLength = inputs.length;
-            for (uint256 j = 0; j < inputsLength; ) {
-                address token = inputs[j].token;
-                uint256 amountBps = inputs[j].amountBps;
-
-                // Calculate native or token amount
-                // 1. if amountBps is skip: read amountOrOffset as amount
-                // 2. if amountBps isn't skip: balance multiplied by amountBps as amount
-                uint256 amount;
-                if (amountBps == _SKIP) {
-                    amount = inputs[j].amountOrOffset;
-                } else {
-                    if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
-
-                    if (token == address(wrappedNative) && wrapMode == IParam.WrapMode.WRAP_BEFORE) {
-                        // Use the native balance for amount calculation as wrap will be executed later
-                        amount = (address(this).balance * amountBps) / _BPS_BASE;
-                    } else {
-                        amount = (_getBalance(token) * amountBps) / _BPS_BASE;
-                    }
-
-                    // Skip if don't need to replace, e.g., most protocols set native amount in call value
-                    uint256 offset = inputs[j].amountOrOffset;
-                    if (offset != _SKIP) {
-                        // Replace the amount at offset in data with the calculated amount
-                        assembly {
-                            let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
-                            mstore(loc, amount)
-                        }
-                    }
-                    emit AmountReplaced(i, j, amount);
-                }
-
-                if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
-                    // Use += to accumulate amounts with multiple WRAP_BEFORE, although such cases are rare
-                    wrappedAmount += amount;
-                }
-
-                if (token == _NATIVE) {
-                    value += amount;
-                } else if (token != approveTo) {
-                    ApproveHelper._approveMax(token, approveTo, amount);
-                }
-
-                unchecked {
-                    ++j;
-                }
-            }
+            (uint256 value, uint256 wrappedAmount) = _execInputsAndGetValue(inputs, wrapMode, data, approveTo, i);
 
             if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
                 // Wrap native before the call
@@ -169,6 +120,63 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 unchecked {
                     ++i;
                 }
+            }
+        }
+    }
+
+    function _execInputsAndGetValue(
+        IParam.Input[] calldata inputs,
+        IParam.WrapMode wrapMode,
+        bytes memory data,
+        address approveTo,
+        uint256 i
+    ) private returns (uint256 value, uint256 wrappedAmount) {
+        uint256 inputsLength = inputs.length;
+        for (uint256 j = 0; j < inputsLength; ) {
+            address token = inputs[j].token;
+            uint256 amountBps = inputs[j].amountBps;
+
+            // Calculate native or token amount
+            // 1. if amountBps is skip: read amountOrOffset as amount
+            // 2. if amountBps isn't skip: balance multiplied by amountBps as amount
+            uint256 amount;
+            if (amountBps == _SKIP) {
+                amount = inputs[j].amountOrOffset;
+            } else {
+                if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
+
+                if (token == address(wrappedNative) && wrapMode == IParam.WrapMode.WRAP_BEFORE) {
+                    // Use the native balance for amount calculation as wrap will be executed later
+                    amount = (address(this).balance * amountBps) / _BPS_BASE;
+                } else {
+                    amount = (_getBalance(token) * amountBps) / _BPS_BASE;
+                }
+
+                // Skip if don't need to replace, e.g., most protocols set native amount in call value
+                uint256 offset = inputs[j].amountOrOffset;
+                if (offset != _SKIP) {
+                    // Replace the amount at offset in data with the calculated amount
+                    assembly {
+                        let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
+                        mstore(loc, amount)
+                    }
+                }
+                emit AmountReplaced(i, j, amount);
+            }
+
+            if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
+                // Use += to accumulate amounts with multiple WRAP_BEFORE, although such cases are rare
+                wrappedAmount += amount;
+            }
+
+            if (token == _NATIVE) {
+                value += amount;
+            } else if (token != approveTo) {
+                ApproveHelper._approveMax(token, approveTo, amount);
+            }
+
+            unchecked {
+                ++j;
             }
         }
     }

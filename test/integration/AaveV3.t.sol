@@ -228,7 +228,7 @@ contract AaveV3IntegrationTest is Test {
         }
 
         // Encode execute data
-        return abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty);
+        return abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty, feesEmpty);
     }
 
     function _percentMul(uint256 value, uint256 percentage) internal pure returns (uint256 result) {
