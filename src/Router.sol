@@ -98,7 +98,7 @@ contract Router is IRouter, EIP712, Ownable {
 
     /// @notice Get logics and msg.value that contains fee
     function getLogicsWithFee(
-        IParam.Logic[] memory logics,
+        IParam.Logic[] calldata logics,
         uint256 msgValue
     ) external view returns (IParam.Logic[] memory, uint256) {
         // Update logics
@@ -241,5 +241,112 @@ contract Router is IRouter, EIP712, Ownable {
             emit AgentCreated(address(agent), owner_);
             return payable(address(agent));
         }
+    }
+
+    function _verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees) internal view {
+        uint256 feesLength = fees.length;
+        uint256 logicsLength = logics.length;
+        for (uint256 i = 0; i < logicsLength; ) {
+            bytes calldata data = logics[i].data;
+            address feeCalculator = feeCalculators[bytes4(data[:4])];
+            if (feeCalculator == address(0)) {
+                unchecked {
+                    ++i;
+                }
+                continue;
+            }
+
+            // Get charge tokens and amounts
+            (address[] memory tokens, uint256[] memory amounts) = IFeeCalculator(feeCalculator).getFees(data);
+            uint256 tokensLength = tokens.length;
+            if (tokensLength == 0) {
+                unchecked {
+                    ++i;
+                }
+                continue;
+            }
+
+            // Deduct fee
+            for (uint256 j = 0; j < feesLength; ) {
+                if (fees[j].token == asset) {
+                    fees[j].feeAmount -= (amount * _FEE_RATE) / BPS_BASE;
+                    break;
+                }
+
+                unchecked {
+                    ++j;
+                }
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Verify all fee amounts are 0 to ensure the fees are valid
+        for (uint256 i = 0; i < feesLength; ) {
+            require(fees[i].feeAmount == 0, 'fee is not enough');
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function _getFees(bytes calldata data) internal view returns (address[] memory tokens, uint256[] memory amounts) {
+        address feeCalculator = feeCalculators[bytes4(data[:4])];
+        if (feeCalculator == address(0)) {
+            tokens = new address[](0);
+            amounts = new uint256[](0);
+        } else {
+            // Get charge tokens and amounts
+            (tokens, amounts) = IFeeCalculator(feeCalculator).getFees(data);
+        }
+    }
+
+    function _getFeesByLogics(IParam.Logic[] calldata logics) internal view returns (IParam.Fee[] memory) {
+        IParam.Fee[] memory tempFees = new IParam.Fee[](32); // Create a temporary `tempFees` with size 32 to store fee
+        uint256 realFeeLength;
+        uint256 logicsLength = logics.length;
+        for (uint256 i = 0; i < logicsLength; ++i) {
+            bytes calldata data = logics[i].data;
+            bytes4 selector = bytes4(data);
+            address feeCalculator = feeCalculators[selector];
+            if (feeCalculator == address(0)) {
+                continue; // No need to charge fee
+            }
+
+            // Get charge tokens and amounts
+            (address[] memory tokens, uint256[] memory amounts) = IFeeCalculator(feeCalculator).getFees(data);
+            uint256 tokensLength = tokens.length;
+            if (tokensLength == 0) {
+                continue; // No need to charge fee
+            }
+
+            for (uint256 feeIndex = 0; feeIndex < tokensLength; ++feeIndex) {
+                bool isFeeTokenExist;
+                for (uint256 j = 0; j < realFeeLength; ++j) {
+                    if (tempFees[j].token == tokens[feeIndex]) {
+                        // Aggregate same token amount
+                        tempFees[j].amount += amounts[feeIndex];
+                        isFeeTokenExist = true;
+                        break;
+                    }
+                }
+
+                if (isFeeTokenExist == false) {
+                    tempFees[realFeeLength].token = tokens[feeIndex];
+                    tempFees[realFeeLength].amount = amounts[feeIndex];
+                    realFeeLength++;
+                }
+            }
+        }
+
+        // Copy tempFees
+        IParam.Fee[] memory fees = new IParam.Fee[](realFeeLength);
+        for (uint256 i = 0; i < realFeeLength; ++i) {
+            fees[i] = tempFees[i];
+        }
+
+        return fees;
     }
 }
