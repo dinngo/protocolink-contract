@@ -43,6 +43,8 @@ interface IRouter {
 
     error AgentAlreadyCreated();
 
+    error FeeNotEnough(address token);
+
     function agentImplementation() external view returns (address);
 
     function agents(address owner) external view returns (IAgent);
@@ -71,10 +73,10 @@ interface IRouter {
 
     function calcAgent(address user) external view returns (address);
 
-    function getLogicsWithFee(
+    function getLogicsAndFees(
         IParam.Logic[] memory logics,
         uint256 msgValue
-    ) external view returns (IParam.Logic[] memory, uint256);
+    ) external view returns (IParam.Logic[] memory, IParam.Fee[] memory, uint256);
 
     function addSigner(address newSigner) external;
 

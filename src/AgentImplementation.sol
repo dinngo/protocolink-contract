@@ -16,8 +16,6 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     using Address for address;
     using Address for address payable;
 
-    event FeeCharged(address indexed token, uint256 amount);
-
     address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     uint256 private constant _BPS_BASE = 10_000;
     uint256 private constant _SKIP = type(uint256).max;
@@ -197,7 +195,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 IERC20(token).safeTransfer(feeCollector, amount);
             }
 
-            emit FeeCharged(token, amount);
+            emit FeeCharged(token, amount, fees[i].metadata);
             unchecked {
                 ++i;
             }
