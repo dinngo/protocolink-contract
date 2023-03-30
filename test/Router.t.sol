@@ -35,6 +35,8 @@ contract RouterTest is Test, LogicSignature {
     event PauserSet(address indexed pauser);
     event Paused();
     event Resumed();
+    event AgentCreated(address indexed agent, address indexed owner);
+    event Execute(address indexed user, address indexed agent, uint256 indexed referral);
 
     function setUp() external {
         user = makeAddr('User');
@@ -56,6 +58,9 @@ contract RouterTest is Test, LogicSignature {
     }
 
     function testNewAgentForUser() external {
+        address calcAgent = router.calcAgent(user);
+        vm.expectEmit(true, true, true, true, address(router));
+        emit AgentCreated(calcAgent, user);
         address agent = router.newAgent(user);
         assertEq(router.getAgent(user), agent);
     }
@@ -70,7 +75,7 @@ contract RouterTest is Test, LogicSignature {
     function testCannotNewAgentAgain() external {
         vm.startPrank(user);
         router.newAgent();
-        vm.expectRevert(IRouter.AgentCreated.selector);
+        vm.expectRevert(IRouter.AgentAlreadyCreated.selector);
         router.newAgent();
         vm.stopPrank();
     }
@@ -104,6 +109,8 @@ contract RouterTest is Test, LogicSignature {
         vm.startPrank(user);
         router.newAgent();
         assertFalse(router.getAgent(user) == address(0));
+        vm.expectEmit(true, true, true, true, address(router));
+        emit Execute(user, address(router.agents(user)), SIGNER_REFERRAL);
         router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }
@@ -202,8 +209,12 @@ contract RouterTest is Test, LogicSignature {
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
         bytes memory sigature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
-        vm.prank(user);
+        vm.startPrank(user);
+        vm.expectEmit(true, true, true, true, address(router));
+        address calcAgent = router.calcAgent(user);
+        emit Execute(user, calcAgent, SIGNER_REFERRAL);
         router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty, SIGNER_REFERRAL);
+        vm.stopPrank();
     }
 
     function testCannotExecutePaused() external {

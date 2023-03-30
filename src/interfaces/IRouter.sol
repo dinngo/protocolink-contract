@@ -9,9 +9,9 @@ interface IRouter {
 
     event SignerRemoved(address indexed signer);
 
-    event FeeCollectorSet(address indexed feeCollector_);
-
     event FeeCalculatorSet(bytes4 indexed selector, address indexed feeCalculator);
+
+    event FeeCollectorSet(address indexed feeCollector_);
 
     event PauserSet(address indexed pauser);
 
@@ -19,17 +19,19 @@ interface IRouter {
 
     event Resumed();
 
+    event Execute(address indexed user, address indexed agent, uint256 indexed referral);
+
+    event AgentCreated(address indexed agent, address indexed owner);
+
     error Reentrancy();
 
     error RouterIsPaused();
 
     error InvalidPauser();
 
-    error InvalidReferral(uint256 referral);
+    error LengthMismatch();
 
     error InvalidFeeCollector();
-
-    error LengthMismatch();
 
     error InvalidNewPauser();
 
@@ -39,7 +41,7 @@ interface IRouter {
 
     error InvalidSignature();
 
-    error AgentCreated();
+    error AgentAlreadyCreated();
 
     function agentImplementation() external view returns (address);
 
