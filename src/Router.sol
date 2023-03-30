@@ -98,7 +98,7 @@ contract Router is IRouter, EIP712, Ownable {
 
     /// @notice Get logics and msg.value that contains fee
     function getLogicsWithFee(
-        IParam.Logic[] calldata logics,
+        IParam.Logic[] memory logics,
         uint256 msgValue
     ) external view returns (IParam.Logic[] memory, uint256) {
         // Update logics
@@ -244,63 +244,47 @@ contract Router is IRouter, EIP712, Ownable {
     }
 
     function _verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees) internal view {
-        uint256 feesLength = fees.length;
-        uint256 logicsLength = logics.length;
-        for (uint256 i = 0; i < logicsLength; ) {
-            bytes calldata data = logics[i].data;
-            address feeCalculator = feeCalculators[bytes4(data[:4])];
-            if (feeCalculator == address(0)) {
-                unchecked {
-                    ++i;
-                }
-                continue;
-            }
-
-            // Get charge tokens and amounts
-            (address[] memory tokens, uint256[] memory amounts) = IFeeCalculator(feeCalculator).getFees(data);
-            uint256 tokensLength = tokens.length;
-            if (tokensLength == 0) {
-                unchecked {
-                    ++i;
-                }
-                continue;
-            }
-
-            // Deduct fee
-            for (uint256 j = 0; j < feesLength; ) {
-                if (fees[j].token == asset) {
-                    fees[j].feeAmount -= (amount * _FEE_RATE) / BPS_BASE;
-                    break;
-                }
-
-                unchecked {
-                    ++j;
-                }
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Verify all fee amounts are 0 to ensure the fees are valid
-        for (uint256 i = 0; i < feesLength; ) {
-            require(fees[i].feeAmount == 0, 'fee is not enough');
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    function _getFees(bytes calldata data) internal view returns (address[] memory tokens, uint256[] memory amounts) {
-        address feeCalculator = feeCalculators[bytes4(data[:4])];
-        if (feeCalculator == address(0)) {
-            tokens = new address[](0);
-            amounts = new uint256[](0);
-        } else {
-            // Get charge tokens and amounts
-            (tokens, amounts) = IFeeCalculator(feeCalculator).getFees(data);
-        }
+        // uint256 feesLength = fees.length;
+        // uint256 logicsLength = logics.length;
+        // for (uint256 i = 0; i < logicsLength; ) {
+        //     bytes calldata data = logics[i].data;
+        //     address feeCalculator = feeCalculators[bytes4(data[:4])];
+        //     if (feeCalculator == address(0)) {
+        //         unchecked {
+        //             ++i;
+        //         }
+        //         continue;
+        //     }
+        //     // Get charge tokens and amounts
+        //     (address[] memory tokens, uint256[] memory amounts) = IFeeCalculator(feeCalculator).getFees(data);
+        //     uint256 tokensLength = tokens.length;
+        //     if (tokensLength == 0) {
+        //         unchecked {
+        //             ++i;
+        //         }
+        //         continue;
+        //     }
+        //     // Deduct fee
+        //     for (uint256 j = 0; j < feesLength; ) {
+        //         if (fees[j].token == asset) {
+        //             fees[j].feeAmount -= (amount * _FEE_RATE) / BPS_BASE;
+        //             break;
+        //         }
+        //         unchecked {
+        //             ++j;
+        //         }
+        //     }
+        //     unchecked {
+        //         ++i;
+        //     }
+        // }
+        // // Verify all fee amounts are 0 to ensure the fees are valid
+        // for (uint256 i = 0; i < feesLength; ) {
+        //     require(fees[i].feeAmount == 0, 'fee is not enough');
+        //     unchecked {
+        //         ++i;
+        //     }
+        // }
     }
 
     function _getFeesByLogics(IParam.Logic[] calldata logics) internal view returns (IParam.Fee[] memory) {
@@ -316,7 +300,8 @@ contract Router is IRouter, EIP712, Ownable {
             }
 
             // Get charge tokens and amounts
-            (address[] memory tokens, uint256[] memory amounts) = IFeeCalculator(feeCalculator).getFees(data);
+            (address[] memory tokens, uint256[] memory amounts, bytes32 metadata) = IFeeCalculator(feeCalculator)
+                .getFees(data);
             uint256 tokensLength = tokens.length;
             if (tokensLength == 0) {
                 continue; // No need to charge fee
@@ -334,14 +319,17 @@ contract Router is IRouter, EIP712, Ownable {
                 }
 
                 if (isFeeTokenExist == false) {
-                    tempFees[realFeeLength].token = tokens[feeIndex];
-                    tempFees[realFeeLength].amount = amounts[feeIndex];
+                    tempFees[realFeeLength] = IParam.Fee({
+                        token: tokens[feeIndex],
+                        amount: amounts[feeIndex],
+                        metadata: metadata
+                    });
                     realFeeLength++;
                 }
             }
         }
 
-        // Copy tempFees
+        // Copy tempFees to fees
         IParam.Fee[] memory fees = new IParam.Fee[](realFeeLength);
         for (uint256 i = 0; i < realFeeLength; ++i) {
             fees[i] = tempFees[i];

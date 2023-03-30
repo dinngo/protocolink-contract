@@ -30,6 +30,10 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
         ) = abi.decode(data[4:], (address, address[], uint256[], uint256[], address, bytes, uint16));
 
         amounts = calculateAmountWithFee(amounts);
-        return abi.encode(receiverAddress, assets, amounts, modes, onBehalfOf, params, referralCode);
+        return
+            abi.encodePacked(
+                data[:4],
+                abi.encode(receiverAddress, assets, amounts, modes, onBehalfOf, params, referralCode)
+            );
     }
 }

@@ -5,6 +5,7 @@ import {FeeBase} from './FeeBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
 contract MakerDrawFeeCalculator is IFeeCalculator, FeeBase {
+    bytes32 private constant _META_DATA = bytes32(bytes('Maker:Draw'));
     bytes4 private constant _DRAW_FUNCTION_SELECTOR =
         bytes4(keccak256(bytes('draw(address,address,address,uint256,uint256)')));
 
@@ -14,7 +15,7 @@ contract MakerDrawFeeCalculator is IFeeCalculator, FeeBase {
         daiToken = daiToken_;
     }
 
-    function getFees(bytes calldata data) external view returns (address[] memory, uint256[] memory) {
+    function getFees(bytes calldata data) external view returns (address[] memory, uint256[] memory, bytes32) {
         // DSProxy execute signature:'execute(address,bytes)', selector:0x1cff79cd
         // Maker draw signature:'draw(address,address,address,uint256,uint256)', selector:0x9f6f3d5b
         (, bytes memory makerActionData) = abi.decode(data, (address, bytes));
@@ -27,9 +28,9 @@ contract MakerDrawFeeCalculator is IFeeCalculator, FeeBase {
 
             uint256[] memory fees = new uint256[](1);
             fees[0] = calculateFee(amount);
-            return (tokens, fees);
+            return (tokens, fees, _META_DATA);
         } else {
-            return (new address[](0), new uint256[](0));
+            return (new address[](0), new uint256[](0), _META_DATA);
         }
     }
 
