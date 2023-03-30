@@ -6,9 +6,9 @@ import {IParam} from './IParam.sol';
 interface IAgent {
     event AmountReplaced(uint256 i, uint256 j, uint256 amount);
 
-    error Initialized();
-
     error InvalidCaller();
+
+    error Initialized();
 
     error InvalidBps();
 

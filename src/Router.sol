@@ -198,8 +198,8 @@ contract Router is IRouter, EIP712, Ownable {
             agent = IAgent(newAgent(user));
         }
 
+        emit Execute(user, address(agent), referral);
         agent.execute{value: msg.value}(logics, tokensReturn, true);
-        // TODO: emit referral event
     }
 
     /// @notice Execute logics with signer's signature.
@@ -222,8 +222,8 @@ contract Router is IRouter, EIP712, Ownable {
             agent = IAgent(newAgent(user));
         }
 
+        emit Execute(user, address(agent), referral);
         agent.execute{value: msg.value}(logicBatch.logics, tokensReturn, false);
-        // TODO: emit referral event
     }
 
     /// @notice Create an agent for `msg.sender`
