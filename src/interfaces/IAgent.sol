@@ -23,6 +23,6 @@ interface IAgent {
     function execute(
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
-        bool isFeeEnabled
+        IParam.Fee[] calldata fees
     ) external payable;
 }

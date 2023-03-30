@@ -199,7 +199,7 @@ contract Router is IRouter, EIP712, Ownable {
         }
 
         emit Execute(user, address(agent), referral);
-        agent.execute{value: msg.value}(logics, tokensReturn, true);
+        agent.execute{value: msg.value}(logics, tokensReturn, fees);
     }
 
     /// @notice Execute logics with signer's signature.
@@ -223,7 +223,7 @@ contract Router is IRouter, EIP712, Ownable {
         }
 
         emit Execute(user, address(agent), referral);
-        agent.execute{value: msg.value}(logicBatch.logics, tokensReturn, false);
+        agent.execute{value: msg.value}(logicBatch.logics, tokensReturn, logicBatch.fees);
     }
 
     /// @notice Create an agent for `msg.sender`
