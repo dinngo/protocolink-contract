@@ -177,6 +177,10 @@ contract Router is IRouter, EIP712, Ownable {
         emit PauserSet(pauser_);
     }
 
+    function rescue(address token, address receiver, uint256 amount) external onlyOwner {
+        IERC20(token).safeTransfer(receiver, amount);
+    }
+
     function pause() external onlyPauser {
         paused = true;
         emit Paused();
@@ -243,11 +247,5 @@ contract Router is IRouter, EIP712, Ownable {
             emit AgentCreated(address(agent), owner_);
             return payable(address(agent));
         }
-    }
-
-    function withdraw(address token, address receiver, uint256 amount) external onlyOwner {
-        if (IERC20(token).balanceOf(address(this)) < amount) revert InvalidWithdrawal(token, amount);
-        IERC20(token).safeTransfer(receiver, amount);
-        emit Withdraw(token, receiver, amount);
     }
 }

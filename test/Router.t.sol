@@ -37,7 +37,6 @@ contract RouterTest is Test, LogicSignature {
     event Resumed();
     event AgentCreated(address indexed agent, address indexed owner);
     event Execute(address indexed user, address indexed agent, uint256 indexed referral);
-    event Withdraw(address indexed token, address indexed receiver, uint256 amount);
 
     function setUp() external {
         user = makeAddr('User');
@@ -335,39 +334,37 @@ contract RouterTest is Test, LogicSignature {
         router.resume();
     }
 
-    function testWithdraw(uint256 amount) external {
+    function testRescue(uint256 amount) external {
         deal(address(mockERC20), address(router), amount);
 
-        vm.expectEmit(true, true, true, true, address(router));
-        emit Withdraw(address(mockERC20), user, amount);
-        router.withdraw(address(mockERC20), user, amount);
+        router.rescue(address(mockERC20), user, amount);
 
         assertEq(mockERC20.balanceOf(address(router)), 0);
         assertEq(mockERC20.balanceOf(user), amount);
     }
 
-    function testCannotWithdrawByNonOwner() external {
+    function testCannotRescueByNonOwner() external {
         uint256 amount = 1 ether;
         deal(address(mockERC20), address(router), amount);
 
         vm.expectRevert('Ownable: caller is not the owner');
         vm.prank(user);
-        router.withdraw(address(mockERC20), user, amount);
+        router.rescue(address(mockERC20), user, amount);
     }
 
-    function testCannotWithdrawInvalidToken() external {
+    function testCannotRescueInvalidToken() external {
         uint256 amount = 1 ether;
         address invalidToken = user;
 
         vm.expectRevert();
-        router.withdraw(invalidToken, user, amount);
+        router.rescue(invalidToken, user, amount);
     }
 
-    function testCannotWithdrawInvalidAmount() external {
+    function testCannotRescueInvalidAmount() external {
         uint256 amount = 1 ether;
 
-        vm.expectRevert(abi.encodeWithSelector(IRouter.InvalidWithdrawal.selector, address(mockERC20), amount));
-        router.withdraw(address(mockERC20), user, amount);
+        vm.expectRevert();
+        router.rescue(address(mockERC20), user, amount);
     }
 
     function testCannotReceiveNativeToken() external {
