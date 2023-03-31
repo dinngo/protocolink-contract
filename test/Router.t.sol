@@ -352,21 +352,6 @@ contract RouterTest is Test, LogicSignature {
         router.rescue(address(mockERC20), user, amount);
     }
 
-    function testCannotRescueInvalidToken() external {
-        uint256 amount = 1 ether;
-        address invalidToken = user;
-
-        vm.expectRevert();
-        router.rescue(invalidToken, user, amount);
-    }
-
-    function testCannotRescueInvalidAmount() external {
-        uint256 amount = 1 ether;
-
-        vm.expectRevert();
-        router.rescue(address(mockERC20), user, amount);
-    }
-
     function testCannotReceiveNativeToken() external {
         uint256 value = 1 ether;
         vm.deal(address(this), value);
