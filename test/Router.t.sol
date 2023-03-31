@@ -333,4 +333,30 @@ contract RouterTest is Test, LogicSignature {
         vm.prank(user);
         router.resume();
     }
+
+    function testRescue(uint256 amount) external {
+        deal(address(mockERC20), address(router), amount);
+
+        router.rescue(address(mockERC20), user, amount);
+
+        assertEq(mockERC20.balanceOf(address(router)), 0);
+        assertEq(mockERC20.balanceOf(user), amount);
+    }
+
+    function testCannotRescueByNonOwner() external {
+        uint256 amount = 1 ether;
+        deal(address(mockERC20), address(router), amount);
+
+        vm.expectRevert('Ownable: caller is not the owner');
+        vm.prank(user);
+        router.rescue(address(mockERC20), user, amount);
+    }
+
+    function testCannotReceiveNativeToken() external {
+        uint256 value = 1 ether;
+        vm.deal(address(this), value);
+
+        vm.expectRevert();
+        address(router).call{value: value}('');
+    }
 }

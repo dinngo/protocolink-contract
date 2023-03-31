@@ -86,6 +86,8 @@ interface IRouter {
 
     function setPauser(address pauser_) external;
 
+    function rescue(address token, address receiver, uint256 amount) external;
+
     function pause() external;
 
     function resume() external;

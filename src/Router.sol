@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Ownable} from 'openzeppelin-contracts/contracts/access/Ownable.sol';
 import {EIP712} from 'openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol';
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
@@ -12,6 +13,7 @@ import {IFeeCalculator} from './interfaces/IFeeCalculator.sol';
 
 /// @title Router executes arbitrary logics
 contract Router is IRouter, EIP712, Ownable {
+    using SafeERC20 for IERC20;
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;
 
@@ -173,6 +175,10 @@ contract Router is IRouter, EIP712, Ownable {
         if (pauser_ == _INVALID_PAUSER) revert InvalidNewPauser();
         pauser = pauser_;
         emit PauserSet(pauser_);
+    }
+
+    function rescue(address token, address receiver, uint256 amount) external onlyOwner {
+        IERC20(token).safeTransfer(receiver, amount);
     }
 
     function pause() external onlyPauser {
