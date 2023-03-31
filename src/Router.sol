@@ -18,14 +18,17 @@ contract Router is IRouter, EIP712, Ownable {
     address private constant _INIT_USER = address(1);
     address private constant _INVALID_PAUSER = address(0);
     address private constant _INVALID_FEE_COLLECTOR = address(0);
+    address private constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     address private constant _DUMMY_ERC20_TOKEN = address(0xe20);
+    bytes4 private constant _ERC20_TRANSFER_FROM_SELECTOR =
+        bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
 
     address public immutable agentImplementation;
 
     mapping(address owner => IAgent agent) public agents;
     mapping(address signer => bool valid) public signers;
-    mapping(bytes4 selector => address feeCalculator) public feeCalculators;
+    mapping(bytes4 selector => mapping(address to => address feeCalculator)) public feeCalculators;
     address public user;
     address public feeCollector;
     address public pauser;
@@ -106,8 +109,10 @@ contract Router is IRouter, EIP712, Ownable {
         uint256 length = logics.length;
         for (uint256 i = 0; i < length; ) {
             bytes memory data = logics[i].data;
+            address to = logics[i].to;
             bytes4 selector = bytes4(data);
-            address feeCalculator = feeCalculators[selector];
+            if (selector == _ERC20_TRANSFER_FROM_SELECTOR) to = _DUMMY_ERC20_TOKEN; // ERC20 transferFrom case
+            address feeCalculator = feeCalculators[selector][to];
             if (feeCalculator != address(0)) {
                 // Get transaction data with fee
                 logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
@@ -119,7 +124,7 @@ contract Router is IRouter, EIP712, Ownable {
 
         // Update value
         if (msgValue > 0) {
-            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR];
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_NATIVE];
             if (nativeFeeCalculator != address(0)) {
                 msgValue = uint256(
                     bytes32(IFeeCalculator(nativeFeeCalculator).getDataWithFee(abi.encodePacked(msgValue)))
@@ -143,16 +148,22 @@ contract Router is IRouter, EIP712, Ownable {
         emit SignerRemoved(signer);
     }
 
-    /// @notice Set fee calculator contract for each function selector
-    function setFeeCalculators(bytes4[] calldata selectors, address[] calldata feeCalculators_) external onlyOwner {
+    /// @notice Set fee calculator contracts
+    function setFeeCalculators(
+        bytes4[] calldata selectors,
+        address[] calldata tos,
+        address[] calldata feeCalculators_
+    ) external onlyOwner {
         uint256 length = selectors.length;
+        if (length != tos.length) revert LengthMismatch();
         if (length != feeCalculators_.length) revert LengthMismatch();
 
         for (uint256 i = 0; i < length; ) {
             bytes4 selector = selectors[i];
+            address to = tos[i];
             address feeCalculator = feeCalculators_[i];
-            feeCalculators[selector] = feeCalculator;
-            emit FeeCalculatorSet(selector, feeCalculator);
+            feeCalculators[selector][to] = feeCalculator;
+            emit FeeCalculatorSet(selector, to, feeCalculator);
             unchecked {
                 ++i;
             }
@@ -286,7 +297,9 @@ contract Router is IRouter, EIP712, Ownable {
             bytes memory data = logics[i].data;
             address to = logics[i].to;
             bytes4 selector = bytes4(data);
-            address feeCalculator = feeCalculators[selector];
+            address feeCalculator = selector == _ERC20_TRANSFER_FROM_SELECTOR
+                ? feeCalculators[selector][_DUMMY_ERC20_TOKEN] // ERC20 transferFrom case
+                : feeCalculators[selector][to];
             if (feeCalculator == address(0)) {
                 continue; // No need to charge fee
             }
@@ -300,30 +313,19 @@ contract Router is IRouter, EIP712, Ownable {
             }
 
             for (uint256 feeIndex = 0; feeIndex < tokensLength; ++feeIndex) {
-                bool isFeeTokenExist;
-                for (uint256 j = 0; j < realFeeLength; ++j) {
-                    if (tempFees[j].token == tokens[feeIndex]) {
-                        // Aggregate same token amount
-                        tempFees[j].amount += amounts[feeIndex];
-                        isFeeTokenExist = true;
-                        break;
-                    }
-                }
+                tempFees[realFeeLength] = IParam.Fee({
+                    token: tokens[feeIndex] == _DUMMY_ERC20_TOKEN ? to : tokens[feeIndex],
+                    amount: amounts[feeIndex],
+                    metadata: metadata
+                });
 
-                if (isFeeTokenExist == false) {
-                    tempFees[realFeeLength] = IParam.Fee({
-                        token: tokens[feeIndex] == _DUMMY_ERC20_TOKEN ? to : tokens[feeIndex],
-                        amount: amounts[feeIndex],
-                        metadata: metadata
-                    });
-                    realFeeLength++;
-                }
+                realFeeLength++;
             }
         }
 
         if (msgValue > 0) {
             // For native fee
-            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR];
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_NATIVE];
             if (nativeFeeCalculator != address(0)) {
                 (address[] memory tokens, uint256[] memory amounts, bytes32 metadata) = IFeeCalculator(
                     nativeFeeCalculator

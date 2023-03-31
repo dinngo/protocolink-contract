@@ -53,10 +53,13 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         bytes4[] memory selectors = new bytes4[](2);
         selectors[0] = AAVE_FLASHLOAN_SELECTOR;
         selectors[1] = AAVE_BORROW_SELECTOR;
+        address[] memory tos = new address[](2);
+        tos[0] = address(mockAavePool);
+        tos[1] = address(mockAavePool);
         address[] memory feeCalculators = new address[](2);
         feeCalculators[0] = address(flashLoanFeeCalculator);
         feeCalculators[1] = address(borrowFeeCalculator);
-        router.setFeeCalculators(selectors, feeCalculators);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');

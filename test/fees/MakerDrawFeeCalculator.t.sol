@@ -46,20 +46,9 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         userAgent = IAgent(router.newAgent());
         makerDrawFeeCalculator = new MakerDrawFeeCalculator(address(router), ZERO_FEE_RATE, DAI_TOKEN);
 
-        // Setup fee calculator
-        bytes4[] memory selectors = new bytes4[](1);
-        selectors[0] = DSPROXY_EXECUTE_SELECTOR;
-        address[] memory feeCalculators = new address[](1);
-        feeCalculators[0] = address(makerDrawFeeCalculator);
-        router.setFeeCalculators(selectors, feeCalculators);
-
         // Setup maker vault
         vm.startPrank(user);
         userDSProxy = IDSProxyRegistry(PROXY_REGISTRY).build();
-
-        // Build user agent's DSProxy
-        router.execute(_logicBuildDSProxy(), feesEmpty, new address[](0), SIGNER_REFERRAL);
-        userAgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(userAgent));
 
         // Open ETH Vault
         deal(user, ETH_LOCK_AMOUNT);
@@ -78,7 +67,20 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         ethCdp = uint256(ret);
         assertEq(IERC20(DAI_TOKEN).balanceOf(user), DRAW_DAI_AMOUNT);
 
+        // Build user agent's DSProxy
+        router.execute(_logicBuildDSProxy(), feesEmpty, new address[](0), SIGNER_REFERRAL);
+        userAgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(userAgent));
+
         vm.stopPrank();
+
+        // Setup fee calculator
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = DSPROXY_EXECUTE_SELECTOR;
+        address[] memory tos = new address[](1);
+        tos[0] = userAgentDSProxy;
+        address[] memory feeCalculators = new address[](1);
+        feeCalculators[0] = address(makerDrawFeeCalculator);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
 
         _allowCdp(user, userDSProxy, ethCdp, userAgentDSProxy);
 

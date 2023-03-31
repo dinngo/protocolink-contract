@@ -9,7 +9,7 @@ interface IRouter {
 
     event SignerRemoved(address indexed signer);
 
-    event FeeCalculatorSet(bytes4 indexed selector, address indexed feeCalculator);
+    event FeeCalculatorSet(bytes4 indexed selector, address indexed to, address indexed feeCalculator);
 
     event FeeCollectorSet(address indexed feeCollector_);
 
@@ -51,7 +51,7 @@ interface IRouter {
 
     function signers(address signer) external view returns (bool);
 
-    function feeCalculators(bytes4 selector) external view returns (address);
+    function feeCalculators(bytes4 selector, address to) external view returns (address);
 
     function user() external view returns (address);
 
@@ -82,7 +82,11 @@ interface IRouter {
 
     function removeSigner(address signer) external;
 
-    function setFeeCalculators(bytes4[] calldata selector, address[] calldata feeCalculators_) external;
+    function setFeeCalculators(
+        bytes4[] calldata selector,
+        address[] calldata tos,
+        address[] calldata feeCalculators_
+    ) external;
 
     function setFeeCollector(address feeCollector_) external;
 
