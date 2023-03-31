@@ -260,36 +260,10 @@ contract Router is IRouter, EIP712, Ownable {
         }
     }
 
-    function _verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees, uint256 msgValue) internal view {
-        IParam.Fee[] memory expectedFees = _getFeesByLogics(logics, msgValue);
-        uint256 expectedFeesLength = expectedFees.length;
-        if (expectedFeesLength == 0) return;
-
-        uint256 feesLength = fees.length;
-        for (uint256 i = 0; i < expectedFeesLength; ) {
-            address expectedFeeToken = expectedFees[i].token;
-            for (uint256 j = 0; j < feesLength; ) {
-                if (expectedFeeToken == fees[j].token) {
-                    expectedFees[i].amount -= fees[j].amount;
-                }
-                unchecked {
-                    ++j;
-                }
-            }
-
-            // Verify all fees amount are 0 to ensure the fees are valid
-            if (expectedFees[i].amount > 0) revert FeeNotEnough(expectedFeeToken);
-
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
     function _getFeesByLogics(
         IParam.Logic[] memory logics,
         uint256 msgValue
-    ) internal view returns (IParam.Fee[] memory) {
+    ) private view returns (IParam.Fee[] memory) {
         IParam.Fee[] memory tempFees = new IParam.Fee[](32); // Create a temporary `tempFees` with size 32 to store fee
         uint256 realFeeLength;
         uint256 logicsLength = logics.length;
@@ -297,6 +271,8 @@ contract Router is IRouter, EIP712, Ownable {
             bytes memory data = logics[i].data;
             address to = logics[i].to;
             bytes4 selector = bytes4(data);
+
+            // Get feeCalculator
             address feeCalculator = selector == _ERC20_TRANSFER_FROM_SELECTOR
                 ? feeCalculators[selector][_DUMMY_ERC20_TOKEN] // ERC20 transferFrom case
                 : feeCalculators[selector][to];
@@ -343,5 +319,31 @@ contract Router is IRouter, EIP712, Ownable {
         }
 
         return fees;
+    }
+
+    function _verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees, uint256 msgValue) private view {
+        IParam.Fee[] memory expectedFees = _getFeesByLogics(logics, msgValue);
+        uint256 expectedFeesLength = expectedFees.length;
+        if (expectedFeesLength == 0) return;
+
+        uint256 feesLength = fees.length;
+        for (uint256 i = 0; i < expectedFeesLength; ) {
+            address expectedFeeToken = expectedFees[i].token;
+            for (uint256 j = 0; j < feesLength; ) {
+                if (expectedFeeToken == fees[j].token) {
+                    expectedFees[i].amount -= fees[j].amount;
+                }
+                unchecked {
+                    ++j;
+                }
+            }
+
+            // Verify all fees amount are 0 to ensure the fees are valid
+            if (expectedFees[i].amount > 0) revert FeeNotEnough(expectedFeeToken);
+
+            unchecked {
+                ++i;
+            }
+        }
     }
 }
