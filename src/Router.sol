@@ -106,6 +106,25 @@ contract Router is IRouter, EIP712, Ownable {
         uint256 msgValue
     ) external view returns (IParam.Logic[] memory, IParam.Fee[] memory, uint256) {
         // Update logics
+        logics = getLogicsDataWithFee(logics);
+
+        // Update value
+        if (msgValue > 0) {
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_NATIVE];
+            if (nativeFeeCalculator != address(0)) {
+                msgValue = uint256(
+                    bytes32(IFeeCalculator(nativeFeeCalculator).getDataWithFee(abi.encodePacked(msgValue)))
+                );
+            }
+        }
+
+        // Get fees
+        IParam.Fee[] memory fees = _getFeesByLogics(logics, msgValue);
+
+        return (logics, fees, msgValue);
+    }
+
+    function getLogicsDataWithFee(IParam.Logic[] memory logics) public view returns (IParam.Logic[] memory) {
         uint256 length = logics.length;
         for (uint256 i = 0; i < length; ) {
             bytes memory data = logics[i].data;
@@ -122,20 +141,7 @@ contract Router is IRouter, EIP712, Ownable {
             }
         }
 
-        // Update value
-        if (msgValue > 0) {
-            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_NATIVE];
-            if (nativeFeeCalculator != address(0)) {
-                msgValue = uint256(
-                    bytes32(IFeeCalculator(nativeFeeCalculator).getDataWithFee(abi.encodePacked(msgValue)))
-                );
-            }
-        }
-
-        // Get fees
-        IParam.Fee[] memory fees = _getFeesByLogics(logics, msgValue);
-
-        return (logics, fees, msgValue);
+        return logics;
     }
 
     function addSigner(address signer) external onlyOwner {

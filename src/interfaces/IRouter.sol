@@ -78,6 +78,8 @@ interface IRouter {
         uint256 msgValue
     ) external view returns (IParam.Logic[] memory, IParam.Fee[] memory, uint256);
 
+    function getLogicsDataWithFee(IParam.Logic[] memory logic) external view returns (IParam.Logic[] memory);
+
     function addSigner(address newSigner) external;
 
     function removeSigner(address signer) external;
