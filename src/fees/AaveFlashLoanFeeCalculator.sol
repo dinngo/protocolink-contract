@@ -23,7 +23,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
             (IParam.Logic[] memory logics, , ) = abi.decode(params, (IParam.Logic[], IParam.Fee[], address[]));
 
             // Get fees
-            (, IParam.Fee[] memory feesInFlashLoanData, ) = IRouter(router).getLogicsAndFees(logics, 0);
+            IParam.Fee[] memory feesInFlashLoanData = IRouter(router).getFeesByLogics(logics, 0);
 
             uint256 length = feesInFlashLoanData.length;
             if (length > 0) {

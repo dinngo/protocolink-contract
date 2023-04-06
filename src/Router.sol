@@ -119,7 +119,7 @@ contract Router is IRouter, EIP712, Ownable {
         }
 
         // Get fees
-        IParam.Fee[] memory fees = _getFeesByLogics(logics, msgValue);
+        IParam.Fee[] memory fees = getFeesByLogics(logics, msgValue);
 
         return (logics, fees, msgValue);
     }
@@ -266,10 +266,7 @@ contract Router is IRouter, EIP712, Ownable {
         }
     }
 
-    function _getFeesByLogics(
-        IParam.Logic[] memory logics,
-        uint256 msgValue
-    ) private view returns (IParam.Fee[] memory) {
+    function getFeesByLogics(IParam.Logic[] memory logics, uint256 msgValue) public view returns (IParam.Fee[] memory) {
         IParam.Fee[] memory tempFees = new IParam.Fee[](32); // Create a temporary `tempFees` with size 32 to store fee
         uint256 realFeeLength;
         uint256 logicsLength = logics.length;
@@ -328,7 +325,7 @@ contract Router is IRouter, EIP712, Ownable {
     }
 
     function _verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees, uint256 msgValue) private view {
-        IParam.Fee[] memory expectedFees = _getFeesByLogics(logics, msgValue);
+        IParam.Fee[] memory expectedFees = getFeesByLogics(logics, msgValue);
         uint256 expectedFeesLength = expectedFees.length;
         if (expectedFeesLength == 0) return;
 

@@ -12,8 +12,11 @@ import {IFeeCalculator} from 'src/interfaces/IFeeCalculator.sol';
 import {FeeCalculatorUtils, IFeeBase} from 'test/utils/FeeCalculatorUtils.sol';
 import {MockAavePool} from '../mocks/MockAavePool.sol';
 import {MockERC20} from '../mocks/MockERC20.sol';
+import 'forge-std/console.sol';
 
 contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
+    address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    uint256 public constant SKIP = type(uint256).max;
     bytes4 public constant AAVE_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)')));
     bytes4 public constant AAVE_BORROW_SELECTOR =
@@ -85,7 +88,7 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         amounts[0] = amount;
 
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicAaveV2FlashLoan(tokens, amounts);
+        logics[0] = _logicAaveV2FlashLoan(tokens, amounts, new bytes(0));
 
         // Get new logics and fees
         IParam.Fee[] memory fees;
@@ -143,6 +146,48 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         assertEq(newAmount, expectedNewAmount);
     }
 
+    function testFlashLoanActionWithoutFeeScenario(uint256 feeRate) external {
+        uint256 amount = 10 ether;
+        feeRate = bound(feeRate, 0, BPS_BASE - 1);
+
+        // Set fee rate
+        IFeeBase(address(flashLoanFeeCalculator)).setFeeRate(feeRate);
+        IFeeBase(address(borrowFeeCalculator)).setFeeRate(feeRate);
+
+        // Encode flashloan params
+        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
+        flashLoanLogics[0] = _logicAaveBorrow(address(mockERC20), amount);
+        bytes memory params = abi.encode(flashLoanLogics, new IParam.Fee[](0), new address[](0));
+
+        // Encode logic
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(mockERC20);
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = amount;
+
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicAaveV2FlashLoan(tokens, amounts, params);
+
+        // Get new logics and fees
+        IParam.Fee[] memory fees;
+        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
+
+        // Prepare assert data
+        uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);
+        uint256 expectedFee = _calculateFee(expectedNewAmount, feeRate);
+
+        console.log('fees.length:%d', fees.length);
+        console.log('fee[0] token:%s', fees[0].token);
+        console.log('fee[0] amount:%d', fees[0].amount);
+        console.log('fee[1] token:%s', fees[1].token);
+        console.log('fee[1] amount:%d', fees[1].amount);
+        //
+        assertEq(fees.length, 2);
+        assertEq(fees[0].amount, expectedFee);
+        assertEq(fees[1].amount, expectedFee);
+    }
+
     function decodeFlashLoanAmounts(IParam.Logic calldata logic) external pure returns (uint256[] memory) {
         bytes calldata data = logic.data;
         (, , uint256[] memory amounts, , , , ) = abi.decode(
@@ -160,7 +205,8 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
 
     function _logicAaveV2FlashLoan(
         address[] memory tokens,
-        uint256[] memory amounts
+        uint256[] memory amounts,
+        bytes memory params
     ) internal view returns (IParam.Logic memory) {
         return
             IParam.Logic(
@@ -172,7 +218,7 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
                     amounts,
                     new uint256[](0), // modes
                     address(0), // onBehalfOf
-                    new bytes(0), // params
+                    params,
                     0 // referralCode
                 ),
                 inputsEmpty,
@@ -195,6 +241,24 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
                     address(0) // onBehalfOf
                 ),
                 inputsEmpty,
+                IParam.WrapMode.NONE,
+                address(0), // approveTo
+                address(0) // callback
+            );
+    }
+
+    function _logicSendNativeToken(address to, uint256 amount) internal pure returns (IParam.Logic memory) {
+        // Encode inputs
+        IParam.Input[] memory inputs = new IParam.Input[](1);
+        inputs[0].token = NATIVE;
+        inputs[0].amountBps = SKIP;
+        inputs[0].amountOrOffset = amount;
+
+        return
+            IParam.Logic(
+                to,
+                new bytes(0),
+                inputs,
                 IParam.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
