@@ -292,13 +292,32 @@ contract Router is IRouter, EIP712, Ownable {
             }
 
             for (uint256 feeIndex = 0; feeIndex < tokensLength; ++feeIndex) {
-                tempFees[realFeeLength] = IParam.Fee({
-                    token: tokens[feeIndex] == _DUMMY_ERC20_TOKEN ? to : tokens[feeIndex],
-                    amount: amounts[feeIndex],
-                    metadata: metadata
-                });
+                bool isFeeTokenExist;
+                for (uint256 j = 0; j < realFeeLength; ++j) {
+                    if (tempFees[j].token == tokens[feeIndex]) {
+                        // Aggregate same token amount
+                        tempFees[j].amount += amounts[feeIndex];
+                        isFeeTokenExist = true;
+                        break;
+                    }
+                }
 
-                realFeeLength++;
+                if (isFeeTokenExist == false) {
+                    tempFees[realFeeLength] = IParam.Fee({
+                        token: tokens[feeIndex] == _DUMMY_ERC20_TOKEN ? to : tokens[feeIndex],
+                        amount: amounts[feeIndex],
+                        metadata: metadata
+                    });
+                    realFeeLength++;
+                }
+
+                // tempFees[realFeeLength] = IParam.Fee({
+                //     token: tokens[feeIndex] == _DUMMY_ERC20_TOKEN ? to : tokens[feeIndex],
+                //     amount: amounts[feeIndex],
+                //     metadata: metadata
+                // });
+
+                // realFeeLength++;
             }
         }
 

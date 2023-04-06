@@ -6,11 +6,13 @@ import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {AaveFlashLoanFeeCalculator} from 'src/fees/AaveFlashLoanFeeCalculator.sol';
 import {AaveBorrowFeeCalculator} from 'src/fees/AaveBorrowFeeCalculator.sol';
+import {FlashLoanCallbackAaveV2, IFlashLoanCallbackAaveV2} from 'src/FlashLoanCallbackAaveV2.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IFeeCalculator} from 'src/interfaces/IFeeCalculator.sol';
 import {FeeCalculatorUtils, IFeeBase} from 'test/utils/FeeCalculatorUtils.sol';
 import {MockAavePool} from '../mocks/MockAavePool.sol';
+import {MockAaveProvider} from '../mocks/MockAaveProvider.sol';
 import {MockERC20} from '../mocks/MockERC20.sol';
 import 'forge-std/console.sol';
 
@@ -30,7 +32,9 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
     IFeeCalculator public flashLoanFeeCalculator;
     IFeeCalculator public borrowFeeCalculator;
     MockERC20 public mockERC20;
-    MockAavePool mockAavePool;
+    MockAavePool public mockAavePool;
+    MockAaveProvider public mockAaveProvider;
+    IFlashLoanCallbackAaveV2 public flashLoanCallbackV2;
 
     // Empty arrays
     address[] public tokensReturnEmpty;
@@ -51,6 +55,8 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         address[] memory tokens = new address[](1);
         tokens[0] = address(mockERC20);
         mockAavePool = new MockAavePool(tokens);
+        mockAaveProvider = new MockAaveProvider(address(mockAavePool));
+        flashLoanCallbackV2 = new FlashLoanCallbackAaveV2(address(router), address(mockAaveProvider));
 
         // Setup fee calculator
         bytes4[] memory selectors = new bytes4[](2);
@@ -71,6 +77,8 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         vm.label(address(borrowFeeCalculator), 'BorrowFeeCalculator');
         vm.label(address(mockERC20), 'MockERC20');
         vm.label(address(mockAavePool), 'MockAavePool');
+        vm.label(address(mockAaveProvider), 'MockAaveProvider');
+        vm.label(address(flashLoanCallbackV2), 'FlashLoanCallbackAaveV2');
     }
 
     function testChargeFlashLoanFee(uint256 amount, uint256 feeRate) external {
@@ -80,6 +88,15 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         // Set fee rate
         IFeeBase(address(flashLoanFeeCalculator)).setFeeRate(feeRate);
 
+        // Encode flashloan params
+        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
+        flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(
+            address(flashLoanCallbackV2),
+            address(mockERC20),
+            _calculateAmountWithFee(amount, feeRate)
+        );
+        bytes memory params = abi.encode(flashLoanLogics, new IParam.Fee[](0), new address[](0));
+
         // Encode logic
         address[] memory tokens = new address[](1);
         tokens[0] = address(mockERC20);
@@ -88,7 +105,7 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         amounts[0] = amount;
 
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicAaveV2FlashLoan(tokens, amounts, new bytes(0));
+        logics[0] = _logicAaveV2FlashLoan(tokens, amounts, params);
 
         // Get new logics and fees
         IParam.Fee[] memory fees;
@@ -146,8 +163,8 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         assertEq(newAmount, expectedNewAmount);
     }
 
-    function testFlashLoanActionWithoutFeeScenario(uint256 feeRate) external {
-        uint256 amount = 10 ether;
+    function testChargeFlashLoanFeeWithFeeScenarioInside(uint256 amount, uint256 feeRate) external {
+        amount = bound(amount, 1e6, 1e12 ether);
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
 
         // Set fee rate
@@ -155,8 +172,13 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         IFeeBase(address(borrowFeeCalculator)).setFeeRate(feeRate);
 
         // Encode flashloan params
-        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
-        flashLoanLogics[0] = _logicAaveBorrow(address(mockERC20), amount);
+        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](2);
+        flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(
+            address(flashLoanCallbackV2),
+            address(mockERC20),
+            _calculateAmountWithFee(amount, feeRate)
+        );
+        flashLoanLogics[1] = _logicAaveBorrow(address(mockERC20), amount);
         bytes memory params = abi.encode(flashLoanLogics, new IParam.Fee[](0), new address[](0));
 
         // Encode logic
@@ -173,19 +195,23 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
         IParam.Fee[] memory fees;
         (logics, fees, ) = router.getLogicsAndFees(logics, 0);
 
+        _distributeToken(tokens, amounts, feeRate);
+
         // Prepare assert data
         uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);
         uint256 expectedFee = _calculateFee(expectedNewAmount, feeRate);
+        uint256 feeCollectorBalanceBefore = IERC20(mockERC20).balanceOf(feeCollector);
 
-        console.log('fees.length:%d', fees.length);
-        console.log('fee[0] token:%s', fees[0].token);
-        console.log('fee[0] amount:%d', fees[0].amount);
-        console.log('fee[1] token:%s', fees[1].token);
-        console.log('fee[1] amount:%d', fees[1].amount);
-        //
-        assertEq(fees.length, 2);
-        assertEq(fees[0].amount, expectedFee);
-        assertEq(fees[1].amount, expectedFee);
+        // Execute
+        address[] memory tokensReturns = new address[](1);
+        tokensReturns[0] = address(mockERC20);
+        vm.prank(user);
+        router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
+
+        assertEq(IERC20(mockERC20).balanceOf(address(router)), 0);
+        assertEq(IERC20(mockERC20).balanceOf(address(userAgent)), 0);
+        assertEq(IERC20(mockERC20).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee * 2);
+        assertEq(IERC20(mockERC20).balanceOf(user), amount);
     }
 
     function decodeFlashLoanAmounts(IParam.Logic calldata logic) external pure returns (uint256[] memory) {
@@ -213,7 +239,7 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
                 address(mockAavePool), // to
                 abi.encodeWithSelector(
                     AAVE_FLASHLOAN_SELECTOR,
-                    user, // receiverAddress
+                    address(flashLoanCallbackV2), // receiverAddress
                     tokens,
                     amounts,
                     new uint256[](0), // modes
@@ -224,7 +250,7 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
                 inputsEmpty,
                 IParam.WrapMode.NONE,
                 address(0), // approveTo
-                address(0) // callback
+                address(flashLoanCallbackV2)
             );
     }
 
@@ -265,21 +291,34 @@ contract AaveFeeCalculatorTest is Test, FeeCalculatorUtils {
             );
     }
 
+    function _logicTransferFlashLoanAmountAndFee(
+        address to,
+        address token,
+        uint256 amount
+    ) internal view returns (IParam.Logic memory) {
+        uint256 fee = (amount * 9) / BPS_BASE;
+        return
+            IParam.Logic(
+                address(token),
+                abi.encodeWithSelector(IERC20.transfer.selector, to, amount + fee),
+                inputsEmpty,
+                IParam.WrapMode.NONE,
+                address(0), // approveTo
+                address(0) // callback
+            );
+    }
+
     function _distributeToken(address[] memory tokens, uint256[] memory amounts, uint256 feeRate) internal {
         for (uint256 i = 0; i < tokens.length; ++i) {
             uint256 amountWithRouterFee = _calculateAmountWithFee(amounts[i], feeRate);
 
-            // Airdrop aave flashloan fee to user
+            // Airdrop aave flashloan fee to agent
             uint256 aaveFee = (amountWithRouterFee * 9) / BPS_BASE;
-            MockERC20(tokens[i]).mint(user, aaveFee);
+            MockERC20(tokens[i]).mint(address(userAgent), aaveFee);
 
             // Airdrop router flashloan fee to agent
             uint256 routerFee = _calculateFee(amountWithRouterFee, feeRate);
             MockERC20(tokens[i]).mint(address(userAgent), routerFee);
-
-            // Approve to `mockAavePool`
-            vm.prank(user);
-            IERC20(tokens[i]).approve(address(mockAavePool), amountWithRouterFee + aaveFee);
         }
     }
 }

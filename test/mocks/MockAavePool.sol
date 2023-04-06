@@ -4,6 +4,16 @@ pragma solidity ^0.8.0;
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {MockERC20} from './MockERC20.sol';
 
+interface IFlashLoanReceiver {
+    function executeOperation(
+        address[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] calldata premiums,
+        address initiator,
+        bytes calldata params
+    ) external returns (bool);
+}
+
 interface IAaveV2Pool {
     function flashLoan(
         address receiverAddress,
@@ -57,6 +67,7 @@ contract MockAavePool is IAaveV2Pool {
         }
 
         // Skip calling executeOperation()
+        IFlashLoanReceiver(receiverAddress).executeOperation(assets, amounts, premiums, msg.sender, params);
 
         // Pull amounts + premiums
         for (uint256 i = 0; i < length; ++i) {
