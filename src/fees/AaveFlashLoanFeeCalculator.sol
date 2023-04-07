@@ -2,21 +2,29 @@
 pragma solidity ^0.8.0;
 
 import {FeeBase} from './FeeBase.sol';
+import {IAaveV3Provider} from '../interfaces/aaveV3/IAaveV3Provider.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IRouter} from '../interfaces/IRouter.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
-    bytes32 private constant _META_DATA = bytes32(bytes('Aave:FlashLoan'));
+    address private constant _AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+    bytes32 private constant _V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flashloan'));
+    bytes32 private constant _V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flashloan'));
 
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 
-    function getFees(bytes calldata data) external view returns (address[] memory, uint256[] memory, bytes32) {
+    function getFees(
+        address callee,
+        bytes calldata data
+    ) external view returns (address[] memory, uint256[] memory, bytes32) {
         // Aave flashloan signature:'flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)', selector: 0xab9c4b5d
         (, address[] memory tokens, uint256[] memory amounts, , , bytes memory params, ) = abi.decode(
             data[4:],
             (address, address[], uint256[], uint256[], address, bytes, uint16)
         );
+
+        amounts = calculateFee(amounts);
 
         if (params.length > 0) {
             // Decode data in the flashLoan
@@ -27,13 +35,19 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
 
             uint256 length = feesInFlashLoanData.length;
             if (length > 0) {
-                address[] memory allTokens = _concatenateWithFeesContent(tokens, feesInFlashLoanData);
-                uint256[] memory allAmounts = _concatenateWithFeesContent(calculateFee(amounts), feesInFlashLoanData);
-                return (allTokens, allAmounts, _META_DATA);
+                // address[] memory allTokens = _concatenateWithFeesContent(tokens, feesInFlashLoanData);
+                // uint256[] memory allAmounts = _concatenateWithFeesContent(calculateFee(amounts), feesInFlashLoanData);
+                tokens = _concatenateWithFeesContent(tokens, feesInFlashLoanData);
+                amounts = _concatenateWithFeesContent(amounts, feesInFlashLoanData);
+                // return (allTokens, allAmounts, _META_DATA);
             }
         }
 
-        return (tokens, calculateFee(amounts), _META_DATA);
+        bytes32 metadata = callee == IAaveV3Provider(_AAVE_V3_PROVIDER).getPool()
+            ? _V3_FLASHLOAN_META_DATA
+            : _V2_FLASHLOAN_META_DATA;
+
+        return (tokens, amounts, metadata);
     }
 
     function getDataWithFee(bytes calldata data) external view returns (bytes memory) {

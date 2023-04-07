@@ -285,7 +285,7 @@ contract Router is IRouter, EIP712, Ownable {
 
             // Get charge tokens and amounts
             (address[] memory tokens, uint256[] memory amounts, bytes32 metadata) = IFeeCalculator(feeCalculator)
-                .getFees(data);
+                .getFees(to, data);
             uint256 tokensLength = tokens.length;
             if (tokensLength == 0) {
                 continue; // No need to charge fee
@@ -308,7 +308,7 @@ contract Router is IRouter, EIP712, Ownable {
             if (nativeFeeCalculator != address(0)) {
                 (address[] memory tokens, uint256[] memory amounts, bytes32 metadata) = IFeeCalculator(
                     nativeFeeCalculator
-                ).getFees(abi.encodePacked(msgValue));
+                ).getFees(address(0), abi.encodePacked(msgValue));
 
                 tempFees[realFeeLength] = IParam.Fee({token: tokens[0], amount: amounts[0], metadata: metadata});
                 realFeeLength++;
@@ -341,7 +341,10 @@ contract Router is IRouter, EIP712, Ownable {
             }
 
             // Get charge tokens and amounts
-            (address[] memory feeTokens, uint256[] memory feeAmounts, ) = IFeeCalculator(feeCalculator).getFees(data);
+            (address[] memory feeTokens, uint256[] memory feeAmounts, ) = IFeeCalculator(feeCalculator).getFees(
+                to,
+                data
+            );
             uint256 feeTokensLength = feeTokens.length;
             if (feeTokensLength == 0) {
                 continue; // No need to charge fee
@@ -363,6 +366,7 @@ contract Router is IRouter, EIP712, Ownable {
             address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_NATIVE];
             if (nativeFeeCalculator != address(0)) {
                 (, uint256[] memory amounts, ) = IFeeCalculator(nativeFeeCalculator).getFees(
+                    address(0),
                     abi.encodePacked(msgValue)
                 );
 
