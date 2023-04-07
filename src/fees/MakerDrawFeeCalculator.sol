@@ -5,7 +5,7 @@ import {FeeBase} from './FeeBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
 contract MakerDrawFeeCalculator is IFeeCalculator, FeeBase {
-    bytes32 private constant _META_DATA = bytes32(bytes('Maker:Draw'));
+    bytes32 private constant _META_DATA = bytes32(bytes('maker:borrow'));
     bytes4 private constant _DRAW_FUNCTION_SELECTOR =
         bytes4(keccak256(bytes('draw(address,address,address,uint256,uint256)')));
     uint256 private constant _DRAW_SELECTOR_START_INDEX = 100;

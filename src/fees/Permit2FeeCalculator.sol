@@ -5,7 +5,7 @@ import {FeeBase} from './FeeBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
 contract Permit2FeeCalculator is IFeeCalculator, FeeBase {
-    bytes32 private constant _META_DATA = bytes32(bytes('Permit2:TransferFrom'));
+    bytes32 private constant _META_DATA = bytes32(bytes('permit2:pull-token'));
 
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 

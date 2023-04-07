@@ -5,7 +5,7 @@ import {FeeBase} from './FeeBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
 contract NativeFeeCalculator is IFeeCalculator, FeeBase {
-    bytes32 private constant _META_DATA = bytes32(bytes('Native:Native'));
+    bytes32 private constant _META_DATA = bytes32(bytes('native:token'));
     address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
