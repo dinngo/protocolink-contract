@@ -292,32 +292,13 @@ contract Router is IRouter, EIP712, Ownable {
             }
 
             for (uint256 feeIndex = 0; feeIndex < tokensLength; ++feeIndex) {
-                bool isFeeTokenExist;
-                for (uint256 j = 0; j < realFeeLength; ++j) {
-                    if (tempFees[j].token == tokens[feeIndex]) {
-                        // Aggregate same token amount
-                        tempFees[j].amount += amounts[feeIndex];
-                        isFeeTokenExist = true;
-                        break;
-                    }
-                }
+                tempFees[realFeeLength] = IParam.Fee({
+                    token: tokens[feeIndex] == _DUMMY_ERC20_TOKEN ? to : tokens[feeIndex],
+                    amount: amounts[feeIndex],
+                    metadata: metadata
+                });
 
-                if (isFeeTokenExist == false) {
-                    tempFees[realFeeLength] = IParam.Fee({
-                        token: tokens[feeIndex] == _DUMMY_ERC20_TOKEN ? to : tokens[feeIndex],
-                        amount: amounts[feeIndex],
-                        metadata: metadata
-                    });
-                    realFeeLength++;
-                }
-
-                // tempFees[realFeeLength] = IParam.Fee({
-                //     token: tokens[feeIndex] == _DUMMY_ERC20_TOKEN ? to : tokens[feeIndex],
-                //     amount: amounts[feeIndex],
-                //     metadata: metadata
-                // });
-
-                // realFeeLength++;
+                realFeeLength++;
             }
         }
 
@@ -344,28 +325,57 @@ contract Router is IRouter, EIP712, Ownable {
     }
 
     function _verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees, uint256 msgValue) private view {
-        IParam.Fee[] memory expectedFees = getFeesByLogics(logics, msgValue);
-        uint256 expectedFeesLength = expectedFees.length;
-        if (expectedFeesLength == 0) return;
-
         uint256 feesLength = fees.length;
-        for (uint256 i = 0; i < expectedFeesLength; ) {
-            address expectedFeeToken = expectedFees[i].token;
-            for (uint256 j = 0; j < feesLength; ) {
-                if (expectedFeeToken == fees[j].token) {
-                    expectedFees[i].amount -= fees[j].amount;
-                }
-                unchecked {
-                    ++j;
-                }
+        uint256 logicsLength = logics.length;
+        for (uint256 i = 0; i < logicsLength; ++i) {
+            bytes memory data = logics[i].data;
+            address to = logics[i].to;
+            bytes4 selector = bytes4(data);
+
+            // Get feeCalculator
+            address feeCalculator = selector == _ERC20_TRANSFER_FROM_SELECTOR
+                ? feeCalculators[selector][_DUMMY_ERC20_TOKEN] // ERC20 transferFrom case
+                : feeCalculators[selector][to];
+            if (feeCalculator == address(0)) {
+                continue; // No need to charge fee
             }
 
-            // Verify all fees amount are 0 to ensure the fees are valid
-            if (expectedFees[i].amount > 0) revert FeeNotEnough(expectedFeeToken);
-
-            unchecked {
-                ++i;
+            // Get charge tokens and amounts
+            (address[] memory feeTokens, uint256[] memory feeAmounts, ) = IFeeCalculator(feeCalculator).getFees(data);
+            uint256 feeTokensLength = feeTokens.length;
+            if (feeTokensLength == 0) {
+                continue; // No need to charge fee
             }
+
+            // Deduct all fee from fees
+            for (uint256 j = 0; j < feeTokensLength; ++j) {
+                for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+                    if (feeTokens[j] == fees[feesIndex].token && feeAmounts[j] == fees[feesIndex].amount) {
+                        fees[feesIndex].amount = 0;
+                    }
+                }
+            }
+        }
+
+        // Deduct native fee from fees
+        if (msgValue > 0) {
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_NATIVE];
+            if (nativeFeeCalculator != address(0)) {
+                (, uint256[] memory amounts, ) = IFeeCalculator(nativeFeeCalculator).getFees(
+                    abi.encodePacked(msgValue)
+                );
+
+                if (amounts.length > 0) {
+                    for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+                        if (fees[feesIndex].token == _NATIVE) fees[feesIndex].amount -= amounts[0];
+                    }
+                }
+            }
+        }
+
+        // verify fees equals 0
+        for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+            if (fees[feesIndex].amount > 0) revert FeeNotEnough(fees[feesIndex].token);
         }
     }
 }
