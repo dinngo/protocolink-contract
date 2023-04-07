@@ -350,6 +350,7 @@ contract Router is IRouter, EIP712, Ownable {
             // Deduct all fee from fees
             for (uint256 j = 0; j < feeTokensLength; ++j) {
                 for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+                    if (feeTokens[j] == _DUMMY_ERC20_TOKEN) feeTokens[j] = to;
                     if (feeTokens[j] == fees[feesIndex].token && feeAmounts[j] == fees[feesIndex].amount) {
                         fees[feesIndex].amount = 0;
                     }

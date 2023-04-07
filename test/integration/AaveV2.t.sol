@@ -224,6 +224,6 @@ contract AaveV2IntegrationTest is Test {
         }
 
         // Encode execute data
-        return abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty, feesEmpty);
+        return abi.encode(logics, feesEmpty, tokensReturnEmpty);
     }
 }

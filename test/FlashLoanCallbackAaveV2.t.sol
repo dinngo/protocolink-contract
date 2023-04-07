@@ -78,7 +78,7 @@ contract FlashLoanCallbackAaveV2Test is Test {
         );
 
         // Encode execute data
-        bytes memory params = abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty, false);
+        bytes memory params = abi.encode(logics, new IParam.Fee[](0), tokensReturnEmpty);
 
         // Execute
         vm.startPrank(aaveV2Provider.getLendingPool());
