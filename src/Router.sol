@@ -20,13 +20,13 @@ contract Router is IRouter, EIP712, Ownable {
     address private constant _INVALID_FEE_COLLECTOR = address(0);
     address private constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
+    address private constant _DUMMY_TO_ADDRESS = address(0xffff);
 
     address public immutable agentImplementation;
 
     mapping(address owner => IAgent agent) public agents;
     mapping(address signer => bool valid) public signers;
     mapping(bytes4 selector => mapping(address to => address feeCalculator)) public feeCalculators;
-    mapping(bytes4 selector => address feeCalculator) public generalFeeCalculators;
     address public user;
     address public feeCollector;
     address public pauser;
@@ -108,7 +108,7 @@ contract Router is IRouter, EIP712, Ownable {
 
         // Update value
         if (msgValue > 0) {
-            address nativeFeeCalculator = generalFeeCalculators[_NATIVE_FEE_SELECTOR];
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
             if (nativeFeeCalculator != address(0)) {
                 msgValue = uint256(
                     bytes32(IFeeCalculator(nativeFeeCalculator).getDataWithFee(abi.encodePacked(msgValue)))
@@ -134,7 +134,7 @@ contract Router is IRouter, EIP712, Ownable {
             if (feeCalculator != address(0)) {
                 logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
             } else {
-                feeCalculator = generalFeeCalculators[selector];
+                feeCalculator = feeCalculators[selector][_DUMMY_TO_ADDRESS];
                 if (feeCalculator != address(0)) {
                     logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
                 }
@@ -159,7 +159,7 @@ contract Router is IRouter, EIP712, Ownable {
             // Get feeCalculator
             address feeCalculator = feeCalculators[selector][to];
             if (feeCalculator == address(0)) {
-                feeCalculator = generalFeeCalculators[selector];
+                feeCalculator = feeCalculators[selector][_DUMMY_TO_ADDRESS];
                 if (feeCalculator == address(0)) continue; // No need to charge fee
             }
 
@@ -184,7 +184,7 @@ contract Router is IRouter, EIP712, Ownable {
 
         if (msgValue > 0) {
             // For native fee
-            address nativeFeeCalculator = generalFeeCalculators[_NATIVE_FEE_SELECTOR];
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
             if (nativeFeeCalculator != address(0)) {
                 (address[] memory tokens, uint256[] memory amounts, bytes32 metadata) = IFeeCalculator(
                     nativeFeeCalculator
@@ -230,24 +230,6 @@ contract Router is IRouter, EIP712, Ownable {
             address feeCalculator = feeCalculators_[i];
             feeCalculators[selector][to] = feeCalculator;
             emit FeeCalculatorSet(selector, to, feeCalculator);
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    function setGeneralFeeCalculators(
-        bytes4[] calldata selectors,
-        address[] calldata feeCalculators_
-    ) external onlyOwner {
-        uint256 length = selectors.length;
-        if (length != feeCalculators_.length) revert LengthMismatch();
-
-        for (uint256 i = 0; i < length; ) {
-            bytes4 selector = selectors[i];
-            address feeCalculator = feeCalculators_[i];
-            generalFeeCalculators[selector] = feeCalculator;
-            emit GeneralFeeCalculatorSet(selector, feeCalculator);
             unchecked {
                 ++i;
             }
@@ -355,7 +337,7 @@ contract Router is IRouter, EIP712, Ownable {
             // Get feeCalculator
             address feeCalculator = feeCalculators[selector][to];
             if (feeCalculator == address(0)) {
-                feeCalculator = generalFeeCalculators[selector];
+                feeCalculator = feeCalculators[selector][_DUMMY_TO_ADDRESS];
                 if (feeCalculator == address(0)) continue; // No need to charge fee
             }
 
@@ -381,7 +363,7 @@ contract Router is IRouter, EIP712, Ownable {
 
         // Deduct native fee from fees
         if (msgValue > 0) {
-            address nativeFeeCalculator = generalFeeCalculators[_NATIVE_FEE_SELECTOR];
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
             if (nativeFeeCalculator != address(0)) {
                 (, uint256[] memory amounts, ) = IFeeCalculator(nativeFeeCalculator).getFees(
                     address(0),

@@ -12,6 +12,7 @@ import {FeeCalculatorUtils, IFeeBase} from 'test/utils/FeeCalculatorUtils.sol';
 
 contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address public constant DUMMY_TO_ADDRESS = address(0xffff);
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     bytes public constant EMPTY_LOGIC_DATA = new bytes(0);
     uint256 public constant SKIP = type(uint256).max;
@@ -41,9 +42,11 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
         // Setup native fee calculator
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = NATIVE_FEE_SELECTOR;
+        address[] memory tos = new address[](1);
+        tos[0] = address(DUMMY_TO_ADDRESS);
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = address(feeCalculator);
-        router.setGeneralFeeCalculators(selectors, feeCalculators);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');

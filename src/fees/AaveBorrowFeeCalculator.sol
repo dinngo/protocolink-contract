@@ -13,7 +13,7 @@ contract AaveBorrowFeeCalculator is IFeeCalculator, FeeBase {
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 
     function getFees(
-        address callee,
+        address to,
         bytes calldata data
     ) external view returns (address[] memory, uint256[] memory, bytes32) {
         // Aave borrow signature:'borrow(address,uint256,uint256,uint16,address)', selector:0xa415bcad
@@ -24,7 +24,7 @@ contract AaveBorrowFeeCalculator is IFeeCalculator, FeeBase {
         uint256[] memory fees = new uint256[](1);
         fees[0] = calculateFee(amount);
 
-        bytes32 metadata = callee == IAaveV3Provider(_AAVE_V3_PROVIDER).getPool()
+        bytes32 metadata = to == IAaveV3Provider(_AAVE_V3_PROVIDER).getPool()
             ? _V3_BORROW_META_DATA
             : _V2_BORROW_META_DATA;
         return (tokens, fees, metadata);

@@ -15,7 +15,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 
     function getFees(
-        address callee,
+        address to,
         bytes calldata data
     ) external view returns (address[] memory, uint256[] memory, bytes32) {
         // Aave flashloan signature:'flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)', selector: 0xab9c4b5d
@@ -40,7 +40,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
             }
         }
 
-        bytes32 metadata = callee == IAaveV3Provider(_AAVE_V3_PROVIDER).getPool()
+        bytes32 metadata = to == IAaveV3Provider(_AAVE_V3_PROVIDER).getPool()
             ? _V3_FLASHLOAN_META_DATA
             : _V2_FLASHLOAN_META_DATA;
 

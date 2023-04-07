@@ -14,6 +14,7 @@ import {MakerCommonUtils, IDSProxyRegistry} from 'test/utils/MakerCommonUtils.so
 
 contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtils {
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address public constant DUMMY_TO_ADDRESS = address(0xffff);
     bytes4 public constant DSPROXY_EXECUTE_SELECTOR = bytes4(keccak256(bytes('execute(address,bytes)')));
     uint256 public constant ETH_LOCK_AMOUNT = 2000 ether;
     uint256 public constant DRAW_DAI_AMOUNT = 20000 ether;
@@ -76,9 +77,11 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         // Setup fee calculator
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = DSPROXY_EXECUTE_SELECTOR;
+        address[] memory tos = new address[](1);
+        tos[0] = address(DUMMY_TO_ADDRESS);
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = address(makerDrawFeeCalculator);
-        router.setGeneralFeeCalculators(selectors, feeCalculators);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
 
         _allowCdp(user, userDSProxy, ethCdp, userAgentDSProxy);
 

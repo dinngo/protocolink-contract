@@ -11,14 +11,14 @@ contract TransferFromFeeCalculator is IFeeCalculator, FeeBase {
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 
     function getFees(
-        address callee,
+        address to,
         bytes calldata data
     ) external view returns (address[] memory, uint256[] memory, bytes32) {
         // Token transfrom signature:'transferFrom(address,address,uint256)', selector:0x23b872dd
         (, , uint256 amount) = abi.decode(data[4:], (address, address, uint256));
 
         address[] memory tokens = new address[](1);
-        tokens[0] = callee;
+        tokens[0] = to;
 
         uint256[] memory fees = new uint256[](1);
         fees[0] = calculateFee(amount);
