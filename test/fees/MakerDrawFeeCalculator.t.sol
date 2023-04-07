@@ -76,11 +76,9 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         // Setup fee calculator
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = DSPROXY_EXECUTE_SELECTOR;
-        address[] memory tos = new address[](1);
-        tos[0] = userAgentDSProxy;
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = address(makerDrawFeeCalculator);
-        router.setFeeCalculators(selectors, tos, feeCalculators);
+        router.setGeneralFeeCalculators(selectors, feeCalculators);
 
         _allowCdp(user, userDSProxy, ethCdp, userAgentDSProxy);
 

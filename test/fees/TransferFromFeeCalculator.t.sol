@@ -12,7 +12,6 @@ import {FeeCalculatorUtils, IFeeBase} from 'test/utils/FeeCalculatorUtils.sol';
 
 contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
     bytes4 public constant TRANSFER_FROM_SELECTOR = bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
-    // address private constant _DUMMY_ERC20_TOKEN = address(0xe20);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     uint256 public constant SIGNER_REFERRAL = 1;
 
@@ -40,11 +39,9 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
         // Setup fee calculator
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = TRANSFER_FROM_SELECTOR;
-        address[] memory tos = new address[](1);
-        tos[0] = _DUMMY_ERC20_TOKEN;
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = address(transferFromFeeCalculator);
-        router.setFeeCalculators(selectors, tos, feeCalculators);
+        router.setGeneralFeeCalculators(selectors, feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');

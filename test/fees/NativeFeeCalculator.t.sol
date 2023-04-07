@@ -41,11 +41,9 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
         // Setup native fee calculator
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = NATIVE_FEE_SELECTOR;
-        address[] memory tos = new address[](1);
-        tos[0] = NATIVE;
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = address(feeCalculator);
-        router.setFeeCalculators(selectors, tos, feeCalculators);
+        router.setGeneralFeeCalculators(selectors, feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');

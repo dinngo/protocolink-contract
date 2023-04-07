@@ -35,11 +35,8 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
 
             uint256 length = feesInFlashLoanData.length;
             if (length > 0) {
-                // address[] memory allTokens = _concatenateWithFeesContent(tokens, feesInFlashLoanData);
-                // uint256[] memory allAmounts = _concatenateWithFeesContent(calculateFee(amounts), feesInFlashLoanData);
                 tokens = _concatenateWithFeesContent(tokens, feesInFlashLoanData);
                 amounts = _concatenateWithFeesContent(amounts, feesInFlashLoanData);
-                // return (allTokens, allAmounts, _META_DATA);
             }
         }
 

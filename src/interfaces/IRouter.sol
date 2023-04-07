@@ -11,6 +11,8 @@ interface IRouter {
 
     event FeeCalculatorSet(bytes4 indexed selector, address indexed to, address indexed feeCalculator);
 
+    event GeneralFeeCalculatorSet(bytes4 indexed selector, address indexed feeCalculator);
+
     event FeeCollectorSet(address indexed feeCollector_);
 
     event PauserSet(address indexed pauser);
@@ -53,6 +55,8 @@ interface IRouter {
 
     function feeCalculators(bytes4 selector, address to) external view returns (address);
 
+    function generalFeeCalculators(bytes4 selector) external view returns (address);
+
     function user() external view returns (address);
 
     function feeCollector() external view returns (address);
@@ -94,6 +98,8 @@ interface IRouter {
         address[] calldata tos,
         address[] calldata feeCalculators_
     ) external;
+
+    function setGeneralFeeCalculators(bytes4[] calldata selector, address[] calldata feeCalculators_) external;
 
     function setFeeCollector(address feeCollector_) external;
 
