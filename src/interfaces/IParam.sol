@@ -33,6 +33,12 @@ interface IParam {
         bytes32 metadata;
     }
 
+    struct FeeCalculator {
+        bytes4 selector;
+        address to;
+        address calculator;
+    }
+
     enum WrapMode {
         NONE,
         WRAP_BEFORE,

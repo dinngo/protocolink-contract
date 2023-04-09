@@ -87,16 +87,18 @@ contract AaveFlashLoanFeeCalculatorTest is Test, FeeCalculatorUtils {
         flashLoanCallbackV2 = new FlashLoanCallbackAaveV2(address(router), AAVE_V2_PROVIDER);
 
         // Setup fee calculator
-        bytes4[] memory selectors = new bytes4[](2);
-        selectors[0] = AAVE_FLASHLOAN_SELECTOR;
-        selectors[1] = NATIVE_FEE_SELECTOR;
-        address[] memory tos = new address[](2);
-        tos[0] = address(v2Pool);
-        tos[1] = address(DUMMY_TO_ADDRESS);
-        address[] memory feeCalculators = new address[](2);
-        feeCalculators[0] = address(flashLoanFeeCalculator);
-        feeCalculators[1] = address(nativeFeeCalculator);
-        router.setFeeCalculators(selectors, tos, feeCalculators);
+        IParam.FeeCalculator[] memory feeCalculators = new IParam.FeeCalculator[](2);
+        feeCalculators[0] = IParam.FeeCalculator({
+            selector: AAVE_FLASHLOAN_SELECTOR,
+            to: address(v2Pool),
+            calculator: address(flashLoanFeeCalculator)
+        });
+        feeCalculators[1] = IParam.FeeCalculator({
+            selector: NATIVE_FEE_SELECTOR,
+            to: address(DUMMY_TO_ADDRESS),
+            calculator: address(nativeFeeCalculator)
+        });
+        router.setFeeCalculators(feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');

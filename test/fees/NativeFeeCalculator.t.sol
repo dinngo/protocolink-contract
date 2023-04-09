@@ -40,13 +40,13 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
         feeCalculator = new NativeFeeCalculator(address(router), ZERO_FEE_RATE);
 
         // Setup native fee calculator
-        bytes4[] memory selectors = new bytes4[](1);
-        selectors[0] = NATIVE_FEE_SELECTOR;
-        address[] memory tos = new address[](1);
-        tos[0] = address(DUMMY_TO_ADDRESS);
-        address[] memory feeCalculators = new address[](1);
-        feeCalculators[0] = address(feeCalculator);
-        router.setFeeCalculators(selectors, tos, feeCalculators);
+        IParam.FeeCalculator[] memory feeCalculators = new IParam.FeeCalculator[](1);
+        feeCalculators[0] = IParam.FeeCalculator({
+            selector: NATIVE_FEE_SELECTOR,
+            to: address(DUMMY_TO_ADDRESS),
+            calculator: address(feeCalculator)
+        });
+        router.setFeeCalculators(feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');

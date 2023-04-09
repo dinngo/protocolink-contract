@@ -38,13 +38,13 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
         transferFromFeeCalculator = new TransferFromFeeCalculator(address(router), ZERO_FEE_RATE);
 
         // Setup fee calculator
-        bytes4[] memory selectors = new bytes4[](1);
-        selectors[0] = TRANSFER_FROM_SELECTOR;
-        address[] memory tos = new address[](1);
-        tos[0] = address(DUMMY_TO_ADDRESS);
-        address[] memory feeCalculators = new address[](1);
-        feeCalculators[0] = address(transferFromFeeCalculator);
-        router.setFeeCalculators(selectors, tos, feeCalculators);
+        IParam.FeeCalculator[] memory feeCalculators = new IParam.FeeCalculator[](1);
+        feeCalculators[0] = IParam.FeeCalculator({
+            selector: TRANSFER_FROM_SELECTOR,
+            to: address(DUMMY_TO_ADDRESS),
+            calculator: address(transferFromFeeCalculator)
+        });
+        router.setFeeCalculators(feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');

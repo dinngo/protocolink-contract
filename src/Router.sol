@@ -207,19 +207,12 @@ contract Router is IRouter, EIP712, Ownable {
     }
 
     /// @notice Set fee calculator contracts
-    function setFeeCalculators(
-        bytes4[] calldata selectors,
-        address[] calldata tos,
-        address[] calldata feeCalculators_
-    ) external onlyOwner {
-        uint256 length = selectors.length;
-        if (length != tos.length) revert LengthMismatch();
-        if (length != feeCalculators_.length) revert LengthMismatch();
-
+    function setFeeCalculators(IParam.FeeCalculator[] calldata calculators) external onlyOwner {
+        uint256 length = calculators.length;
         for (uint256 i = 0; i < length; ) {
-            bytes4 selector = selectors[i];
-            address to = tos[i];
-            address feeCalculator = feeCalculators_[i];
+            bytes4 selector = calculators[i].selector;
+            address to = calculators[i].to;
+            address feeCalculator = calculators[i].calculator;
             feeCalculators[selector][to] = feeCalculator;
             emit FeeCalculatorSet(selector, to, feeCalculator);
             unchecked {

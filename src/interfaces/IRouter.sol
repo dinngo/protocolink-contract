@@ -89,11 +89,7 @@ interface IRouter {
 
     function removeSigner(address signer) external;
 
-    function setFeeCalculators(
-        bytes4[] calldata selector,
-        address[] calldata tos,
-        address[] calldata feeCalculators_
-    ) external;
+    function setFeeCalculators(IParam.FeeCalculator[] calldata feeCalculators) external;
 
     function setFeeCollector(address feeCollector_) external;
 

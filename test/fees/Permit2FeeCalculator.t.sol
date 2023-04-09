@@ -47,13 +47,13 @@ contract Permit2FeeCalculatorTest is Test, FeeCalculatorUtils, SpenderPermitUtil
         permitToken(USDC);
 
         // Setup fee calculator
-        bytes4[] memory selectors = new bytes4[](1);
-        selectors[0] = PERMIT2_TRANSFER_FROM_SELECTOR;
-        address[] memory tos = new address[](1);
-        tos[0] = PERMIT2_ADDR;
-        address[] memory feeCalculators = new address[](1);
-        feeCalculators[0] = address(permit2FeeCalculator);
-        router.setFeeCalculators(selectors, tos, feeCalculators);
+        IParam.FeeCalculator[] memory feeCalculators = new IParam.FeeCalculator[](1);
+        feeCalculators[0] = IParam.FeeCalculator({
+            selector: PERMIT2_TRANSFER_FROM_SELECTOR,
+            to: PERMIT2_ADDR,
+            calculator: address(permit2FeeCalculator)
+        });
+        router.setFeeCalculators(feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');

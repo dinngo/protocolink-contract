@@ -53,13 +53,13 @@ contract AaveBorrowFeeCalculatorTest is Test, FeeCalculatorUtils {
         mockAaveProvider = new MockAaveProvider(address(mockAavePool));
 
         // Setup fee calculator
-        bytes4[] memory selectors = new bytes4[](1);
-        selectors[0] = AAVE_BORROW_SELECTOR;
-        address[] memory tos = new address[](1);
-        tos[0] = address(mockAavePool);
-        address[] memory feeCalculators = new address[](1);
-        feeCalculators[0] = address(borrowFeeCalculator);
-        router.setFeeCalculators(selectors, tos, feeCalculators);
+        IParam.FeeCalculator[] memory feeCalculators = new IParam.FeeCalculator[](1);
+        feeCalculators[0] = IParam.FeeCalculator({
+            selector: AAVE_BORROW_SELECTOR,
+            to: address(mockAavePool),
+            calculator: address(borrowFeeCalculator)
+        });
+        router.setFeeCalculators(feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');
