@@ -343,10 +343,14 @@ contract Router is IRouter, EIP712, Ownable {
             // Deduct all fee from fees
             for (uint256 j = 0; j < feesByLogicLength; ++j) {
                 for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-                    if (
-                        feesByLogic[j].token == fees[feesIndex].token && feesByLogic[j].amount == fees[feesIndex].amount
-                    ) {
-                        fees[feesIndex].amount = 0;
+                    if (feesByLogic[j].token == fees[feesIndex].token) {
+                        if (feesByLogic[j].amount > fees[feesIndex].amount) {
+                            feesByLogic[j].amount -= fees[feesIndex].amount;
+                            fees[feesIndex].amount = 0;
+                        } else {
+                            fees[feesIndex].amount -= feesByLogic[j].amount;
+                            break;
+                        }
                     }
                 }
             }
@@ -363,7 +367,14 @@ contract Router is IRouter, EIP712, Ownable {
 
                 if (feesByLogic.length > 0) {
                     for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-                        if (fees[feesIndex].token == _NATIVE) fees[feesIndex].amount -= feesByLogic[0].amount;
+                        if (fees[feesIndex].token == _NATIVE) {
+                            fees[feesIndex].amount = 0;
+                            if (feesByLogic[0].amount > fees[feesIndex].amount) {
+                                feesByLogic[0].amount -= fees[feesIndex].amount;
+                            } else {
+                                break;
+                            }
+                        }
                     }
                 }
             }
