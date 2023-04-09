@@ -20,7 +20,7 @@ contract Router is IRouter, EIP712, Ownable {
     address private constant _INVALID_FEE_COLLECTOR = address(0);
     address private constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
-    address private constant _DUMMY_TO_ADDRESS = address(0xffff);
+    address private constant _DUMMY_TO_ADDRESS = address(0);
 
     address public immutable agentImplementation;
 

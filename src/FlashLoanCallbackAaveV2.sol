@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {IAgent} from './interfaces/IAgent.sol';
-import {IParam} from './interfaces/IParam.sol';
 import {IFlashLoanCallbackAaveV2} from './interfaces/IFlashLoanCallbackAaveV2.sol';
 import {IAaveV2Provider} from './interfaces/aaveV2/IAaveV2Provider.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
@@ -53,14 +52,7 @@ contract FlashLoanCallbackAaveV2 is IFlashLoanCallbackAaveV2 {
             }
         }
 
-        {
-            // Call Agent::execute
-            (IParam.Logic[] memory logics, IParam.Fee[] memory fees, address[] memory tokensReturn) = abi.decode(
-                params,
-                (IParam.Logic[], IParam.Fee[], address[])
-            );
-            IAgent(agent).execute(logics, fees, tokensReturn);
-        }
+        agent.functionCall(abi.encodePacked(IAgent.execute.selector, params), 'ERROR_AAVE_V2_FLASH_LOAN_CALLBACK');
 
         // Approve assets for pulling from Aave Pool
         for (uint256 i = 0; i < assetsLength; ) {

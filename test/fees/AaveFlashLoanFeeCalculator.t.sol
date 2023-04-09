@@ -44,7 +44,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, FeeCalculatorUtils {
     address public constant AAVE_V2_PROVIDER = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant AUSDC_V2 = 0xBcca60bB61934080951369a648Fb03DF4F96263C;
-    address public constant DUMMY_TO_ADDRESS = address(0xffff);
+    address public constant DUMMY_TO_ADDRESS = address(0);
     bytes4 public constant AAVE_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)')));
     bytes4 public constant AAVE_BORROW_SELECTOR =
