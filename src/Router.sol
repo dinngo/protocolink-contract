@@ -164,21 +164,14 @@ contract Router is IRouter, EIP712, Ownable {
             }
 
             // Get charge tokens and amounts
-            (address[] memory tokens, uint256[] memory amounts, bytes32 metadata) = IFeeCalculator(feeCalculator)
-                .getFees(to, data);
-            uint256 tokensLength = tokens.length;
-            if (tokensLength == 0) {
+            IParam.Fee[] memory feesByLogic = IFeeCalculator(feeCalculator).getFees(to, data);
+            uint256 feesByLogicLength = feesByLogic.length;
+            if (feesByLogicLength == 0) {
                 continue; // No need to charge fee
             }
 
-            for (uint256 feeIndex = 0; feeIndex < tokensLength; ++feeIndex) {
-                tempFees[realFeeLength] = IParam.Fee({
-                    token: tokens[feeIndex],
-                    amount: amounts[feeIndex],
-                    metadata: metadata
-                });
-
-                realFeeLength++;
+            for (uint256 feeIndex = 0; feeIndex < feesByLogicLength; ++feeIndex) {
+                tempFees[realFeeLength++] = feesByLogic[feeIndex];
             }
         }
 
@@ -186,12 +179,11 @@ contract Router is IRouter, EIP712, Ownable {
             // For native fee
             address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
             if (nativeFeeCalculator != address(0)) {
-                (address[] memory tokens, uint256[] memory amounts, bytes32 metadata) = IFeeCalculator(
-                    nativeFeeCalculator
-                ).getFees(address(0), abi.encodePacked(msgValue));
-
-                tempFees[realFeeLength] = IParam.Fee({token: tokens[0], amount: amounts[0], metadata: metadata});
-                realFeeLength++;
+                IParam.Fee[] memory feesByLogic = IFeeCalculator(nativeFeeCalculator).getFees(
+                    _DUMMY_TO_ADDRESS,
+                    abi.encodePacked(msgValue)
+                );
+                tempFees[realFeeLength++] = feesByLogic[0];
             }
         }
 
@@ -342,19 +334,18 @@ contract Router is IRouter, EIP712, Ownable {
             }
 
             // Get charge tokens and amounts
-            (address[] memory feeTokens, uint256[] memory feeAmounts, ) = IFeeCalculator(feeCalculator).getFees(
-                to,
-                data
-            );
-            uint256 feeTokensLength = feeTokens.length;
-            if (feeTokensLength == 0) {
+            IParam.Fee[] memory feesByLogic = IFeeCalculator(feeCalculator).getFees(to, data);
+            uint256 feesByLogicLength = feesByLogic.length;
+            if (feesByLogicLength == 0) {
                 continue; // No need to charge fee
             }
 
             // Deduct all fee from fees
-            for (uint256 j = 0; j < feeTokensLength; ++j) {
+            for (uint256 j = 0; j < feesByLogicLength; ++j) {
                 for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-                    if (feeTokens[j] == fees[feesIndex].token && feeAmounts[j] == fees[feesIndex].amount) {
+                    if (
+                        feesByLogic[j].token == fees[feesIndex].token && feesByLogic[j].amount == fees[feesIndex].amount
+                    ) {
                         fees[feesIndex].amount = 0;
                     }
                 }
@@ -365,14 +356,14 @@ contract Router is IRouter, EIP712, Ownable {
         if (msgValue > 0) {
             address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
             if (nativeFeeCalculator != address(0)) {
-                (, uint256[] memory amounts, ) = IFeeCalculator(nativeFeeCalculator).getFees(
-                    address(0),
+                IParam.Fee[] memory feesByLogic = IFeeCalculator(nativeFeeCalculator).getFees(
+                    _DUMMY_TO_ADDRESS,
                     abi.encodePacked(msgValue)
                 );
 
-                if (amounts.length > 0) {
+                if (feesByLogic.length > 0) {
                     for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-                        if (fees[feesIndex].token == _NATIVE) fees[feesIndex].amount -= amounts[0];
+                        if (fees[feesIndex].token == _NATIVE) fees[feesIndex].amount -= feesByLogic[0].amount;
                     }
                 }
             }

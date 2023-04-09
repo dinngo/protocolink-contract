@@ -3,27 +3,22 @@ pragma solidity ^0.8.0;
 
 import {FeeBase} from './FeeBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
+import {IParam} from '../interfaces/IParam.sol';
 
 contract Permit2FeeCalculator is IFeeCalculator, FeeBase {
     bytes32 private constant _META_DATA = bytes32(bytes('permit2:pull-token'));
 
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 
-    function getFees(
-        address to,
-        bytes calldata data
-    ) external view returns (address[] memory, uint256[] memory, bytes32) {
+    function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         to;
 
         // Permit2 transfrom signature:'transferFrom(address,address,uint160,address)', selector:0x36c78516
         (, , uint160 amount, address token) = abi.decode(data[4:], (address, address, uint160, address));
 
-        address[] memory tokens = new address[](1);
-        tokens[0] = token;
-
-        uint256[] memory fees = new uint256[](1);
-        fees[0] = calculateFee(uint256(amount));
-        return (tokens, fees, _META_DATA);
+        IParam.Fee[] memory fees = new IParam.Fee[](1);
+        fees[0] = IParam.Fee({token: token, amount: calculateFee(uint256(amount)), metadata: _META_DATA});
+        return fees;
     }
 
     function getDataWithFee(bytes calldata data) external view returns (bytes memory) {

@@ -14,10 +14,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
 
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 
-    function getFees(
-        address to,
-        bytes calldata data
-    ) external view returns (address[] memory, uint256[] memory, bytes32) {
+    function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         // Aave flashloan signature:'flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)', selector: 0xab9c4b5d
         (, address[] memory tokens, uint256[] memory amounts, , , bytes memory params, ) = abi.decode(
             data[4:],
@@ -25,6 +22,11 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
         );
 
         amounts = calculateFee(amounts);
+        bytes32 metadata = to == IAaveV3Provider(_AAVE_V3_PROVIDER).getPool()
+            ? _V3_FLASHLOAN_META_DATA
+            : _V2_FLASHLOAN_META_DATA;
+
+        IParam.Fee[] memory feesWithFlashLoan = _createFees(tokens, amounts, metadata);
 
         if (params.length > 0) {
             // Decode data in the flashLoan
@@ -33,18 +35,12 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
             // Get fees
             IParam.Fee[] memory feesInFlashLoanData = IRouter(router).getFeesByLogics(logics, 0);
 
-            uint256 length = feesInFlashLoanData.length;
-            if (length > 0) {
-                tokens = _concatenateWithFeesContent(tokens, feesInFlashLoanData);
-                amounts = _concatenateWithFeesContent(amounts, feesInFlashLoanData);
+            if (feesInFlashLoanData.length > 0) {
+                feesWithFlashLoan = _concatenateFees(feesWithFlashLoan, feesInFlashLoanData);
             }
         }
 
-        bytes32 metadata = to == IAaveV3Provider(_AAVE_V3_PROVIDER).getPool()
-            ? _V3_FLASHLOAN_META_DATA
-            : _V2_FLASHLOAN_META_DATA;
-
-        return (tokens, amounts, metadata);
+        return feesWithFlashLoan;
     }
 
     function getDataWithFee(bytes calldata data) external view returns (bytes memory) {
@@ -80,53 +76,45 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
             );
     }
 
-    function _concatenateWithFeesContent(
-        address[] memory arr,
-        IParam.Fee[] memory fees
-    ) private pure returns (address[] memory) {
-        uint256 arrLength = arr.length;
-        uint256 feesLength = fees.length;
-        address[] memory results = new address[](arrLength + feesLength);
+    function _createFees(
+        address[] memory tokens,
+        uint256[] memory amounts,
+        bytes32 metadata
+    ) private pure returns (IParam.Fee[] memory) {
+        uint256 length = tokens.length;
+        IParam.Fee[] memory fees = new IParam.Fee[](length);
+        for (uint256 i = 0; i < length; ) {
+            fees[i] = IParam.Fee({token: tokens[i], amount: amounts[i], metadata: metadata});
 
-        for (uint256 i = 0; i < arrLength; ) {
-            results[i] = arr[i];
             unchecked {
                 ++i;
             }
         }
-
-        for (uint256 i = 0; i < feesLength; ) {
-            results[arrLength + i] = fees[i].token;
-            unchecked {
-                ++i;
-            }
-        }
-
-        return results;
+        return fees;
     }
 
-    function _concatenateWithFeesContent(
-        uint256[] memory arr,
-        IParam.Fee[] memory fees
-    ) private pure returns (uint256[] memory) {
-        uint256 arrLength = arr.length;
-        uint256 feesLength = fees.length;
-        uint256[] memory results = new uint256[](arrLength + feesLength);
+    function _concatenateFees(
+        IParam.Fee[] memory fees1,
+        IParam.Fee[] memory fees2
+    ) private pure returns (IParam.Fee[] memory) {
+        uint256 length1 = fees1.length;
+        uint256 length2 = fees2.length;
+        IParam.Fee[] memory totalFees = new IParam.Fee[](length1 + length2);
 
-        for (uint256 i = 0; i < arrLength; ) {
-            results[i] = arr[i];
+        for (uint256 i = 0; i < length1; ) {
+            totalFees[i] = fees1[i];
             unchecked {
                 ++i;
             }
         }
 
-        for (uint256 i = 0; i < feesLength; ) {
-            results[arrLength + i] = fees[i].amount;
+        for (uint256 i = 0; i < length2; ) {
+            totalFees[length1 + i] = fees2[i];
             unchecked {
                 ++i;
             }
         }
 
-        return results;
+        return totalFees;
     }
 }

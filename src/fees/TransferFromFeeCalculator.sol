@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {FeeBase} from './FeeBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
+import {IParam} from '../interfaces/IParam.sol';
 
 /// @notice Fee calculator for ERC20::transferFrom action. This will also cause ERC721::transferFrom being executed and fail in transaction.
 contract TransferFromFeeCalculator is IFeeCalculator, FeeBase {
@@ -10,19 +11,13 @@ contract TransferFromFeeCalculator is IFeeCalculator, FeeBase {
 
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 
-    function getFees(
-        address to,
-        bytes calldata data
-    ) external view returns (address[] memory, uint256[] memory, bytes32) {
+    function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         // Token transfrom signature:'transferFrom(address,address,uint256)', selector:0x23b872dd
         (, , uint256 amount) = abi.decode(data[4:], (address, address, uint256));
 
-        address[] memory tokens = new address[](1);
-        tokens[0] = to;
-
-        uint256[] memory fees = new uint256[](1);
-        fees[0] = calculateFee(amount);
-        return (tokens, fees, _META_DATA);
+        IParam.Fee[] memory fees = new IParam.Fee[](1);
+        fees[0] = IParam.Fee({token: to, amount: calculateFee(amount), metadata: _META_DATA});
+        return fees;
     }
 
     function getDataWithFee(bytes calldata data) external view returns (bytes memory) {
