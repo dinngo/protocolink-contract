@@ -16,32 +16,6 @@ abstract contract FeeVerifier is Ownable {
 
     mapping(bytes4 selector => mapping(address to => address feeCalculator)) public feeCalculators;
 
-    /// @notice Set fee calculator contracts
-    function setFeeCalculators(
-        bytes4[] calldata selectors,
-        address[] calldata tos,
-        address[] calldata feeCalculators_
-    ) external onlyOwner {
-        uint256 length = selectors.length;
-        if (length != tos.length) revert LengthMismatch();
-        if (length != feeCalculators_.length) revert LengthMismatch();
-
-        for (uint256 i = 0; i < length; ) {
-            bytes4 selector = selectors[i];
-            address to = tos[i];
-            address feeCalculator = feeCalculators_[i];
-            setFeeCalculator(selector, to, feeCalculator);
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    function setFeeCalculator(bytes4 selector, address to, address feeCalculator) public onlyOwner {
-        feeCalculators[selector][to] = feeCalculator;
-        emit FeeCalculatorSet(selector, to, feeCalculator);
-    }
-
     /// @notice Get logics, fees and msg.value that contains fee
     function getLogicsAndFees(
         IParam.Logic[] memory logics,
@@ -212,5 +186,31 @@ abstract contract FeeVerifier is Ownable {
         }
 
         return true;
+    }
+
+    /// @notice Set fee calculator contracts
+    function setFeeCalculators(
+        bytes4[] calldata selectors,
+        address[] calldata tos,
+        address[] calldata feeCalculators_
+    ) external onlyOwner {
+        uint256 length = selectors.length;
+        if (length != tos.length) revert LengthMismatch();
+        if (length != feeCalculators_.length) revert LengthMismatch();
+
+        for (uint256 i = 0; i < length; ) {
+            bytes4 selector = selectors[i];
+            address to = tos[i];
+            address feeCalculator = feeCalculators_[i];
+            setFeeCalculator(selector, to, feeCalculator);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function setFeeCalculator(bytes4 selector, address to, address feeCalculator) public onlyOwner {
+        feeCalculators[selector][to] = feeCalculator;
+        emit FeeCalculatorSet(selector, to, feeCalculator);
     }
 }
