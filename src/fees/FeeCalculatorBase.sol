@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IRouter} from '../interfaces/IRouter.sol';
 
-abstract contract FeeBase {
+abstract contract FeeCalculatorBase {
     error InvalidSender();
     error InvalidRate();
 

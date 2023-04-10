@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 
-interface IFeeBase {
+interface IFeeCalculatorBase {
     function setFeeRate(uint256 feeRate_) external;
 }
 

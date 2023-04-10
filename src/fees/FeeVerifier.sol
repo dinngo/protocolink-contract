@@ -1,0 +1,216 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import {Ownable} from 'openzeppelin-contracts/contracts/access/Ownable.sol';
+import {IParam} from '../interfaces/IParam.sol';
+import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
+
+abstract contract FeeVerifier is Ownable {
+    error LengthMismatch();
+
+    event FeeCalculatorSet(bytes4 indexed selector, address indexed to, address indexed feeCalculator);
+
+    address private constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
+    address private constant _DUMMY_TO_ADDRESS = address(0);
+
+    mapping(bytes4 selector => mapping(address to => address feeCalculator)) public feeCalculators;
+
+    /// @notice Set fee calculator contracts
+    function setFeeCalculators(
+        bytes4[] calldata selectors,
+        address[] calldata tos,
+        address[] calldata feeCalculators_
+    ) external onlyOwner {
+        uint256 length = selectors.length;
+        if (length != tos.length) revert LengthMismatch();
+        if (length != feeCalculators_.length) revert LengthMismatch();
+
+        for (uint256 i = 0; i < length; ) {
+            bytes4 selector = selectors[i];
+            address to = tos[i];
+            address feeCalculator = feeCalculators_[i];
+            setFeeCalculator(selector, to, feeCalculator);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function setFeeCalculator(bytes4 selector, address to, address feeCalculator) public onlyOwner {
+        feeCalculators[selector][to] = feeCalculator;
+        emit FeeCalculatorSet(selector, to, feeCalculator);
+    }
+
+    /// @notice Get logics, fees and msg.value that contains fee
+    function getLogicsAndFees(
+        IParam.Logic[] memory logics,
+        uint256 msgValue
+    ) external view returns (IParam.Logic[] memory, uint256, IParam.Fee[] memory) {
+        // Update logics
+        logics = getLogicsDataWithFee(logics);
+
+        // Update value
+        if (msgValue > 0) {
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
+            if (nativeFeeCalculator != address(0)) {
+                msgValue = uint256(
+                    bytes32(IFeeCalculator(nativeFeeCalculator).getDataWithFee(abi.encodePacked(msgValue)))
+                );
+            }
+        }
+
+        // Get fees
+        IParam.Fee[] memory fees = getFeesByLogics(logics, msgValue);
+
+        return (logics, msgValue, fees);
+    }
+
+    function getLogicsDataWithFee(IParam.Logic[] memory logics) public view returns (IParam.Logic[] memory) {
+        uint256 length = logics.length;
+        for (uint256 i = 0; i < length; ) {
+            bytes memory data = logics[i].data;
+            address to = logics[i].to;
+            bytes4 selector = bytes4(data);
+            address feeCalculator = feeCalculators[selector][to];
+
+            // Get transaction data with fee
+            if (feeCalculator != address(0)) {
+                logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
+            } else {
+                feeCalculator = feeCalculators[selector][_DUMMY_TO_ADDRESS];
+                if (feeCalculator != address(0)) {
+                    logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
+                }
+            }
+            unchecked {
+                ++i;
+            }
+        }
+
+        return logics;
+    }
+
+    function getFeesByLogics(IParam.Logic[] memory logics, uint256 msgValue) public view returns (IParam.Fee[] memory) {
+        IParam.Fee[] memory tempFees = new IParam.Fee[](32); // Create a temporary `tempFees` with size 32 to store fee
+        uint256 realFeeLength;
+        uint256 logicsLength = logics.length;
+        for (uint256 i = 0; i < logicsLength; ++i) {
+            bytes memory data = logics[i].data;
+            address to = logics[i].to;
+            bytes4 selector = bytes4(data);
+
+            // Get feeCalculator
+            address feeCalculator = feeCalculators[selector][to];
+            if (feeCalculator == address(0)) {
+                feeCalculator = feeCalculators[selector][_DUMMY_TO_ADDRESS];
+                if (feeCalculator == address(0)) continue; // No need to charge fee
+            }
+
+            // Get charge tokens and amounts
+            IParam.Fee[] memory feesByLogic = IFeeCalculator(feeCalculator).getFees(to, data);
+            uint256 feesByLogicLength = feesByLogic.length;
+            if (feesByLogicLength == 0) {
+                continue; // No need to charge fee
+            }
+
+            for (uint256 feeIndex = 0; feeIndex < feesByLogicLength; ++feeIndex) {
+                tempFees[realFeeLength++] = feesByLogic[feeIndex];
+            }
+        }
+
+        if (msgValue > 0) {
+            // For native fee
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
+            if (nativeFeeCalculator != address(0)) {
+                IParam.Fee[] memory feesByLogic = IFeeCalculator(nativeFeeCalculator).getFees(
+                    _DUMMY_TO_ADDRESS,
+                    abi.encodePacked(msgValue)
+                );
+                tempFees[realFeeLength++] = feesByLogic[0];
+            }
+        }
+
+        // Copy tempFees to fees
+        IParam.Fee[] memory fees = new IParam.Fee[](realFeeLength);
+        for (uint256 i = 0; i < realFeeLength; ++i) {
+            fees[i] = tempFees[i];
+        }
+
+        return fees;
+    }
+
+    function verifyFees(
+        IParam.Logic[] calldata logics,
+        uint256 msgValue,
+        IParam.Fee[] memory fees
+    ) public view returns (bool) {
+        uint256 feesLength = fees.length;
+        uint256 logicsLength = logics.length;
+        for (uint256 i = 0; i < logicsLength; ++i) {
+            bytes memory data = logics[i].data;
+            address to = logics[i].to;
+            bytes4 selector = bytes4(data);
+
+            // Get feeCalculator
+            address feeCalculator = feeCalculators[selector][to];
+            if (feeCalculator == address(0)) {
+                feeCalculator = feeCalculators[selector][_DUMMY_TO_ADDRESS];
+                if (feeCalculator == address(0)) continue; // No need to charge fee
+            }
+
+            // Get charge tokens and amounts
+            IParam.Fee[] memory feesByLogic = IFeeCalculator(feeCalculator).getFees(to, data);
+            uint256 feesByLogicLength = feesByLogic.length;
+            if (feesByLogicLength == 0) {
+                continue; // No need to charge fee
+            }
+
+            // Deduct all fee from fees
+            for (uint256 j = 0; j < feesByLogicLength; ++j) {
+                for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+                    if (feesByLogic[j].token == fees[feesIndex].token) {
+                        if (feesByLogic[j].amount > fees[feesIndex].amount) {
+                            feesByLogic[j].amount -= fees[feesIndex].amount;
+                            fees[feesIndex].amount = 0;
+                        } else {
+                            fees[feesIndex].amount -= feesByLogic[j].amount;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Deduct native fee from fees
+        if (msgValue > 0) {
+            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
+            if (nativeFeeCalculator != address(0)) {
+                IParam.Fee[] memory feesByLogic = IFeeCalculator(nativeFeeCalculator).getFees(
+                    _DUMMY_TO_ADDRESS,
+                    abi.encodePacked(msgValue)
+                );
+
+                if (feesByLogic.length > 0) {
+                    for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+                        if (fees[feesIndex].token == _NATIVE) {
+                            fees[feesIndex].amount = 0;
+                            if (feesByLogic[0].amount > fees[feesIndex].amount) {
+                                feesByLogic[0].amount -= fees[feesIndex].amount;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // verify fees equals 0
+        for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+            if (fees[feesIndex].amount > 0) return false;
+        }
+
+        return true;
+    }
+}

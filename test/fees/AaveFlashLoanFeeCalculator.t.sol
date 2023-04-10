@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import {Router, IRouter} from 'src/Router.sol';
+import {Router} from 'src/Router.sol';
 import {AaveFlashLoanFeeCalculator} from 'src/fees/AaveFlashLoanFeeCalculator.sol';
 import {AaveBorrowFeeCalculator} from 'src/fees/AaveBorrowFeeCalculator.sol';
 import {NativeFeeCalculator} from 'src/fees/NativeFeeCalculator.sol';
@@ -12,11 +12,10 @@ import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IAaveV2Provider} from 'src/interfaces/aaveV2/IAaveV2Provider.sol';
 import {IFeeCalculator} from 'src/interfaces/IFeeCalculator.sol';
-import {FeeCalculatorUtils, IFeeBase} from 'test/utils/FeeCalculatorUtils.sol';
+import {FeeCalculatorUtils, IFeeCalculatorBase} from 'test/utils/FeeCalculatorUtils.sol';
 import {MockAavePool} from '../mocks/MockAavePool.sol';
 import {MockAaveProvider} from '../mocks/MockAaveProvider.sol';
 import {MockERC20} from '../mocks/MockERC20.sol';
-import 'forge-std/console.sol';
 
 interface IAaveV2Pool {
     function flashLoan(
@@ -60,7 +59,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, FeeCalculatorUtils {
     address public user;
     address public user2;
     address public feeCollector;
-    IRouter public router;
+    Router public router;
     IAgent public userAgent;
     IFeeCalculator public flashLoanFeeCalculator;
     IFeeCalculator public borrowFeeCalculator;
@@ -87,18 +86,16 @@ contract AaveFlashLoanFeeCalculatorTest is Test, FeeCalculatorUtils {
         flashLoanCallbackV2 = new FlashLoanCallbackAaveV2(address(router), AAVE_V2_PROVIDER);
 
         // Setup fee calculator
-        IParam.FeeCalculator[] memory feeCalculators = new IParam.FeeCalculator[](2);
-        feeCalculators[0] = IParam.FeeCalculator({
-            selector: AAVE_FLASHLOAN_SELECTOR,
-            to: address(v2Pool),
-            calculator: address(flashLoanFeeCalculator)
-        });
-        feeCalculators[1] = IParam.FeeCalculator({
-            selector: NATIVE_FEE_SELECTOR,
-            to: address(DUMMY_TO_ADDRESS),
-            calculator: address(nativeFeeCalculator)
-        });
-        router.setFeeCalculators(feeCalculators);
+        bytes4[] memory selectors = new bytes4[](2);
+        selectors[0] = AAVE_FLASHLOAN_SELECTOR;
+        selectors[1] = NATIVE_FEE_SELECTOR;
+        address[] memory tos = new address[](2);
+        tos[0] = address(v2Pool);
+        tos[1] = address(DUMMY_TO_ADDRESS);
+        address[] memory feeCalculators = new address[](2);
+        feeCalculators[0] = address(flashLoanFeeCalculator);
+        feeCalculators[1] = address(nativeFeeCalculator);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');
@@ -116,7 +113,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, FeeCalculatorUtils {
         amount = bound(amount, 1, (IERC20(USDC).balanceOf(AUSDC_V2) * (BPS_BASE - feeRate)) / BPS_BASE);
 
         // Set fee rate
-        IFeeBase(address(flashLoanFeeCalculator)).setFeeRate(feeRate);
+        IFeeCalculatorBase(address(flashLoanFeeCalculator)).setFeeRate(feeRate);
 
         // Encode flashloan params
         IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
@@ -139,7 +136,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, FeeCalculatorUtils {
 
         // Get new logics and fees
         IParam.Fee[] memory fees;
-        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
+        (logics, , fees) = router.getLogicsAndFees(logics, 0);
 
         _distributeToken(tokens, amounts, feeRate);
 
@@ -171,8 +168,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test, FeeCalculatorUtils {
         nativeAmount = bound(nativeAmount, 0, 5000 ether);
 
         // Set fee rate
-        IFeeBase(address(flashLoanFeeCalculator)).setFeeRate(feeRate);
-        IFeeBase(address(nativeFeeCalculator)).setFeeRate(feeRate);
+        IFeeCalculatorBase(address(flashLoanFeeCalculator)).setFeeRate(feeRate);
+        IFeeCalculatorBase(address(nativeFeeCalculator)).setFeeRate(feeRate);
 
         // Encode flashloan params
         IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](2);
@@ -198,7 +195,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, FeeCalculatorUtils {
             logics[0] = _logicAaveV2FlashLoan(tokens, amounts, params);
 
             // Get new logics and fees
-            (logics, fees, nativeNewAmount) = router.getLogicsAndFees(logics, nativeAmount);
+            (logics, nativeNewAmount, fees) = router.getLogicsAndFees(logics, nativeAmount);
             deal(user, nativeNewAmount);
             _distributeToken(tokens, amounts, feeRate);
         }

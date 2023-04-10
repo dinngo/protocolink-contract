@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {FeeBase} from './FeeBase.sol';
+import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
-contract NativeFeeCalculator is IFeeCalculator, FeeBase {
+contract NativeFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 private constant _META_DATA = bytes32(bytes('native-token'));
     address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
-    constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
+    constructor(address router, uint256 feeRate) FeeCalculatorBase(router, feeRate) {}
 
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         to;

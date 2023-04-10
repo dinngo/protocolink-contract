@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {FeeBase} from './FeeBase.sol';
+import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 /// @notice Fee calculator for ERC20::transferFrom action. This will also cause ERC721::transferFrom being executed and fail in transaction.
-contract TransferFromFeeCalculator is IFeeCalculator, FeeBase {
+contract TransferFromFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 private constant _META_DATA = bytes32(bytes('erc20:transfer-from'));
 
-    constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
+    constructor(address router, uint256 feeRate) FeeCalculatorBase(router, feeRate) {}
 
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         // Token transfrom signature:'transferFrom(address,address,uint256)', selector:0x23b872dd

@@ -2,13 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {Router, IRouter} from 'src/Router.sol';
+import {Router} from 'src/Router.sol';
 import {NativeFeeCalculator} from 'src/fees/NativeFeeCalculator.sol';
-import {FeeBase} from 'src/fees/FeeBase.sol';
+import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IFeeCalculator} from 'src/interfaces/IFeeCalculator.sol';
-import {FeeCalculatorUtils, IFeeBase} from 'test/utils/FeeCalculatorUtils.sol';
+import {FeeCalculatorUtils, IFeeCalculatorBase} from 'test/utils/FeeCalculatorUtils.sol';
 
 contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -21,7 +21,7 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
     address public user;
     address public receiver;
     address public feeCollector;
-    IRouter public router;
+    Router public router;
     IAgent public userAgent;
     IFeeCalculator public feeCalculator;
 
@@ -40,13 +40,13 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
         feeCalculator = new NativeFeeCalculator(address(router), ZERO_FEE_RATE);
 
         // Setup native fee calculator
-        IParam.FeeCalculator[] memory feeCalculators = new IParam.FeeCalculator[](1);
-        feeCalculators[0] = IParam.FeeCalculator({
-            selector: NATIVE_FEE_SELECTOR,
-            to: address(DUMMY_TO_ADDRESS),
-            calculator: address(feeCalculator)
-        });
-        router.setFeeCalculators(feeCalculators);
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = NATIVE_FEE_SELECTOR;
+        address[] memory tos = new address[](1);
+        tos[0] = address(DUMMY_TO_ADDRESS);
+        address[] memory feeCalculators = new address[](1);
+        feeCalculators[0] = address(feeCalculator);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');
@@ -55,14 +55,14 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
     }
 
     function testInvalidFeeRateSender() external {
-        vm.expectRevert(FeeBase.InvalidSender.selector);
+        vm.expectRevert(FeeCalculatorBase.InvalidSender.selector);
         vm.prank(user);
-        IFeeBase(address(feeCalculator)).setFeeRate(99);
+        IFeeCalculatorBase(address(feeCalculator)).setFeeRate(99);
     }
 
     function testInvalidFeeRate() external {
-        vm.expectRevert(FeeBase.InvalidRate.selector);
-        IFeeBase(address(feeCalculator)).setFeeRate(BPS_BASE);
+        vm.expectRevert(FeeCalculatorBase.InvalidRate.selector);
+        IFeeCalculatorBase(address(feeCalculator)).setFeeRate(BPS_BASE);
     }
 
     function testChargeNativeFee(uint256 value, uint256 feeRate) external {
@@ -70,7 +70,7 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
 
         // Set fee rate
-        IFeeBase(address(feeCalculator)).setFeeRate(feeRate);
+        IFeeCalculatorBase(address(feeCalculator)).setFeeRate(feeRate);
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -79,7 +79,7 @@ contract NativeFeeCalculatorTest is Test, FeeCalculatorUtils {
         // Get new logics and msgValue
         IParam.Fee[] memory fees;
         uint256 newValue;
-        (logics, fees, newValue) = router.getLogicsAndFees(logics, value);
+        (logics, newValue, fees) = router.getLogicsAndFees(logics, value);
         deal(user, newValue);
 
         // Prepare assert data

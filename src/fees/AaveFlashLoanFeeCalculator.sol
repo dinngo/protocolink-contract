@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {FeeBase} from './FeeBase.sol';
+import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
+import {Router} from '../Router.sol';
 import {IAaveV3Provider} from '../interfaces/aaveV3/IAaveV3Provider.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
-import {IRouter} from '../interfaces/IRouter.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
-contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
+contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     address private constant _AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     bytes32 private constant _V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flashloan'));
     bytes32 private constant _V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flashloan'));
 
-    constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
+    constructor(address router, uint256 feeRate) FeeCalculatorBase(router, feeRate) {}
 
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         // Aave flashloan signature:'flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)', selector: 0xab9c4b5d
@@ -33,7 +33,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
             (IParam.Logic[] memory logics, , ) = abi.decode(params, (IParam.Logic[], IParam.Fee[], address[]));
 
             // Get fees
-            IParam.Fee[] memory feesInFlashLoanData = IRouter(router).getFeesByLogics(logics, 0);
+            IParam.Fee[] memory feesInFlashLoanData = Router(router).getFeesByLogics(logics, 0);
 
             if (feesInFlashLoanData.length > 0) {
                 feesWithFlashLoan = _concatenateFees(feesWithFlashLoan, feesInFlashLoanData);
@@ -62,7 +62,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeBase {
             );
 
             // Update logics
-            logics = IRouter(router).getLogicsDataWithFee(logics);
+            logics = Router(router).getLogicsDataWithFee(logics);
 
             // encode
             params = abi.encode(logics, fees, tokensReturn);

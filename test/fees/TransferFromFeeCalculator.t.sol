@@ -3,12 +3,12 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import {Router, IRouter} from 'src/Router.sol';
+import {Router} from 'src/Router.sol';
 import {TransferFromFeeCalculator} from 'src/fees/TransferFromFeeCalculator.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IFeeCalculator} from 'src/interfaces/IFeeCalculator.sol';
-import {FeeCalculatorUtils, IFeeBase} from 'test/utils/FeeCalculatorUtils.sol';
+import {FeeCalculatorUtils, IFeeCalculatorBase} from 'test/utils/FeeCalculatorUtils.sol';
 
 contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
     bytes4 public constant TRANSFER_FROM_SELECTOR = bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
@@ -18,7 +18,7 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
 
     address public user;
     address public feeCollector;
-    IRouter public router;
+    Router public router;
     IAgent public userAgent;
     IFeeCalculator public transferFromFeeCalculator;
 
@@ -38,13 +38,13 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
         transferFromFeeCalculator = new TransferFromFeeCalculator(address(router), ZERO_FEE_RATE);
 
         // Setup fee calculator
-        IParam.FeeCalculator[] memory feeCalculators = new IParam.FeeCalculator[](1);
-        feeCalculators[0] = IParam.FeeCalculator({
-            selector: TRANSFER_FROM_SELECTOR,
-            to: address(DUMMY_TO_ADDRESS),
-            calculator: address(transferFromFeeCalculator)
-        });
-        router.setFeeCalculators(feeCalculators);
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = TRANSFER_FROM_SELECTOR;
+        address[] memory tos = new address[](1);
+        tos[0] = address(DUMMY_TO_ADDRESS);
+        address[] memory feeCalculators = new address[](1);
+        feeCalculators[0] = address(transferFromFeeCalculator);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');
@@ -58,7 +58,7 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
 
         // Set fee rate
-        IFeeBase(address(transferFromFeeCalculator)).setFeeRate(feeRate);
+        IFeeCalculatorBase(address(transferFromFeeCalculator)).setFeeRate(feeRate);
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -66,7 +66,7 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
 
         // Get new logics
         IParam.Fee[] memory fees;
-        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
+        (logics, , fees) = router.getLogicsAndFees(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);

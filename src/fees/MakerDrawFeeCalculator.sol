@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {FeeBase} from './FeeBase.sol';
+import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
-contract MakerDrawFeeCalculator is IFeeCalculator, FeeBase {
+contract MakerDrawFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 private constant _META_DATA = bytes32(bytes('maker:borrow'));
     bytes4 private constant _DRAW_FUNCTION_SELECTOR =
         bytes4(keccak256(bytes('draw(address,address,address,uint256,uint256)')));
@@ -16,7 +16,7 @@ contract MakerDrawFeeCalculator is IFeeCalculator, FeeBase {
 
     address public daiToken;
 
-    constructor(address router, uint256 feeRate, address daiToken_) FeeBase(router, feeRate) {
+    constructor(address router, uint256 feeRate, address daiToken_) FeeCalculatorBase(router, feeRate) {
         daiToken = daiToken_;
     }
 

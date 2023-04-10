@@ -4,12 +4,12 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
-import {Router, IRouter} from 'src/Router.sol';
+import {Router} from 'src/Router.sol';
 import {Permit2FeeCalculator} from 'src/fees/Permit2FeeCalculator.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IFeeCalculator} from 'src/interfaces/IFeeCalculator.sol';
-import {FeeCalculatorUtils, IFeeBase} from 'test/utils/FeeCalculatorUtils.sol';
+import {FeeCalculatorUtils, IFeeCalculatorBase} from 'test/utils/FeeCalculatorUtils.sol';
 import {SpenderPermitUtils} from 'test/utils/SpenderPermitUtils.sol';
 
 contract Permit2FeeCalculatorTest is Test, FeeCalculatorUtils, SpenderPermitUtils {
@@ -23,7 +23,7 @@ contract Permit2FeeCalculatorTest is Test, FeeCalculatorUtils, SpenderPermitUtil
     address public user;
     uint256 public userPrivateKey;
     address public feeCollector;
-    IRouter public router;
+    Router public router;
     IAgent public userAgent;
     IFeeCalculator public permit2FeeCalculator;
 
@@ -47,13 +47,13 @@ contract Permit2FeeCalculatorTest is Test, FeeCalculatorUtils, SpenderPermitUtil
         permitToken(USDC);
 
         // Setup fee calculator
-        IParam.FeeCalculator[] memory feeCalculators = new IParam.FeeCalculator[](1);
-        feeCalculators[0] = IParam.FeeCalculator({
-            selector: PERMIT2_TRANSFER_FROM_SELECTOR,
-            to: PERMIT2_ADDR,
-            calculator: address(permit2FeeCalculator)
-        });
-        router.setFeeCalculators(feeCalculators);
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = PERMIT2_TRANSFER_FROM_SELECTOR;
+        address[] memory tos = new address[](1);
+        tos[0] = PERMIT2_ADDR;
+        address[] memory feeCalculators = new address[](1);
+        feeCalculators[0] = address(permit2FeeCalculator);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');
@@ -67,7 +67,7 @@ contract Permit2FeeCalculatorTest is Test, FeeCalculatorUtils, SpenderPermitUtil
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
 
         // Set fee rate
-        IFeeBase(address(permit2FeeCalculator)).setFeeRate(feeRate);
+        IFeeCalculatorBase(address(permit2FeeCalculator)).setFeeRate(feeRate);
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -75,7 +75,7 @@ contract Permit2FeeCalculatorTest is Test, FeeCalculatorUtils, SpenderPermitUtil
 
         // Get new logics
         IParam.Fee[] memory fees;
-        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
+        (logics, , fees) = router.getLogicsAndFees(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);

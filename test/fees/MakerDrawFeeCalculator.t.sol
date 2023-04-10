@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import {Router, IRouter} from 'src/Router.sol';
+import {Router} from 'src/Router.sol';
 import {MakerDrawFeeCalculator} from 'src/fees/MakerDrawFeeCalculator.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IFeeCalculator} from 'src/interfaces/IFeeCalculator.sol';
 import {IDSProxy} from 'src/interfaces/maker/IDSProxy.sol';
-import {FeeCalculatorUtils, IFeeBase} from 'test/utils/FeeCalculatorUtils.sol';
+import {FeeCalculatorUtils, IFeeCalculatorBase} from 'test/utils/FeeCalculatorUtils.sol';
 import {MakerCommonUtils, IDSProxyRegistry} from 'test/utils/MakerCommonUtils.sol';
 
 contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtils {
@@ -25,7 +25,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
     address public user;
     address public userDSProxy;
     address public feeCollector;
-    IRouter public router;
+    Router public router;
     IAgent public userAgent;
     address public userAgentDSProxy;
     IFeeCalculator public makerDrawFeeCalculator;
@@ -75,13 +75,13 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         vm.stopPrank();
 
         // Setup fee calculator
-        IParam.FeeCalculator[] memory feeCalculators = new IParam.FeeCalculator[](1);
-        feeCalculators[0] = IParam.FeeCalculator({
-            selector: DSPROXY_EXECUTE_SELECTOR,
-            to: address(DUMMY_TO_ADDRESS),
-            calculator: address(makerDrawFeeCalculator)
-        });
-        router.setFeeCalculators(feeCalculators);
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = DSPROXY_EXECUTE_SELECTOR;
+        address[] memory tos = new address[](1);
+        tos[0] = address(DUMMY_TO_ADDRESS);
+        address[] memory feeCalculators = new address[](1);
+        feeCalculators[0] = address(makerDrawFeeCalculator);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
 
         _allowCdp(user, userDSProxy, ethCdp, userAgentDSProxy);
 
@@ -109,7 +109,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         feeRate = bound(feeRate, 1, BPS_BASE - 1);
 
         // Set fee rate
-        IFeeBase(address(makerDrawFeeCalculator)).setFeeRate(feeRate);
+        IFeeCalculatorBase(address(makerDrawFeeCalculator)).setFeeRate(feeRate);
 
         _executeAndVerify(amount, feeRate);
     }
@@ -127,7 +127,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
 
         // Get new logics
         IParam.Fee[] memory fees;
-        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
+        (logics, , fees) = router.getLogicsAndFees(logics, 0);
 
         // Execute
         address[] memory tokensReturns = new address[](1);
@@ -158,7 +158,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
 
         // Get new logics
         IParam.Fee[] memory fees;
-        (logics, fees, ) = router.getLogicsAndFees(logics, 0);
+        (logics, , fees) = router.getLogicsAndFees(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);

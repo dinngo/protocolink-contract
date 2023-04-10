@@ -5,28 +5,24 @@ import {EIP712} from 'openzeppelin-contracts/contracts/utils/cryptography/EIP712
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
 import {IAgent, AgentImplementation} from './AgentImplementation.sol';
 import {Agent} from './Agent.sol';
+import {FeeVerifier} from './fees/FeeVerifier.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
-import {IFeeCalculator} from './interfaces/IFeeCalculator.sol';
 
 /// @title Router executes arbitrary logics
-contract Router is IRouter, EIP712, Ownable {
+contract Router is IRouter, EIP712, Ownable, FeeVerifier {
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;
 
     address private constant _INIT_USER = address(1);
     address private constant _INVALID_PAUSER = address(0);
     address private constant _INVALID_FEE_COLLECTOR = address(0);
-    address private constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
-    address private constant _DUMMY_TO_ADDRESS = address(0);
 
     address public immutable agentImplementation;
 
     mapping(address owner => IAgent agent) public agents;
     mapping(address signer => bool valid) public signers;
-    mapping(bytes4 selector => mapping(address to => address feeCalculator)) public feeCalculators;
     address public user;
     address public feeCollector;
     address public pauser;
@@ -98,104 +94,6 @@ contract Router is IRouter, EIP712, Ownable {
         return result;
     }
 
-    /// @notice Get logics, fees and msg.value that contains fee
-    function getLogicsAndFees(
-        IParam.Logic[] memory logics,
-        uint256 msgValue
-    ) external view returns (IParam.Logic[] memory, IParam.Fee[] memory, uint256) {
-        // Update logics
-        logics = getLogicsDataWithFee(logics);
-
-        // Update value
-        if (msgValue > 0) {
-            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
-            if (nativeFeeCalculator != address(0)) {
-                msgValue = uint256(
-                    bytes32(IFeeCalculator(nativeFeeCalculator).getDataWithFee(abi.encodePacked(msgValue)))
-                );
-            }
-        }
-
-        // Get fees
-        IParam.Fee[] memory fees = getFeesByLogics(logics, msgValue);
-
-        return (logics, fees, msgValue);
-    }
-
-    function getLogicsDataWithFee(IParam.Logic[] memory logics) public view returns (IParam.Logic[] memory) {
-        uint256 length = logics.length;
-        for (uint256 i = 0; i < length; ) {
-            bytes memory data = logics[i].data;
-            address to = logics[i].to;
-            bytes4 selector = bytes4(data);
-            address feeCalculator = feeCalculators[selector][to];
-
-            // Get transaction data with fee
-            if (feeCalculator != address(0)) {
-                logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
-            } else {
-                feeCalculator = feeCalculators[selector][_DUMMY_TO_ADDRESS];
-                if (feeCalculator != address(0)) {
-                    logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
-                }
-            }
-            unchecked {
-                ++i;
-            }
-        }
-
-        return logics;
-    }
-
-    function getFeesByLogics(IParam.Logic[] memory logics, uint256 msgValue) public view returns (IParam.Fee[] memory) {
-        IParam.Fee[] memory tempFees = new IParam.Fee[](32); // Create a temporary `tempFees` with size 32 to store fee
-        uint256 realFeeLength;
-        uint256 logicsLength = logics.length;
-        for (uint256 i = 0; i < logicsLength; ++i) {
-            bytes memory data = logics[i].data;
-            address to = logics[i].to;
-            bytes4 selector = bytes4(data);
-
-            // Get feeCalculator
-            address feeCalculator = feeCalculators[selector][to];
-            if (feeCalculator == address(0)) {
-                feeCalculator = feeCalculators[selector][_DUMMY_TO_ADDRESS];
-                if (feeCalculator == address(0)) continue; // No need to charge fee
-            }
-
-            // Get charge tokens and amounts
-            IParam.Fee[] memory feesByLogic = IFeeCalculator(feeCalculator).getFees(to, data);
-            uint256 feesByLogicLength = feesByLogic.length;
-            if (feesByLogicLength == 0) {
-                continue; // No need to charge fee
-            }
-
-            for (uint256 feeIndex = 0; feeIndex < feesByLogicLength; ++feeIndex) {
-                tempFees[realFeeLength++] = feesByLogic[feeIndex];
-            }
-        }
-
-        if (msgValue > 0) {
-            // For native fee
-            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
-            if (nativeFeeCalculator != address(0)) {
-                IParam.Fee[] memory feesByLogic = IFeeCalculator(nativeFeeCalculator).getFees(
-                    _DUMMY_TO_ADDRESS,
-                    abi.encodePacked(msgValue)
-                );
-                tempFees[realFeeLength++] = feesByLogic[0];
-            }
-        }
-
-        // Copy tempFees to fees
-        IParam.Fee[] memory fees = new IParam.Fee[](realFeeLength);
-        for (uint256 i = 0; i < realFeeLength; ++i) {
-            fees[i] = tempFees[i];
-        }
-
-        return fees;
-    }
-
     function addSigner(address signer) external onlyOwner {
         signers[signer] = true;
         emit SignerAdded(signer);
@@ -204,21 +102,6 @@ contract Router is IRouter, EIP712, Ownable {
     function removeSigner(address signer) external onlyOwner {
         delete signers[signer];
         emit SignerRemoved(signer);
-    }
-
-    /// @notice Set fee calculator contracts
-    function setFeeCalculators(IParam.FeeCalculator[] calldata calculators) external onlyOwner {
-        uint256 length = calculators.length;
-        for (uint256 i = 0; i < length; ) {
-            bytes4 selector = calculators[i].selector;
-            address to = calculators[i].to;
-            address feeCalculator = calculators[i].calculator;
-            feeCalculators[selector][to] = feeCalculator;
-            emit FeeCalculatorSet(selector, to, feeCalculator);
-            unchecked {
-                ++i;
-            }
-        }
     }
 
     function setFeeCollector(address feeCollector_) external onlyOwner {
@@ -258,7 +141,7 @@ contract Router is IRouter, EIP712, Ownable {
         address[] calldata tokensReturn,
         uint256 referral
     ) external payable isPaused checkCaller {
-        _verifyFees(logics, fees, msg.value);
+        if (!verifyFees(logics, msg.value, fees)) revert FeesNotEnough();
 
         IAgent agent = agents[user];
 
@@ -308,74 +191,6 @@ contract Router is IRouter, EIP712, Ownable {
             agents[owner_] = agent;
             emit AgentCreated(address(agent), owner_);
             return payable(address(agent));
-        }
-    }
-
-    function _verifyFees(IParam.Logic[] calldata logics, IParam.Fee[] memory fees, uint256 msgValue) private view {
-        uint256 feesLength = fees.length;
-        uint256 logicsLength = logics.length;
-        for (uint256 i = 0; i < logicsLength; ++i) {
-            bytes memory data = logics[i].data;
-            address to = logics[i].to;
-            bytes4 selector = bytes4(data);
-
-            // Get feeCalculator
-            address feeCalculator = feeCalculators[selector][to];
-            if (feeCalculator == address(0)) {
-                feeCalculator = feeCalculators[selector][_DUMMY_TO_ADDRESS];
-                if (feeCalculator == address(0)) continue; // No need to charge fee
-            }
-
-            // Get charge tokens and amounts
-            IParam.Fee[] memory feesByLogic = IFeeCalculator(feeCalculator).getFees(to, data);
-            uint256 feesByLogicLength = feesByLogic.length;
-            if (feesByLogicLength == 0) {
-                continue; // No need to charge fee
-            }
-
-            // Deduct all fee from fees
-            for (uint256 j = 0; j < feesByLogicLength; ++j) {
-                for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-                    if (feesByLogic[j].token == fees[feesIndex].token) {
-                        if (feesByLogic[j].amount > fees[feesIndex].amount) {
-                            feesByLogic[j].amount -= fees[feesIndex].amount;
-                            fees[feesIndex].amount = 0;
-                        } else {
-                            fees[feesIndex].amount -= feesByLogic[j].amount;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Deduct native fee from fees
-        if (msgValue > 0) {
-            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
-            if (nativeFeeCalculator != address(0)) {
-                IParam.Fee[] memory feesByLogic = IFeeCalculator(nativeFeeCalculator).getFees(
-                    _DUMMY_TO_ADDRESS,
-                    abi.encodePacked(msgValue)
-                );
-
-                if (feesByLogic.length > 0) {
-                    for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-                        if (fees[feesIndex].token == _NATIVE) {
-                            fees[feesIndex].amount = 0;
-                            if (feesByLogic[0].amount > fees[feesIndex].amount) {
-                                feesByLogic[0].amount -= fees[feesIndex].amount;
-                            } else {
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // verify fees equals 0
-        for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-            if (fees[feesIndex].amount > 0) revert FeeNotEnough(fees[feesIndex].token);
         }
     }
 }
