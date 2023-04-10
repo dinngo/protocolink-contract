@@ -7,7 +7,7 @@ import {IParam} from '../interfaces/IParam.sol';
 
 /// @notice Fee calculator for ERC20::transferFrom action. This will also cause ERC721::transferFrom being executed and fail in transaction.
 contract TransferFromFeeCalculator is IFeeCalculator, FeeCalculatorBase {
-    bytes32 private constant _META_DATA = bytes32(bytes('erc20:transfer-from'));
+    bytes32 internal constant _META_DATA = bytes32(bytes('erc20:transfer-from'));
 
     constructor(address router, uint256 feeRate) FeeCalculatorBase(router, feeRate) {}
 

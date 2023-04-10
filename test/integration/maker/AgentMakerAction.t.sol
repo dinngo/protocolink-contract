@@ -14,7 +14,7 @@ import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
     using SafeCast160 for uint256;
 
-    uint256 public constant SKIP = type(uint256).max;
+    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 public constant RAY = 10 ** 27;
     uint256 public constant DRAW_DAI_AMOUNT = 20000 ether;

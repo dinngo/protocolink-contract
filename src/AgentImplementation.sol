@@ -16,14 +16,14 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     using Address for address;
     using Address for address payable;
 
-    address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
-    uint256 private constant _BPS_BASE = 10_000;
-    uint256 private constant _SKIP = type(uint256).max;
+    address internal constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    uint256 internal constant _BPS_BASE = 10_000;
+    uint256 internal constant _SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000; // Equivalent to 1<<255, i.e. a singular 1 in the most significant bit.
 
     address public immutable router;
     address public immutable wrappedNative;
 
-    address private _caller;
+    address internal _caller;
 
     modifier checkCaller() {
         address caller = _caller;
@@ -184,7 +184,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         }
     }
 
-    function _chargeFee(IParam.Fee[] calldata fees) private {
+    function _chargeFee(IParam.Fee[] calldata fees) internal {
         uint256 length = fees.length;
         if (length == 0) return;
 

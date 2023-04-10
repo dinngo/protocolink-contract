@@ -14,7 +14,7 @@ import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
     using SafeCast160 for uint256;
 
-    uint256 public constant SKIP = type(uint256).max;
+    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     address public user;
