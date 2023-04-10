@@ -1,4 +1,4 @@
-name: test
+name: deploy
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: true
 
-    name: test
+    name: deploy-local
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -33,9 +33,13 @@ jobs:
           forge build --sizes
         id: build
 
-      - name: Run Forge tests
+      - name: Run Forge anvil
         run: |
-          forge test -vvv
-        id: test
-        env:
-          FOUNDRY_ETH_RPC_URL: ${{ secrets.RPC_URL }}
+          anvil --fork-url ${{ secrets.RPC_URL }} &
+          sleep 10
+        id: anvil
+
+      - name: Run Forge scripts
+        run: |
+          forge script --broadcast --rpc-url ${{ secrets.LOCAL_RPC_URL }} --private-key ${{ secrets.PRIVATE_KEY }} --sig 'run(string)' script/DeployAll.s.sol:DeployAll script/deployParameters/local.json
+        id: script

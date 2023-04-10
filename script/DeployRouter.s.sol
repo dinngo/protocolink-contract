@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import 'forge-std/console2.sol';
+import {console2} from 'forge-std/console2.sol';
 import {DeployBase} from './DeployBase.s.sol';
 import {Router} from 'src/Router.sol';
 
