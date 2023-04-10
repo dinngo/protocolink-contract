@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 /// @title Agent executes arbitrary logics
 contract Agent {
-    address private immutable _implementation;
+    address internal immutable _implementation;
 
     constructor(address implementation) {
         _implementation = implementation;

@@ -20,7 +20,7 @@ contract LogicTypehash is Test, LogicSignature {
         chainId = 1;
     }
 
-    function _buildDomainSeparator() private view returns (bytes32) {
+    function _buildDomainSeparator() internal view returns (bytes32) {
         bytes32 typeHash = keccak256(
             'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
         );

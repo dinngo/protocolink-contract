@@ -5,7 +5,7 @@ import {FeeBase} from './FeeBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
 contract NativeFeeCalculator is IFeeCalculator, FeeBase {
-    address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    address internal constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 

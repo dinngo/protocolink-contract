@@ -98,7 +98,7 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
     INonfungiblePositionManager public constant NON_FUNGIBLE_POSITION_MANAGER =
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     uint256 public constant BPS_BASE = 10_000;
-    uint256 public constant SKIP = type(uint256).max;
+    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
 
     address public user;
     uint256 public userPrivateKey;

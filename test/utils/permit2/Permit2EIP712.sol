@@ -7,11 +7,11 @@ pragma solidity ^0.8.17;
 contract EIP712 {
     // Cache the domain separator as an immutable value, but also store the chain id that it
     // corresponds to, in order to invalidate the cached domain separator if the chain id changes.
-    bytes32 private immutable _CACHED_DOMAIN_SEPARATOR;
-    uint256 private immutable _CACHED_CHAIN_ID;
+    bytes32 internal immutable _CACHED_DOMAIN_SEPARATOR;
+    uint256 internal immutable _CACHED_CHAIN_ID;
 
-    bytes32 private constant _HASHED_NAME = keccak256('Permit2');
-    bytes32 private constant _TYPE_HASH =
+    bytes32 internal constant _HASHED_NAME = keccak256('Permit2');
+    bytes32 internal constant _TYPE_HASH =
         keccak256('EIP712Domain(string name,uint256 chainId,address verifyingContract)');
 
     constructor() {
@@ -29,7 +29,7 @@ contract EIP712 {
     }
 
     /// @notice Builds a domain separator using the current chainId and contract address.
-    function _buildDomainSeparator(bytes32 typeHash, bytes32 nameHash) private view returns (bytes32) {
+    function _buildDomainSeparator(bytes32 typeHash, bytes32 nameHash) internal view returns (bytes32) {
         return keccak256(abi.encode(typeHash, nameHash, block.chainid, address(this)));
     }
 

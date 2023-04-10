@@ -6,8 +6,8 @@ import {IERC1155} from 'openzeppelin-contracts/contracts/token/ERC1155/ERC1155.s
 import {IParam} from 'src/interfaces/IParam.sol';
 
 contract SpenderERC1155Utils is Test {
-    address private _erc1155User;
-    address private _erc1155Spender;
+    address internal _erc1155User;
+    address internal _erc1155Spender;
 
     function spenderERC1155SetUp(address user_, address agent_) internal {
         _erc1155User = user_;

@@ -5,7 +5,7 @@ import {FeeBase} from './FeeBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
 contract MakerDrawFeeCalculator is IFeeCalculator, FeeBase {
-    bytes4 private constant _DRAW_FUNCTION_SELECTOR =
+    bytes4 internal constant _DRAW_FUNCTION_SELECTOR =
         bytes4(keccak256(bytes('draw(address,address,address,uint256,uint256)')));
 
     address public daiToken;

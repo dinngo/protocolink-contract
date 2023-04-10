@@ -20,17 +20,17 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
     event FeeCharged(address indexed token, uint256 amount);
 
-    address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
-    bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
-    bytes private constant _NATIVE_FEE_CHARGE_DATA = new bytes(0);
-    address private constant _DUMMY_ERC20_TOKEN = address(0xe20); // For ERC20 transferFrom charge fee using
-    uint256 private constant _BPS_BASE = 10_000;
-    uint256 private constant _SKIP = type(uint256).max;
+    address internal constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    bytes4 internal constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
+    bytes internal constant _NATIVE_FEE_CHARGE_DATA = new bytes(0);
+    address internal constant _DUMMY_ERC20_TOKEN = address(0xe20); // For ERC20 transferFrom charge fee using
+    uint256 internal constant _BPS_BASE = 10_000;
+    uint256 internal constant _SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000; // Equivalent to 1<<255, i.e. a singular 1 in the most significant bit.
 
     address public immutable router;
     address public immutable wrappedNative;
 
-    address private _caller;
+    address internal _caller;
 
     modifier checkCaller() {
         address caller = _caller;
@@ -192,7 +192,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     }
 
     /// @notice Check transaction `data` and charge fee
-    function _chargeFee(address to, bytes memory data, address feeCollector) private {
+    function _chargeFee(address to, bytes memory data, address feeCollector) internal {
         bytes4 selector = bytes4(data);
         address feeCalculator = IRouter(router).feeCalculators(selector);
         if (feeCalculator != address(0)) {
@@ -215,7 +215,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         }
     }
 
-    function _chargeNativeFee(address feeCollector) private {
+    function _chargeNativeFee(address feeCollector) internal {
         address feeCalculator = IRouter(router).feeCalculators(_NATIVE_FEE_SELECTOR);
         if (feeCalculator != address(0)) {
             (, uint256[] memory fees) = IFeeCalculator(feeCalculator).getFees(abi.encodePacked(msg.value));
@@ -227,7 +227,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         }
     }
 
-    function _getBalance(address token) private view returns (uint256 balance) {
+    function _getBalance(address token) internal view returns (uint256 balance) {
         if (token == _NATIVE) {
             balance = address(this).balance;
         } else {

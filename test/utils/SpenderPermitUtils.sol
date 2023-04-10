@@ -16,10 +16,10 @@ contract SpenderPermitUtils is Test, PermitSignature {
     uint256 public constant SIGNER_REFERRAL = 1;
     address internal constant permit2Addr = address(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
-    address private _user;
-    address private _spender;
-    uint256 private _userPrivateKey;
-    IRouter private _router;
+    address internal _user;
+    address internal _spender;
+    uint256 internal _userPrivateKey;
+    IRouter internal _router;
     bytes32 DOMAIN_SEPARATOR;
 
     function spenderSetUp(address user_, uint256 userPrivateKey_, IRouter router_, IAgent agent) internal {

@@ -48,7 +48,7 @@ contract AaveV2IntegrationTest is Test {
         VARIABLE
     }
 
-    uint16 private constant _REFERRAL_CODE = 56;
+    uint16 internal constant _REFERRAL_CODE = 56;
     uint256 public constant SIGNER_REFERRAL = 1;
     IAaveV2Provider public constant AAVE_V2_PROVIDER = IAaveV2Provider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);

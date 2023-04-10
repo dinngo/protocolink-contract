@@ -6,7 +6,7 @@ import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
 /// @notice Fee calculator for ERC20::transferFrom action. This will also cause ERC721::transferFrom being executed and fail in transaction.
 contract TransferFromFeeCalculator is IFeeCalculator, FeeBase {
-    address private constant _DUMMY_ERC20_TOKEN = address(0xe20);
+    address internal constant _DUMMY_ERC20_TOKEN = address(0xe20);
 
     constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
 

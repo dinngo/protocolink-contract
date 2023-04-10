@@ -7,7 +7,7 @@ abstract contract FeeBase {
     error InvalidSender();
     error InvalidRate();
 
-    uint256 private constant _BPS_BASE = 10_000;
+    uint256 internal constant _BPS_BASE = 10_000;
     address public immutable router;
 
     uint256 public feeRate; // In bps, 20 means 0.2%
