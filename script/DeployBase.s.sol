@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import 'forge-std/StdJson.sol';
-import 'forge-std/Script.sol';
+import {stdJson} from 'forge-std/StdJson.sol';
+import {Script} from 'forge-std/Script.sol';
 
 contract DeployBase is Script {
     using stdJson for string;
+
+    error InvalidRouterAddress();
 
     struct DeployParameters {
         address router;
@@ -30,6 +32,11 @@ contract DeployBase is Script {
         uint256 nativeFeeCalculatorFeeRate;
         uint256 permit2FeeCalculatorFeeRate;
         uint256 transferFromFeeCalculatorFeeRate;
+    }
+
+    modifier isRouterAddressZero(address router) {
+        if (router == address(0)) revert InvalidRouterAddress();
+        _;
     }
 
     function setUp() external {}
