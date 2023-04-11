@@ -13,6 +13,7 @@ import {LogicHash} from './libraries/LogicHash.sol';
 
 /// @title Router executes arbitrary logics
 contract Router is IRouter, EIP712, FeeVerifier {
+    using SafeERC20 for IERC20;
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;
 
