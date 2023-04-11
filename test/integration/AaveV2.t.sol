@@ -7,7 +7,7 @@ import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAaveV2Provider} from 'src/interfaces/aaveV2/IAaveV2Provider.sol';
-import {FlashLoanCallbackAaveV2, IFlashLoanCallbackAaveV2} from 'src/FlashLoanCallbackAaveV2.sol';
+import {AaveV2FlashLoanCallback, IAaveV2FlashLoanCallback} from 'src/callbacks/AaveV2FlashLoanCallback.sol';
 
 interface IDebtToken {
     function UNDERLYING_ASSET_ADDRESS() external view returns (address);
@@ -58,7 +58,7 @@ contract AaveV2IntegrationTest is Test {
     address public user;
     IRouter public router;
     IAgent public agent;
-    IFlashLoanCallbackAaveV2 public flashLoanCallback;
+    IAaveV2FlashLoanCallback public flashLoanCallback;
     IAaveV2Pool pool = IAaveV2Pool(IAaveV2Provider(AAVE_V2_PROVIDER).getLendingPool());
 
     // Empty arrays
@@ -71,7 +71,7 @@ contract AaveV2IntegrationTest is Test {
         router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
         vm.prank(user);
         agent = IAgent(router.newAgent());
-        flashLoanCallback = new FlashLoanCallbackAaveV2(address(router), address(AAVE_V2_PROVIDER));
+        flashLoanCallback = new AaveV2FlashLoanCallback(address(router), address(AAVE_V2_PROVIDER));
 
         // User approved agent aave v2 delegation
         vm.startPrank(user);

@@ -6,15 +6,15 @@ import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {FlashLoanCallbackAaveV3, IFlashLoanCallbackAaveV3, IAaveV3Provider} from 'src/FlashLoanCallbackAaveV3.sol';
+import {AaveV2FlashLoanCallback, IAaveV2FlashLoanCallback, IAaveV2Provider} from 'src/callbacks/AaveV2FlashLoanCallback.sol';
 
-contract FlashLoanCallbackAaveV3Test is Test {
-    IAaveV3Provider public constant aaveV3Provider = IAaveV3Provider(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e);
+contract AaveV2FlashLoanCallbackTest is Test {
+    IAaveV2Provider public constant aaveV2Provider = IAaveV2Provider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
 
     address public user;
     address public router;
     address public agent;
-    IFlashLoanCallbackAaveV3 public flashLoanCallback;
+    IAaveV2FlashLoanCallback public flashLoanCallback;
     IERC20 public mockERC20;
 
     // Empty arrays
@@ -30,13 +30,13 @@ contract FlashLoanCallbackAaveV3Test is Test {
         agent = makeAddr('Agent');
         vm.etch(agent, 'code');
 
-        flashLoanCallback = new FlashLoanCallbackAaveV3(router, address(aaveV3Provider));
+        flashLoanCallback = new AaveV2FlashLoanCallback(router, address(aaveV2Provider));
         mockERC20 = new ERC20('mockERC20', 'mock');
 
         // Return activated agent from router
         vm.mockCall(router, 0, abi.encodeWithSignature('getAgent()'), abi.encode(agent));
-        vm.label(address(flashLoanCallback), 'FlashLoanCallbackAaveV3');
-        vm.label(address(aaveV3Provider), 'AaveV3Provider');
+        vm.label(address(flashLoanCallback), 'AaveV2FlashLoanCallback');
+        vm.label(address(aaveV2Provider), 'AaveV2Provider');
         vm.label(address(mockERC20), 'mERC20');
     }
 
@@ -48,7 +48,7 @@ contract FlashLoanCallbackAaveV3Test is Test {
 
         // Execute
         vm.startPrank(user);
-        vm.expectRevert(IFlashLoanCallbackAaveV3.InvalidCaller.selector);
+        vm.expectRevert(IAaveV2FlashLoanCallback.InvalidCaller.selector);
         flashLoanCallback.executeOperation(assets, amounts, premiums, address(0), '');
         vm.stopPrank();
     }
@@ -82,8 +82,8 @@ contract FlashLoanCallbackAaveV3Test is Test {
         bytes memory params = abi.encode(logics, feesEmpty, tokensReturnEmpty);
 
         // Execute
-        vm.startPrank(aaveV3Provider.getPool());
-        vm.expectRevert(abi.encodeWithSelector(IFlashLoanCallbackAaveV3.InvalidBalance.selector, assets[0]));
+        vm.startPrank(aaveV2Provider.getLendingPool());
+        vm.expectRevert(abi.encodeWithSelector(IAaveV2FlashLoanCallback.InvalidBalance.selector, assets[0]));
         flashLoanCallback.executeOperation(assets, amounts, premiums, address(0), params);
         vm.stopPrank();
     }

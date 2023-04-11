@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {UtilityMaker, IUtilityMaker} from 'src/utility/UtilityMaker.sol';
+import {MakerUtility, IMakerUtility} from 'src/utilities/MakerUtility.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
@@ -11,7 +11,7 @@ import {SpenderPermitUtils} from 'test/utils/SpenderPermitUtils.sol';
 import {MakerCommonUtils, IMakerManager, IMakerVat, IDSProxyRegistry} from 'test/utils/MakerCommonUtils.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 
-contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
+contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
     using SafeCast160 for uint256;
 
     uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
@@ -22,7 +22,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
     address public userDSProxy;
     IRouter public router;
     IAgent public agent;
-    IUtilityMaker public utilityMaker;
+    IMakerUtility public utilityMaker;
     address public utilityMakerDSProxy;
 
     // Empty arrays
@@ -33,7 +33,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
         router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
-        utilityMaker = new UtilityMaker(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
+        utilityMaker = new MakerUtility(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
         utilityMakerDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(utilityMaker));
 
         // Setup
@@ -50,8 +50,8 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
         vm.label(address(userDSProxy), 'UserDSProxy');
         vm.label(address(router), 'Router');
         vm.label(address(agent), 'Agent');
-        vm.label(address(utilityMaker), 'UtilityMaker');
-        vm.label(address(utilityMakerDSProxy), 'UtilityMakerDSProxy');
+        vm.label(address(utilityMaker), 'MakerUtility');
+        vm.label(address(utilityMakerDSProxy), 'MakerUtilityDSProxy');
 
         _makerCommonSetUp();
     }
@@ -107,7 +107,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](3);
         logics[0] = logicSpenderPermit2ERC20PullToken(IERC20(GEM), tokenLockAmount.toUint160());
-        logics[1] = _logicTransferERC20ToUtilityMaker(GEM, tokenLockAmount);
+        logics[1] = _logicTransferERC20ToMakerUtility(GEM, tokenLockAmount);
         logics[2] = _logicOpenLockGemAndDraw(tokenLockAmount, daiDrawAmount);
 
         // Get param before execute
@@ -149,7 +149,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
     function _logicOpenLockETHAndDraw(uint256 value, uint256 amountOutMin) public view returns (IParam.Logic memory) {
         // Data for openLockETHAndDraw
         bytes memory data = abi.encodeWithSelector(
-            IUtilityMaker.openLockETHAndDraw.selector,
+            IMakerUtility.openLockETHAndDraw.selector,
             value,
             ETH_JOIN_A,
             DAI_JOIN,
@@ -174,7 +174,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
             );
     }
 
-    function _logicTransferERC20ToUtilityMaker(
+    function _logicTransferERC20ToMakerUtility(
         address token,
         uint256 amount
     ) internal view returns (IParam.Logic memory) {
@@ -191,7 +191,7 @@ contract UtilityMakerTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
     function _logicOpenLockGemAndDraw(uint256 value, uint256 amountOutMin) public view returns (IParam.Logic memory) {
         bytes memory data = abi.encodeWithSelector(
-            IUtilityMaker.openLockGemAndDraw.selector,
+            IMakerUtility.openLockGemAndDraw.selector,
             GEM_JOIN_LINK_A,
             DAI_JOIN,
             bytes32(bytes(TOKEN_JOIN_NAME)),

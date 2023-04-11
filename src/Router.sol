@@ -145,7 +145,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
         IParam.Logic[] calldata logics,
         IParam.Fee[] calldata fees,
         address[] calldata tokensReturn,
-        uint256 referral
+        uint256 referralCode
     ) external payable isPaused checkCaller {
         if (!verifyFees(logics, msg.value, fees)) revert FeeVerificationFailed();
 
@@ -155,7 +155,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
             agent = IAgent(newAgent(user));
         }
 
-        emit Execute(user, address(agent), referral);
+        emit Execute(user, address(agent), referralCode);
         agent.execute{value: msg.value}(logics, fees, tokensReturn);
     }
 
@@ -165,7 +165,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
         address signer,
         bytes calldata signature,
         address[] calldata tokensReturn,
-        uint256 referral
+        uint256 referralCode
     ) external payable isPaused checkCaller {
         // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
@@ -179,7 +179,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
             agent = IAgent(newAgent(user));
         }
 
-        emit Execute(user, address(agent), referral);
+        emit Execute(user, address(agent), referralCode);
         agent.execute{value: msg.value}(logicBatch.logics, logicBatch.fees, tokensReturn);
     }
 

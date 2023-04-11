@@ -17,7 +17,7 @@ interface IRouter {
 
     event Resumed();
 
-    event Execute(address indexed user, address indexed agent, uint256 indexed referral);
+    event Execute(address indexed user, address indexed agent, uint256 indexed referralCode);
 
     event AgentCreated(address indexed agent, address indexed owner);
 
@@ -85,7 +85,7 @@ interface IRouter {
         IParam.Logic[] calldata logics,
         IParam.Fee[] calldata fees,
         address[] calldata tokensReturn,
-        uint256 referral
+        uint256 referralCode
     ) external payable;
 
     function executeWithSignature(
@@ -93,7 +93,7 @@ interface IRouter {
         address signer,
         bytes calldata signature,
         address[] calldata tokensReturn,
-        uint256 referral
+        uint256 referralCode
     ) external payable;
 
     function newAgent() external returns (address payable);

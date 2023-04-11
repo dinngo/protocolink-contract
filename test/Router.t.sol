@@ -36,7 +36,7 @@ contract RouterTest is Test, LogicSignature {
     event Paused();
     event Resumed();
     event AgentCreated(address indexed agent, address indexed owner);
-    event Execute(address indexed user, address indexed agent, uint256 indexed referral);
+    event Execute(address indexed user, address indexed agent, uint256 indexed referralCode);
 
     function setUp() external {
         user = makeAddr('User');
