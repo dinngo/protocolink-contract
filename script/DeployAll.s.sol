@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {DeployRouter} from './DeployRouter.s.sol';
-import {DeployAgentImplementation} from './DeployAgentImplementation.s.sol';
 import {DeployFlashLoanCallbackAaveV2} from './DeployFlashLoanCallbackAaveV2.s.sol';
 import {DeployFlashLoanCallbackAaveV3} from './DeployFlashLoanCallbackAaveV3.s.sol';
 import {DeployFlashLoanCallbackBalancerV2} from './DeployFlashLoanCallbackBalancerV2.s.sol';
@@ -16,7 +15,6 @@ import {DeployTransferFromFeeCalculator} from './DeployTransferFromFeeCalculator
 
 contract DeployAll is
     DeployRouter,
-    DeployAgentImplementation,
     DeployFlashLoanCallbackAaveV2,
     DeployFlashLoanCallbackAaveV3,
     DeployFlashLoanCallbackBalancerV2,
@@ -34,7 +32,6 @@ contract DeployAll is
         internal
         override(
             DeployRouter,
-            DeployAgentImplementation,
             DeployFlashLoanCallbackAaveV2,
             DeployFlashLoanCallbackAaveV3,
             DeployFlashLoanCallbackBalancerV2,
@@ -50,7 +47,6 @@ contract DeployAll is
     {
         // router
         deployedAddress = params.router = DeployRouter._run(params);
-        DeployAgentImplementation._run(params);
 
         // callback
         DeployFlashLoanCallbackAaveV2._run(params);
