@@ -4,15 +4,14 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router} from 'src/Router.sol';
+import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
 import {MakerDrawFeeCalculator} from 'src/fees/MakerDrawFeeCalculator.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
-import {IFeeCalculator} from 'src/interfaces/IFeeCalculator.sol';
 import {IDSProxy} from 'src/interfaces/maker/IDSProxy.sol';
-import {FeeCalculatorUtils, IFeeCalculatorBase} from 'test/utils/FeeCalculatorUtils.sol';
 import {MakerCommonUtils, IDSProxyRegistry} from 'test/utils/MakerCommonUtils.sol';
 
-contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtils {
+contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant DUMMY_TO_ADDRESS = address(0);
     bytes4 public constant DSPROXY_EXECUTE_SELECTOR = bytes4(keccak256(bytes('execute(address,bytes)')));
@@ -21,6 +20,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
     uint256 public constant DRAW_DATA_START_INDEX = 104;
     uint256 public constant DRAW_DATA_END_INDEX = 264;
     uint256 public constant SIGNER_REFERRAL = 1;
+    uint256 public constant BPS_BASE = 10_000;
 
     address public user;
     address public userDSProxy;
@@ -28,7 +28,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
     Router public router;
     IAgent public userAgent;
     address public userAgentDSProxy;
-    IFeeCalculator public makerDrawFeeCalculator;
+    address public makerDrawFeeCalculator;
     uint256 public ethCdp;
 
     // Empty arrays
@@ -45,7 +45,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
-        makerDrawFeeCalculator = new MakerDrawFeeCalculator(address(router), ZERO_FEE_RATE, DAI_TOKEN);
+        makerDrawFeeCalculator = address(new MakerDrawFeeCalculator(address(router), 0, DAI_TOKEN));
 
         // Setup maker vault
         vm.startPrank(user);
@@ -80,7 +80,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         address[] memory tos = new address[](1);
         tos[0] = address(DUMMY_TO_ADDRESS);
         address[] memory feeCalculators = new address[](1);
-        feeCalculators[0] = address(makerDrawFeeCalculator);
+        feeCalculators[0] = makerDrawFeeCalculator;
         router.setFeeCalculators(selectors, tos, feeCalculators);
 
         _allowCdp(user, userDSProxy, ethCdp, userAgentDSProxy);
@@ -88,7 +88,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');
         vm.label(feeCollector, 'FeeCollector');
-        vm.label(address(makerDrawFeeCalculator), 'MakerDrawFeeCalculator');
+        vm.label(makerDrawFeeCalculator, 'MakerDrawFeeCalculator');
 
         _makerCommonSetUp();
     }
@@ -97,9 +97,8 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         // ETH_LOCK_AMOUNT * price(assume ETH price is 1000) * 60%(LTV)
         uint256 estimateDaiDrawMaxAmount = (ETH_LOCK_AMOUNT * 1000 * 60) / 100;
         amount = bound(amount, 1, estimateDaiDrawMaxAmount);
-        uint256 feeRate = 0;
 
-        _executeAndVerify(amount, feeRate);
+        _executeAndVerify(amount);
     }
 
     function testChargeDrawFee(uint256 amount, uint256 feeRate) external {
@@ -109,9 +108,9 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         feeRate = bound(feeRate, 1, BPS_BASE - 1);
 
         // Set fee rate
-        IFeeCalculatorBase(address(makerDrawFeeCalculator)).setFeeRate(feeRate);
+        FeeCalculatorBase(makerDrawFeeCalculator).setFeeRate(feeRate);
 
-        _executeAndVerify(amount, feeRate);
+        _executeAndVerify(amount);
     }
 
     // Should be no impact on other maker action
@@ -151,7 +150,7 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         return amount;
     }
 
-    function _executeAndVerify(uint256 amount, uint256 feeRate) internal {
+    function _executeAndVerify(uint256 amount) internal {
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicDraw(ethCdp, amount);
@@ -161,8 +160,8 @@ contract MakerDrawFeeCalculatorTest is Test, FeeCalculatorUtils, MakerCommonUtil
         (logics, , fees) = router.getLogicsAndFees(logics, 0);
 
         // Prepare assert data
-        uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);
-        uint256 expectedFee = _calculateFee(expectedNewAmount, feeRate);
+        uint256 expectedNewAmount = FeeCalculatorBase(makerDrawFeeCalculator).calculateAmountWithFee(amount);
+        uint256 expectedFee = FeeCalculatorBase(makerDrawFeeCalculator).calculateFee(expectedNewAmount);
         uint256 newAmount = this.decodeDrawAmount(logics[0]);
         uint256 userDaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user);
         uint256 feeCollectorBalanceBefore = IERC20(DAI_TOKEN).balanceOf(feeCollector);

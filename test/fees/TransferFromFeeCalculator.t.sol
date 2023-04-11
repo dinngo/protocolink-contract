@@ -4,23 +4,23 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router} from 'src/Router.sol';
+import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
 import {TransferFromFeeCalculator} from 'src/fees/TransferFromFeeCalculator.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
-import {IFeeCalculator} from 'src/interfaces/IFeeCalculator.sol';
-import {FeeCalculatorUtils, IFeeCalculatorBase} from 'test/utils/FeeCalculatorUtils.sol';
 
-contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
+contract TransferFromFeeCalculatorTest is Test {
     bytes4 public constant TRANSFER_FROM_SELECTOR = bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
     address public constant DUMMY_TO_ADDRESS = address(0);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     uint256 public constant SIGNER_REFERRAL = 1;
+    uint256 public constant BPS_BASE = 10_000;
 
     address public user;
     address public feeCollector;
     Router public router;
     IAgent public userAgent;
-    IFeeCalculator public transferFromFeeCalculator;
+    address public transferFromFeeCalculator;
 
     // Empty arrays
     address[] tokensReturnEmpty;
@@ -35,7 +35,7 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
         router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
-        transferFromFeeCalculator = new TransferFromFeeCalculator(address(router), ZERO_FEE_RATE);
+        transferFromFeeCalculator = address(new TransferFromFeeCalculator(address(router), 0));
 
         // Setup fee calculator
         bytes4[] memory selectors = new bytes4[](1);
@@ -43,13 +43,13 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
         address[] memory tos = new address[](1);
         tos[0] = address(DUMMY_TO_ADDRESS);
         address[] memory feeCalculators = new address[](1);
-        feeCalculators[0] = address(transferFromFeeCalculator);
+        feeCalculators[0] = transferFromFeeCalculator;
         router.setFeeCalculators(selectors, tos, feeCalculators);
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');
         vm.label(feeCollector, 'FeeCollector');
-        vm.label(address(transferFromFeeCalculator), 'TransferFromFeeCalculator');
+        vm.label(transferFromFeeCalculator, 'TransferFromFeeCalculator');
         vm.label(address(USDC), 'USDC');
     }
 
@@ -58,7 +58,7 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
 
         // Set fee rate
-        IFeeCalculatorBase(address(transferFromFeeCalculator)).setFeeRate(feeRate);
+        FeeCalculatorBase(transferFromFeeCalculator).setFeeRate(feeRate);
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -69,8 +69,8 @@ contract TransferFromFeeCalculatorTest is Test, FeeCalculatorUtils {
         (logics, , fees) = router.getLogicsAndFees(logics, 0);
 
         // Prepare assert data
-        uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);
-        uint256 expectedFee = _calculateFee(expectedNewAmount, feeRate);
+        uint256 expectedNewAmount = FeeCalculatorBase(transferFromFeeCalculator).calculateAmountWithFee(amount);
+        uint256 expectedFee = FeeCalculatorBase(transferFromFeeCalculator).calculateFee(expectedNewAmount);
         uint256 newAmount = this.decodeTransferFromAmount(logics[0]);
         uint256 feeCollectorBalanceBefore = USDC.balanceOf(feeCollector);
 

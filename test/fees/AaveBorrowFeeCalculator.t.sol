@@ -4,29 +4,29 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router} from 'src/Router.sol';
+import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
 import {AaveFlashLoanFeeCalculator} from 'src/fees/AaveFlashLoanFeeCalculator.sol';
 import {AaveBorrowFeeCalculator} from 'src/fees/AaveBorrowFeeCalculator.sol';
 import {FlashLoanCallbackAaveV2, IFlashLoanCallbackAaveV2} from 'src/FlashLoanCallbackAaveV2.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
-import {IFeeCalculator} from 'src/interfaces/IFeeCalculator.sol';
-import {FeeCalculatorUtils, IFeeCalculatorBase} from 'test/utils/FeeCalculatorUtils.sol';
 import {MockAavePool} from '../mocks/MockAavePool.sol';
 import {MockAaveProvider} from '../mocks/MockAaveProvider.sol';
 import {MockERC20} from '../mocks/MockERC20.sol';
 
-contract AaveBorrowFeeCalculatorTest is Test, FeeCalculatorUtils {
+contract AaveBorrowFeeCalculatorTest is Test {
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    uint256 public constant SKIP = type(uint256).max;
     bytes4 public constant AAVE_BORROW_SELECTOR =
         bytes4(keccak256(bytes('borrow(address,uint256,uint256,uint16,address)')));
     uint256 public constant SIGNER_REFERRAL = 1;
+    uint256 public constant BPS_BASE = 10_000;
+    uint256 public constant SKIP = type(uint256).max;
 
     address public user;
     address public feeCollector;
     Router public router;
     IAgent public userAgent;
-    IFeeCalculator public borrowFeeCalculator;
+    address public borrowFeeCalculator;
     MockERC20 public mockERC20;
     MockAavePool public mockAavePool;
     MockAaveProvider public mockAaveProvider;
@@ -44,7 +44,7 @@ contract AaveBorrowFeeCalculatorTest is Test, FeeCalculatorUtils {
         router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
-        borrowFeeCalculator = new AaveBorrowFeeCalculator(address(router), ZERO_FEE_RATE);
+        borrowFeeCalculator = address(new AaveBorrowFeeCalculator(address(router), 0));
         mockERC20 = new MockERC20('mockERC20', 'mock');
         address[] memory tokens = new address[](1);
         tokens[0] = address(mockERC20);
@@ -57,7 +57,7 @@ contract AaveBorrowFeeCalculatorTest is Test, FeeCalculatorUtils {
         address[] memory tos = new address[](1);
         tos[0] = address(mockAavePool);
         address[] memory feeCalculators = new address[](1);
-        feeCalculators[0] = address(borrowFeeCalculator);
+        feeCalculators[0] = borrowFeeCalculator;
         router.setFeeCalculators(selectors, tos, feeCalculators);
 
         vm.label(address(router), 'Router');
@@ -74,7 +74,7 @@ contract AaveBorrowFeeCalculatorTest is Test, FeeCalculatorUtils {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
 
         // Set fee rate
-        IFeeCalculatorBase(address(borrowFeeCalculator)).setFeeRate(feeRate);
+        FeeCalculatorBase(borrowFeeCalculator).setFeeRate(feeRate);
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -85,8 +85,8 @@ contract AaveBorrowFeeCalculatorTest is Test, FeeCalculatorUtils {
         (logics, , fees) = router.getLogicsAndFees(logics, 0);
 
         // Prepare assert data
-        uint256 expectedNewAmount = _calculateAmountWithFee(amount, feeRate);
-        uint256 expectedFee = _calculateFee(expectedNewAmount, feeRate);
+        uint256 expectedNewAmount = FeeCalculatorBase(borrowFeeCalculator).calculateAmountWithFee(amount);
+        uint256 expectedFee = FeeCalculatorBase(borrowFeeCalculator).calculateFee(expectedNewAmount);
         uint256 feeCollectorBalanceBefore = IERC20(mockERC20).balanceOf(feeCollector);
         uint256 newAmount = this.decodeBorrowAmount(logics[0]);
 
