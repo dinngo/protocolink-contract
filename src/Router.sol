@@ -6,27 +6,24 @@ import {EIP712} from 'openzeppelin-contracts/contracts/utils/cryptography/EIP712
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
 import {IAgent, AgentImplementation} from './AgentImplementation.sol';
 import {Agent} from './Agent.sol';
+import {FeeVerifier} from './fees/FeeVerifier.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
-import {IFeeCalculator} from './interfaces/IFeeCalculator.sol';
 
 /// @title Router executes arbitrary logics
-contract Router is IRouter, EIP712, Ownable {
-    using SafeERC20 for IERC20;
+contract Router is IRouter, EIP712, FeeVerifier {
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;
 
     address private constant _INIT_USER = address(1);
     address private constant _INVALID_PAUSER = address(0);
     address private constant _INVALID_FEE_COLLECTOR = address(0);
-    bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
 
     address public immutable agentImplementation;
 
     mapping(address owner => IAgent agent) public agents;
     mapping(address signer => bool valid) public signers;
-    mapping(bytes4 selector => address feeCalculator) public feeCalculators;
     address public user;
     address public feeCollector;
     address public pauser;
@@ -98,39 +95,6 @@ contract Router is IRouter, EIP712, Ownable {
         return result;
     }
 
-    /// @notice Get logics and msg.value that contains fee
-    function getLogicsWithFee(
-        IParam.Logic[] memory logics,
-        uint256 msgValue
-    ) external view returns (IParam.Logic[] memory, uint256) {
-        // Update logics
-        uint256 length = logics.length;
-        for (uint256 i = 0; i < length; ) {
-            bytes memory data = logics[i].data;
-            bytes4 selector = bytes4(data);
-            address feeCalculator = feeCalculators[selector];
-            if (feeCalculator != address(0)) {
-                // Get transaction data with fee
-                logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
-            }
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Update value
-        if (msgValue > 0) {
-            address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR];
-            if (nativeFeeCalculator != address(0)) {
-                msgValue = uint256(
-                    bytes32(IFeeCalculator(nativeFeeCalculator).getDataWithFee(abi.encodePacked(msgValue)))
-                );
-            }
-        }
-
-        return (logics, msgValue);
-    }
-
     function addSigner(address signer) external onlyOwner {
         signers[signer] = true;
         emit SignerAdded(signer);
@@ -139,22 +103,6 @@ contract Router is IRouter, EIP712, Ownable {
     function removeSigner(address signer) external onlyOwner {
         delete signers[signer];
         emit SignerRemoved(signer);
-    }
-
-    /// @notice Set fee calculator contract for each function selector
-    function setFeeCalculators(bytes4[] calldata selectors, address[] calldata feeCalculators_) external onlyOwner {
-        uint256 length = selectors.length;
-        if (length != feeCalculators_.length) revert LengthMismatch();
-
-        for (uint256 i = 0; i < length; ) {
-            bytes4 selector = selectors[i];
-            address feeCalculator = feeCalculators_[i];
-            feeCalculators[selector] = feeCalculator;
-            emit FeeCalculatorSet(selector, feeCalculator);
-            unchecked {
-                ++i;
-            }
-        }
     }
 
     function setFeeCollector(address feeCollector_) external onlyOwner {
@@ -198,6 +146,8 @@ contract Router is IRouter, EIP712, Ownable {
         address[] calldata tokensReturn,
         uint256 referral
     ) external payable isPaused checkCaller {
+        if (!verifyFees(logics, msg.value, fees)) revert FeeVerificationFailed();
+
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
@@ -205,7 +155,7 @@ contract Router is IRouter, EIP712, Ownable {
         }
 
         emit Execute(user, address(agent), referral);
-        agent.execute{value: msg.value}(logics, tokensReturn, true);
+        agent.execute{value: msg.value}(logics, fees, tokensReturn);
     }
 
     /// @notice Execute logics with signer's signature.
@@ -229,7 +179,7 @@ contract Router is IRouter, EIP712, Ownable {
         }
 
         emit Execute(user, address(agent), referral);
-        agent.execute{value: msg.value}(logicBatch.logics, tokensReturn, false);
+        agent.execute{value: msg.value}(logicBatch.logics, logicBatch.fees, tokensReturn);
     }
 
     /// @notice Create an agent for `msg.sender`

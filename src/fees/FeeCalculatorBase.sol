@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IRouter} from '../interfaces/IRouter.sol';
 
-abstract contract FeeBase {
+abstract contract FeeCalculatorBase {
     error InvalidSender();
     error InvalidRate();
 
@@ -47,7 +47,7 @@ abstract contract FeeBase {
 
     function setFeeRate(uint256 feeRate_) external {
         if (msg.sender != IRouter(router).owner()) revert InvalidSender();
-        if (feeRate >= _BPS_BASE) revert InvalidRate();
+        if (feeRate_ >= _BPS_BASE) revert InvalidRate();
         feeRate = feeRate_;
     }
 }

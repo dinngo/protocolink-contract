@@ -1,33 +1,35 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {FeeBase} from './FeeBase.sol';
+import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
+import {IParam} from '../interfaces/IParam.sol';
 
-contract Permit2FeeCalculator is IFeeCalculator, FeeBase {
-    constructor(address router, uint256 feeRate) FeeBase(router, feeRate) {}
+contract Permit2FeeCalculator is IFeeCalculator, FeeCalculatorBase {
+    bytes32 private constant _META_DATA = bytes32(bytes('permit2:pull-token'));
 
-    function getFees(bytes calldata data) external view returns (address[] memory, uint256[] memory) {
+    constructor(address router, uint256 feeRate) FeeCalculatorBase(router, feeRate) {}
+
+    function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
+        to;
+
         // Permit2 transfrom signature:'transferFrom(address,address,uint160,address)', selector:0x36c78516
-        (, , uint160 amount, address token) = abi.decode(data, (address, address, uint160, address));
+        (, , uint160 amount, address token) = abi.decode(data[4:], (address, address, uint160, address));
 
-        address[] memory tokens = new address[](1);
-        tokens[0] = token;
-
-        uint256[] memory fees = new uint256[](1);
-        fees[0] = calculateFee(uint256(amount));
-        return (tokens, fees);
+        IParam.Fee[] memory fees = new IParam.Fee[](1);
+        fees[0] = IParam.Fee({token: token, amount: calculateFee(uint256(amount)), metadata: _META_DATA});
+        return fees;
     }
 
     function getDataWithFee(bytes calldata data) external view returns (bytes memory) {
         (address from, address to, uint160 amount, address token) = abi.decode(
-            data,
+            data[4:],
             (address, address, uint160, address)
         );
         uint256 amountWithFee = calculateAmountWithFee(amount);
         if (amountWithFee > type(uint160).max) revert('Amount overflow');
 
         amount = uint160(amountWithFee);
-        return abi.encode(from, to, amount, token);
+        return abi.encodePacked(data[:4], abi.encode(from, to, amount, token));
     }
 }

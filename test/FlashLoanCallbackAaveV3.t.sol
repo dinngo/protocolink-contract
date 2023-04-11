@@ -19,6 +19,7 @@ contract FlashLoanCallbackAaveV3Test is Test {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
+    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -78,7 +79,7 @@ contract FlashLoanCallbackAaveV3Test is Test {
         );
 
         // Encode execute data
-        bytes memory params = abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty);
+        bytes memory params = abi.encode(logics, feesEmpty, tokensReturnEmpty);
 
         // Execute
         vm.startPrank(aaveV3Provider.getPool());

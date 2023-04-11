@@ -19,6 +19,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
+    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -78,7 +79,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
         );
 
         // Encode execute data
-        bytes memory userData = abi.encodeWithSelector(IAgent.execute.selector, logics, tokensReturnEmpty, false);
+        bytes memory userData = abi.encode(logics, feesEmpty, tokensReturnEmpty);
 
         // Execute
         vm.startPrank(BALANCER_V2_VAULT);

@@ -6,6 +6,8 @@ import {IParam} from './IParam.sol';
 interface IAgent {
     event AmountReplaced(uint256 i, uint256 j, uint256 amount);
 
+    event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
+
     error InvalidCaller();
 
     error Initialized();
@@ -22,7 +24,7 @@ interface IAgent {
 
     function execute(
         IParam.Logic[] calldata logics,
-        address[] calldata tokensReturn,
-        bool isFeeEnabled
+        IParam.Fee[] calldata fees,
+        address[] calldata tokensReturn
     ) external payable;
 }

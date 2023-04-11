@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IRouter} from './interfaces/IRouter.sol';
+import {IAgent} from './interfaces/IAgent.sol';
 import {IFlashLoanCallbackBalancerV2} from './interfaces/IFlashLoanCallbackBalancerV2.sol';
 
 /// @title Balancer V2 flash loan callback
@@ -41,8 +42,10 @@ contract FlashLoanCallbackBalancerV2 is IFlashLoanCallbackBalancerV2 {
             }
         }
 
-        // Call Agent::execute
-        agent.functionCall(userData, 'ERROR_BALANCER_V2_FLASH_LOAN_CALLBACK');
+        agent.functionCall(
+            abi.encodePacked(IAgent.execute.selector, userData),
+            'ERROR_BALANCER_V2_FLASH_LOAN_CALLBACK'
+        );
 
         // Repay tokens to Vault
         for (uint256 i = 0; i < tokensLength; ) {

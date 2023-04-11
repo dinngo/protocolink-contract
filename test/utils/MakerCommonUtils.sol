@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
+import {IDSProxy} from 'src/interfaces/maker/IDSProxy.sol';
 
 contract MakerCommonUtils is Test {
     address public constant LINK_TOKEN = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
@@ -21,7 +22,7 @@ contract MakerCommonUtils is Test {
     string public constant ETH_JOIN_NAME = 'ETH-A';
     string public constant TOKEN_JOIN_NAME = 'LINK-A';
 
-    function makerCommonSetUp() internal {
+    function _makerCommonSetUp() internal {
         // Label
         vm.label(PROXY_REGISTRY, 'PROXY_REGISTRY');
         vm.label(CDP_MANAGER, 'CDP_MANAGER');
@@ -32,6 +33,20 @@ contract MakerCommonUtils is Test {
         vm.label(ETH_JOIN_A, 'ETH_JOIN_A');
         vm.label(DAI_JOIN, 'DAI_JOIN');
         vm.label(GEM, 'GEM');
+    }
+
+    function _allowCdp(address cdpOwner, address dsProxy, uint256 cdp, address usr) internal {
+        vm.prank(cdpOwner);
+        IDSProxy(dsProxy).execute(
+            PROXY_ACTIONS,
+            abi.encodeWithSelector(
+                0xba727a95, // selector of "cdpAllow(address,uint256,address,uint256)"
+                CDP_MANAGER,
+                cdp,
+                usr,
+                1
+            )
+        );
     }
 }
 
