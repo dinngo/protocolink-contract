@@ -131,10 +131,16 @@ abstract contract FeeVerifier is Ownable {
                             fees[feesIndex].amount = 0;
                         } else {
                             fees[feesIndex].amount -= feesByLogic[j].amount;
+                            feesByLogic[j].amount = 0;
                             break;
                         }
                     }
                 }
+            }
+
+            // Make sure all feesByLogic.amount equals 0
+            for (uint256 j = 0; j < feesByLogicLength; ++j) {
+                if (feesByLogic[j].amount > 0) return false;
             }
         }
 
@@ -144,19 +150,18 @@ abstract contract FeeVerifier is Ownable {
             IParam.Fee memory nativeFee = nativeFeeCalculator.getFees(_DUMMY_TO_ADDRESS, abi.encodePacked(msgValue))[0];
             for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
                 if (fees[feesIndex].token == _NATIVE) {
-                    fees[feesIndex].amount = 0;
                     if (nativeFee.amount > fees[feesIndex].amount) {
                         nativeFee.amount -= fees[feesIndex].amount;
+                        fees[feesIndex].amount = 0;
                     } else {
+                        nativeFee.amount = 0;
                         break;
                     }
                 }
             }
-        }
 
-        // verify fees equals 0
-        for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-            if (fees[feesIndex].amount > 0) return false;
+            // Make sure nativeFee.amount equals 0
+            if (nativeFee.amount > 0) return false;
         }
 
         return true;

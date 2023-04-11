@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {Router} from 'src/Router.sol';
+import {Router, IRouter} from 'src/Router.sol';
 import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
 import {NativeFeeCalculator} from 'src/fees/NativeFeeCalculator.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
@@ -62,6 +62,50 @@ contract NativeFeeCalculatorTest is Test {
     function testInvalidFeeRate() external {
         vm.expectRevert(FeeCalculatorBase.InvalidRate.selector);
         FeeCalculatorBase(nativeFeeCalculator).setFeeRate(BPS_BASE);
+    }
+
+    function testFeeVerificationFailed() external {
+        uint256 value = 1 ether;
+        uint256 feeRate = 20;
+
+        // Set fee rate
+        FeeCalculatorBase(nativeFeeCalculator).setFeeRate(feeRate);
+
+        // Encode logic
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicSendNative(value);
+
+        // Get new logics and msgValue
+        IParam.Fee[] memory fees;
+        uint256 newValue;
+        (logics, newValue, fees) = router.getLogicsAndFees(logics, value);
+        deal(user, newValue);
+
+        // Modify fees
+        fees[0].amount -= 1;
+
+        // Execute
+        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
+        vm.prank(user);
+        router.execute{value: newValue}(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
+    }
+
+    function testEmptyFees() external {
+        uint256 value = 1 ether;
+        uint256 feeRate = 20;
+        deal(user, value);
+
+        // Set fee rate
+        FeeCalculatorBase(nativeFeeCalculator).setFeeRate(feeRate);
+
+        // Encode logic
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicSendNative(value);
+
+        // Execute
+        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
+        vm.prank(user);
+        router.execute{value: value}(logics, new IParam.Fee[](0), tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function testChargeNativeFee(uint256 value, uint256 feeRate) external {

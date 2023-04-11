@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import {Router} from 'src/Router.sol';
+import {Router, IRouter} from 'src/Router.sol';
 import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
 import {AaveFlashLoanFeeCalculator} from 'src/fees/AaveFlashLoanFeeCalculator.sol';
 import {AaveBorrowFeeCalculator} from 'src/fees/AaveBorrowFeeCalculator.sol';
@@ -109,6 +109,81 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         vm.label(USDC, 'USDC');
     }
 
+    function testFeeVerificationFailed() external {
+        uint256 feeRate = 20;
+        uint256 amount = 100e6;
+
+        // Set fee rate
+        FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
+
+        // Encode flashloan params
+        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
+        flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(
+            address(flashLoanCallbackV2),
+            USDC,
+            FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount)
+        );
+        bytes memory params = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+
+        // Encode logic
+        address[] memory tokens = new address[](1);
+        tokens[0] = USDC;
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = amount;
+
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicAaveV2FlashLoan(tokens, amounts, params);
+
+        // Get new logics and fees
+        IParam.Fee[] memory fees;
+        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+
+        // Modify fees
+        fees[0].amount -= 1;
+
+        _distributeToken(tokens, amounts);
+
+        // Execute
+        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
+        vm.prank(user);
+        router.execute(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
+    }
+
+    function testEmptyFees() external {
+        uint256 feeRate = 20;
+        uint256 amount = 100e6;
+
+        // Set fee rate
+        FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
+
+        // Encode flashloan params
+        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
+        flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(
+            address(flashLoanCallbackV2),
+            USDC,
+            FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount)
+        );
+        bytes memory params = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+
+        // Encode logic
+        address[] memory tokens = new address[](1);
+        tokens[0] = USDC;
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = amount;
+
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicAaveV2FlashLoan(tokens, amounts, params);
+
+        _distributeToken(tokens, amounts);
+
+        // Execute
+        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
+        vm.prank(user);
+        router.execute(logics, new IParam.Fee[](0), tokensReturnEmpty, SIGNER_REFERRAL);
+    }
+
     function testChargeFlashLoanFee(uint256 amount, uint256 feeRate) external {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
         amount = bound(amount, 1, (IERC20(USDC).balanceOf(AUSDC_V2) * (BPS_BASE - feeRate)) / BPS_BASE);
@@ -157,6 +232,57 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
         assertEq(IERC20(USDC).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
         assertEq(newAmounts[0], expectedNewAmount);
+    }
+
+    function testFeeVerificationFailedWithFeeScenarioInside() external {
+        uint256 feeRate = 20;
+        uint256 amount = 100e6;
+        uint256 nativeAmount = 1 ether;
+
+        // Set fee rate
+        FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
+        FeeCalculatorBase(nativeFeeCalculator).setFeeRate(feeRate);
+
+        // Encode flashloan params
+        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](2);
+        flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(
+            address(flashLoanCallbackV2),
+            USDC,
+            FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount)
+        );
+        flashLoanLogics[1] = _logicSendNativeToken(user2, nativeAmount);
+        bytes memory params = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Fee[] memory fees;
+        uint256 nativeNewAmount;
+        {
+            // Encode logic
+            address[] memory tokens = new address[](1);
+            tokens[0] = USDC;
+
+            uint256[] memory amounts = new uint256[](1);
+            amounts[0] = amount;
+
+            logics[0] = _logicAaveV2FlashLoan(tokens, amounts, params);
+
+            // Get new logics and fees
+            (logics, nativeNewAmount, fees) = router.getLogicsAndFees(logics, nativeAmount);
+            deal(user, nativeNewAmount);
+            _distributeToken(tokens, amounts);
+
+            // Modify fees
+            fees[1].amount -= 1;
+        }
+
+        {
+            // Execute
+            address[] memory tokensReturns = new address[](1);
+            tokensReturns[0] = USDC;
+            vm.expectRevert(IRouter.FeeVerificationFailed.selector);
+            vm.prank(user);
+            router.execute{value: nativeNewAmount}(logics, fees, tokensReturns, SIGNER_REFERRAL);
+        }
     }
 
     function testChargeFlashLoanFeeWithFeeScenarioInside(
