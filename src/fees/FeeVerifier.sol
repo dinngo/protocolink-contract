@@ -136,10 +136,8 @@ abstract contract FeeVerifier is Ownable {
                         }
                     }
                 }
-            }
 
-            // Make sure all feesByLogic.amount equals 0
-            for (uint256 j = 0; j < feesByLogicLength; ++j) {
+                // Make sure feesByLogic.amount equals 0
                 if (feesByLogic[j].amount > 0) return false;
             }
         }
@@ -147,21 +145,27 @@ abstract contract FeeVerifier is Ownable {
         // Deduct native fee from fees
         IFeeCalculator nativeFeeCalculator = getNativeFeeCalculator();
         if (msgValue > 0 && address(nativeFeeCalculator) != address(0)) {
-            IParam.Fee memory nativeFee = nativeFeeCalculator.getFees(_DUMMY_TO_ADDRESS, abi.encodePacked(msgValue))[0];
+            uint256 nativeFee = nativeFeeCalculator.getFees(_DUMMY_TO_ADDRESS, abi.encodePacked(msgValue))[0].amount;
             for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
                 if (fees[feesIndex].token == _NATIVE) {
-                    if (nativeFee.amount > fees[feesIndex].amount) {
-                        nativeFee.amount -= fees[feesIndex].amount;
+                    if (nativeFee > fees[feesIndex].amount) {
+                        nativeFee -= fees[feesIndex].amount;
                         fees[feesIndex].amount = 0;
                     } else {
-                        nativeFee.amount = 0;
+                        fees[feesIndex].amount -= nativeFee;
+                        nativeFee = 0;
                         break;
                     }
                 }
             }
 
-            // Make sure nativeFee.amount equals 0
-            if (nativeFee.amount > 0) return false;
+            // Make sure nativeFee equals 0
+            if (nativeFee > 0) return false;
+        }
+
+        // No overcharging
+        for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+            if (fees[feesIndex].amount > 0) return false;
         }
 
         return true;
