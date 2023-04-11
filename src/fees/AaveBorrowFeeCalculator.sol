@@ -7,11 +7,14 @@ import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 contract AaveBorrowFeeCalculator is IFeeCalculator, FeeCalculatorBase {
-    address private constant _AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     bytes32 private constant _V2_BORROW_META_DATA = bytes32(bytes('aave-v2:borrow'));
     bytes32 private constant _V3_BORROW_META_DATA = bytes32(bytes('aave-v3:borrow'));
 
-    constructor(address router, uint256 feeRate) FeeCalculatorBase(router, feeRate) {}
+    address public immutable aaveV3Provider;
+
+    constructor(address router, uint256 feeRate, address aaveV3Provider_) FeeCalculatorBase(router, feeRate) {
+        aaveV3Provider = aaveV3Provider_;
+    }
 
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         // Aave borrow signature:'borrow(address,uint256,uint256,uint16,address)', selector:0xa415bcad
@@ -21,7 +24,7 @@ contract AaveBorrowFeeCalculator is IFeeCalculator, FeeCalculatorBase {
         fees[0] = IParam.Fee({
             token: token,
             amount: calculateFee(amount),
-            metadata: to == IAaveV3Provider(_AAVE_V3_PROVIDER).getPool() ? _V3_BORROW_META_DATA : _V2_BORROW_META_DATA
+            metadata: to == IAaveV3Provider(aaveV3Provider).getPool() ? _V3_BORROW_META_DATA : _V2_BORROW_META_DATA
         });
         return fees;
     }

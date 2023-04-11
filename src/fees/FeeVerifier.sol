@@ -7,17 +7,16 @@ import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
 abstract contract FeeVerifier is Ownable {
     error LengthMismatch();
-    error NativeFeeCalculatorNotExists();
 
     event FeeCalculatorSet(bytes4 indexed selector, address indexed to, address indexed feeCalculator);
 
     address private constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     address private constant _DUMMY_TO_ADDRESS = address(0);
+    bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
 
     mapping(bytes4 selector => mapping(address to => address feeCalculator)) public feeCalculators;
 
-    /// @notice Get logics, fees and msg.value that contains fee
+    /// @notice Get logics, msg.value and fees that contains fee
     function getLogicsAndFees(
         IParam.Logic[] memory logics,
         uint256 msgValue
@@ -56,8 +55,9 @@ abstract contract FeeVerifier is Ownable {
     }
 
     function getMsgValueWithFee(uint256 msgValue) public view returns (uint256) {
-        if (msgValue > 0) {
-            msgValue = uint256(bytes32(getNativeFeeCalculator().getDataWithFee(abi.encodePacked(msgValue))));
+        IFeeCalculator nativeFeeCalculator = getNativeFeeCalculator();
+        if (msgValue > 0 && address(nativeFeeCalculator) != address(0)) {
+            msgValue = uint256(bytes32(nativeFeeCalculator.getDataWithFee(abi.encodePacked(msgValue))));
         }
         return msgValue;
     }
@@ -88,8 +88,9 @@ abstract contract FeeVerifier is Ownable {
         }
 
         // For native fee
-        if (msgValue > 0) {
-            tempFees[realFeeLength++] = getNativeFee(msgValue);
+        IFeeCalculator nativeFeeCalculator = getNativeFeeCalculator();
+        if (msgValue > 0 && address(nativeFeeCalculator) != address(0)) {
+            tempFees[realFeeLength++] = nativeFeeCalculator.getFees(_DUMMY_TO_ADDRESS, abi.encodePacked(msgValue))[0];
         }
 
         // Copy tempFees to fees
@@ -137,12 +138,19 @@ abstract contract FeeVerifier is Ownable {
             }
         }
 
-        // verify fees
-        for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-            if (fees[feesIndex].token == _NATIVE) {
-                if (fees[feesIndex].amount != getNativeFee(msgValue).amount) return false;
-            } else {
-                if (fees[feesIndex].amount > 0) return false;
+        // Deduct native fee from fees
+        IFeeCalculator nativeFeeCalculator = getNativeFeeCalculator();
+        if (msgValue > 0 && address(nativeFeeCalculator) != address(0)) {
+            IParam.Fee memory nativeFee = nativeFeeCalculator.getFees(_DUMMY_TO_ADDRESS, abi.encodePacked(msgValue))[0];
+            for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+                if (fees[feesIndex].token == _NATIVE) {
+                    fees[feesIndex].amount = 0;
+                    if (nativeFee.amount > fees[feesIndex].amount) {
+                        nativeFee.amount -= fees[feesIndex].amount;
+                    } else {
+                        break;
+                    }
+                }
             }
         }
 
@@ -183,12 +191,7 @@ abstract contract FeeVerifier is Ownable {
     }
 
     function getNativeFeeCalculator() internal view returns (IFeeCalculator) {
-        address nativeFeeCalculator = getFeeCalculator(_NATIVE_FEE_SELECTOR, _DUMMY_TO_ADDRESS);
-        if (nativeFeeCalculator == address(0)) revert NativeFeeCalculatorNotExists();
+        address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
         return IFeeCalculator(nativeFeeCalculator);
-    }
-
-    function getNativeFee(uint256 msgValue) internal view returns (IParam.Fee memory) {
-        return getNativeFeeCalculator().getFees(_DUMMY_TO_ADDRESS, abi.encodePacked(msgValue))[0];
     }
 }

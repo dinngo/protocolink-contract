@@ -31,7 +31,7 @@ interface IRouter {
 
     error InvalidNewPauser();
 
-    error FeesNotEnough();
+    error FeeVerificationFailed();
 
     error SignatureExpired(uint256 deadline);
 

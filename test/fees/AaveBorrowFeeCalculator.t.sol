@@ -16,6 +16,7 @@ import {MockERC20} from '../mocks/MockERC20.sol';
 
 contract AaveBorrowFeeCalculatorTest is Test {
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address public constant AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     bytes4 public constant AAVE_BORROW_SELECTOR =
         bytes4(keccak256(bytes('borrow(address,uint256,uint256,uint16,address)')));
     uint256 public constant SIGNER_REFERRAL = 1;
@@ -44,7 +45,7 @@ contract AaveBorrowFeeCalculatorTest is Test {
         router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
-        borrowFeeCalculator = address(new AaveBorrowFeeCalculator(address(router), 0));
+        borrowFeeCalculator = address(new AaveBorrowFeeCalculator(address(router), 0, AAVE_V3_PROVIDER));
         mockERC20 = new MockERC20('mockERC20', 'mock');
         address[] memory tokens = new address[](1);
         tokens[0] = address(mockERC20);

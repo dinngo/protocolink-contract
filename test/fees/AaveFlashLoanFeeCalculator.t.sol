@@ -38,8 +38,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    uint256 public constant SKIP = type(uint256).max;
-    uint256 public constant BPS_BASE = 10_000;
+    address public constant AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     address public constant AAVE_V2_PROVIDER = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant AUSDC_V2 = 0xBcca60bB61934080951369a648Fb03DF4F96263C;
@@ -50,6 +49,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         bytes4(keccak256(bytes('borrow(address,uint256,uint256,uint16,address)')));
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     uint256 public constant SIGNER_REFERRAL = 1;
+    uint256 public constant SKIP = type(uint256).max;
+    uint256 public constant BPS_BASE = 10_000;
     bytes32 public constant V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flashloan'));
     bytes32 public constant V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flashloan'));
     bytes32 public constant NATIVE_TOKEN_META_DATA = bytes32(bytes('native-token'));
@@ -80,8 +81,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
-        flashLoanFeeCalculator = address(new AaveFlashLoanFeeCalculator(address(router), 0));
-        borrowFeeCalculator = address(new AaveBorrowFeeCalculator(address(router), 0));
+        flashLoanFeeCalculator = address(new AaveFlashLoanFeeCalculator(address(router), 0, AAVE_V3_PROVIDER));
+        borrowFeeCalculator = address(new AaveBorrowFeeCalculator(address(router), 0, AAVE_V3_PROVIDER));
         nativeFeeCalculator = address(new NativeFeeCalculator(address(router), 0));
         flashLoanCallbackV2 = new FlashLoanCallbackAaveV2(address(router), AAVE_V2_PROVIDER);
 

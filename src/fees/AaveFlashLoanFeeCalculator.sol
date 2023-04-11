@@ -8,11 +8,14 @@ import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
-    address private constant _AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     bytes32 private constant _V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flashloan'));
     bytes32 private constant _V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flashloan'));
 
-    constructor(address router, uint256 feeRate) FeeCalculatorBase(router, feeRate) {}
+    address public immutable aaveV3Provider;
+
+    constructor(address router, uint256 feeRate, address aaveV3Provider_) FeeCalculatorBase(router, feeRate) {
+        aaveV3Provider = aaveV3Provider_;
+    }
 
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         // Aave flashloan signature:'flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)', selector: 0xab9c4b5d
@@ -22,7 +25,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
         );
 
         amounts = calculateFee(amounts);
-        bytes32 metadata = to == IAaveV3Provider(_AAVE_V3_PROVIDER).getPool()
+        bytes32 metadata = to == IAaveV3Provider(aaveV3Provider).getPool()
             ? _V3_FLASHLOAN_META_DATA
             : _V2_FLASHLOAN_META_DATA;
 

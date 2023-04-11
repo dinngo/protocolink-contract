@@ -11,7 +11,7 @@ import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
 
 /// @title Router executes arbitrary logics
-contract Router is IRouter, EIP712, Ownable, FeeVerifier {
+contract Router is IRouter, EIP712, FeeVerifier {
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;
 
@@ -141,7 +141,7 @@ contract Router is IRouter, EIP712, Ownable, FeeVerifier {
         address[] calldata tokensReturn,
         uint256 referral
     ) external payable isPaused checkCaller {
-        if (!verifyFees(logics, msg.value, fees)) revert FeesNotEnough();
+        if (!verifyFees(logics, msg.value, fees)) revert FeeVerificationFailed();
 
         IAgent agent = agents[user];
 
