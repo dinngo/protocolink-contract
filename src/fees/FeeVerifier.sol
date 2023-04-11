@@ -154,6 +154,11 @@ abstract contract FeeVerifier is Ownable {
             }
         }
 
+        // verify fees equals 0
+        for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+            if (fees[feesIndex].amount > 0) return false;
+        }
+
         return true;
     }
 
