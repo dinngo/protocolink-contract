@@ -8,7 +8,7 @@ import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
 import {AaveFlashLoanFeeCalculator} from 'src/fees/AaveFlashLoanFeeCalculator.sol';
 import {AaveBorrowFeeCalculator} from 'src/fees/AaveBorrowFeeCalculator.sol';
 import {NativeFeeCalculator} from 'src/fees/NativeFeeCalculator.sol';
-import {FlashLoanCallbackAaveV2, IFlashLoanCallbackAaveV2} from 'src/FlashLoanCallbackAaveV2.sol';
+import {AaveV2FlashLoanCallback, IAaveV2FlashLoanCallback} from 'src/callbacks/AaveV2FlashLoanCallback.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IAaveV2Provider} from 'src/interfaces/aaveV2/IAaveV2Provider.sol';
@@ -65,7 +65,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
     address public flashLoanFeeCalculator;
     address public borrowFeeCalculator;
     address public nativeFeeCalculator;
-    IFlashLoanCallbackAaveV2 public flashLoanCallbackV2;
+    IAaveV2FlashLoanCallback public flashLoanCallbackV2;
 
     // Empty arrays
     address[] public tokensReturnEmpty;
@@ -84,7 +84,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         flashLoanFeeCalculator = address(new AaveFlashLoanFeeCalculator(address(router), 0, AAVE_V3_PROVIDER));
         borrowFeeCalculator = address(new AaveBorrowFeeCalculator(address(router), 0, AAVE_V3_PROVIDER));
         nativeFeeCalculator = address(new NativeFeeCalculator(address(router), 0));
-        flashLoanCallbackV2 = new FlashLoanCallbackAaveV2(address(router), AAVE_V2_PROVIDER);
+        flashLoanCallbackV2 = new AaveV2FlashLoanCallback(address(router), AAVE_V2_PROVIDER);
 
         // Setup fee calculator
         bytes4[] memory selectors = new bytes4[](2);
@@ -105,7 +105,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         vm.label(address(nativeFeeCalculator), 'NativeFeeCalculator');
         vm.label(address(v2Pool), 'AaveV2Pool');
         vm.label(AAVE_V2_PROVIDER, 'AaveV2Provider');
-        vm.label(address(flashLoanCallbackV2), 'FlashLoanCallbackAaveV2');
+        vm.label(address(flashLoanCallbackV2), 'AaveV2FlashLoanCallback');
         vm.label(USDC, 'USDC');
     }
 

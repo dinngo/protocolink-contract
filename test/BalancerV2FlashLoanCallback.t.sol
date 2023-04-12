@@ -6,15 +6,15 @@ import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from 'src/FlashLoanCallbackBalancerV2.sol';
+import {BalancerV2FlashLoanCallback, IBalancerV2FlashLoanCallback} from 'src/callbacks/BalancerV2FlashLoanCallback.sol';
 
-contract FlashLoanCallbackBalancerV2Test is Test {
+contract BalancerV2FlashLoanCallbackTest is Test {
     address public constant BALANCER_V2_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
 
     address public user;
     address public router;
     address public agent;
-    IFlashLoanCallbackBalancerV2 public flashLoanCallback;
+    IBalancerV2FlashLoanCallback public flashLoanCallback;
     IERC20 public mockERC20;
 
     // Empty arrays
@@ -30,12 +30,12 @@ contract FlashLoanCallbackBalancerV2Test is Test {
         agent = makeAddr('Agent');
         vm.etch(agent, 'code');
 
-        flashLoanCallback = new FlashLoanCallbackBalancerV2(address(router), BALANCER_V2_VAULT);
+        flashLoanCallback = new BalancerV2FlashLoanCallback(address(router), BALANCER_V2_VAULT);
         mockERC20 = new ERC20('mockERC20', 'mock');
 
         // Return activated agent from router
         vm.mockCall(router, 0, abi.encodeWithSignature('getAgent()'), abi.encode(agent));
-        vm.label(address(flashLoanCallback), 'FlashLoanCallbackBalancerV2');
+        vm.label(address(flashLoanCallback), 'BalancerV2FlashLoanCallback');
         vm.label(BALANCER_V2_VAULT, 'BalancerV2Vault');
         vm.label(address(mockERC20), 'mERC20');
     }
@@ -48,7 +48,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
 
         // Execute
         vm.startPrank(user);
-        vm.expectRevert(IFlashLoanCallbackBalancerV2.InvalidCaller.selector);
+        vm.expectRevert(IBalancerV2FlashLoanCallback.InvalidCaller.selector);
         flashLoanCallback.receiveFlashLoan(tokens, amounts, feeAmounts, '');
         vm.stopPrank();
     }
@@ -83,7 +83,7 @@ contract FlashLoanCallbackBalancerV2Test is Test {
 
         // Execute
         vm.startPrank(BALANCER_V2_VAULT);
-        vm.expectRevert(abi.encodeWithSelector(IFlashLoanCallbackBalancerV2.InvalidBalance.selector, tokens[0]));
+        vm.expectRevert(abi.encodeWithSelector(IBalancerV2FlashLoanCallback.InvalidBalance.selector, tokens[0]));
         flashLoanCallback.receiveFlashLoan(tokens, amounts, feeAmounts, userData);
         vm.stopPrank();
     }

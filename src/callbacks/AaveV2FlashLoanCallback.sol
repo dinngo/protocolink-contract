@@ -2,23 +2,23 @@
 pragma solidity ^0.8.0;
 
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {IRouter} from './interfaces/IRouter.sol';
-import {IAgent} from './interfaces/IAgent.sol';
-import {IFlashLoanCallbackAaveV3} from './interfaces/IFlashLoanCallbackAaveV3.sol';
-import {IAaveV3Provider} from './interfaces/aaveV3/IAaveV3Provider.sol';
-import {ApproveHelper} from './libraries/ApproveHelper.sol';
+import {IAgent} from '../interfaces/IAgent.sol';
+import {IRouter} from '../interfaces/IRouter.sol';
+import {IAaveV2FlashLoanCallback} from '../interfaces/IAaveV2FlashLoanCallback.sol';
+import {IAaveV2Provider} from '../interfaces/aaveV2/IAaveV2Provider.sol';
+import {ApproveHelper} from '../libraries/ApproveHelper.sol';
 
-/// @title Aave V3 flash loan callback
-contract FlashLoanCallbackAaveV3 is IFlashLoanCallbackAaveV3 {
+/// @title Aave V2 flash loan callback
+contract AaveV2FlashLoanCallback is IAaveV2FlashLoanCallback {
     using SafeERC20 for IERC20;
     using Address for address;
 
     address public immutable router;
-    address public immutable aaveV3Provider;
+    address public immutable aaveV2Provider;
 
-    constructor(address router_, address aaveV3Provider_) {
+    constructor(address router_, address aaveV2Provider_) {
         router = router_;
-        aaveV3Provider = aaveV3Provider_;
+        aaveV2Provider = aaveV2Provider_;
     }
 
     /// @dev No need to check whether `initiator` is Agent as it's certain when the below conditions are satisfied:
@@ -33,7 +33,7 @@ contract FlashLoanCallbackAaveV3 is IFlashLoanCallbackAaveV3 {
         address, // initiator
         bytes calldata params
     ) external returns (bool) {
-        address pool = IAaveV3Provider(aaveV3Provider).getPool();
+        address pool = IAaveV2Provider(aaveV2Provider).getLendingPool();
 
         if (msg.sender != pool) revert InvalidCaller();
         address agent = IRouter(router).getAgent();
@@ -52,7 +52,7 @@ contract FlashLoanCallbackAaveV3 is IFlashLoanCallbackAaveV3 {
             }
         }
 
-        agent.functionCall(abi.encodePacked(IAgent.execute.selector, params), 'ERROR_AAVE_V3_FLASH_LOAN_CALLBACK');
+        agent.functionCall(abi.encodePacked(IAgent.execute.selector, params), 'ERROR_AAVE_V2_FLASH_LOAN_CALLBACK');
 
         // Approve assets for pulling from Aave Pool
         for (uint256 i = 0; i < assetsLength; ) {

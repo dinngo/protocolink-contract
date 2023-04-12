@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface IUtilityMaker {
+interface IMakerUtility {
     error InvalidAgent();
 
     function openLockETHAndDraw(

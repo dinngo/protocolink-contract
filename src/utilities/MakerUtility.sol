@@ -3,12 +3,12 @@ pragma solidity ^0.8.0;
 
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IRouter} from '../interfaces/IRouter.sol';
-import {IUtilityMaker} from '../interfaces/utility/IUtilityMaker.sol';
+import {IMakerUtility} from '../interfaces/utilities/IMakerUtility.sol';
 import {IDSProxy, IDSProxyRegistry} from '../interfaces/maker/IDSProxy.sol';
 import {IMakerGemJoin} from '../interfaces/maker/IMaker.sol';
 import {ApproveHelper} from '../libraries/ApproveHelper.sol';
 
-contract UtilityMaker is IUtilityMaker {
+contract MakerUtility is IMakerUtility {
     using SafeERC20 for IERC20;
 
     address public constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -18,7 +18,7 @@ contract UtilityMaker is IUtilityMaker {
     address public immutable proxyActions;
     address public immutable daiToken;
     address public immutable jug;
-    // UtilityMaker's DSProxy
+    // MakerUtility's DSProxy
     IDSProxy public immutable dsProxy;
 
     constructor(

@@ -6,7 +6,7 @@ import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ut
 import {Router, IRouter} from 'src/Router.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {FlashLoanCallbackBalancerV2, IFlashLoanCallbackBalancerV2} from 'src/FlashLoanCallbackBalancerV2.sol';
+import {BalancerV2FlashLoanCallback, IBalancerV2FlashLoanCallback} from 'src/callbacks/BalancerV2FlashLoanCallback.sol';
 
 interface IBalancerV2Vault {
     function flashLoan(
@@ -26,7 +26,7 @@ contract BalancerV2IntegrationTest is Test {
 
     address public user;
     IRouter public router;
-    IFlashLoanCallbackBalancerV2 public flashLoanCallback;
+    IBalancerV2FlashLoanCallback public flashLoanCallback;
 
     // Empty arrays
     address[] public tokensReturnEmpty;
@@ -36,10 +36,10 @@ contract BalancerV2IntegrationTest is Test {
     function setUp() external {
         user = makeAddr('User');
         router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
-        flashLoanCallback = new FlashLoanCallbackBalancerV2(address(router), address(balancerV2Vault));
+        flashLoanCallback = new BalancerV2FlashLoanCallback(address(router), address(balancerV2Vault));
 
         vm.label(address(router), 'Router');
-        vm.label(address(flashLoanCallback), 'FlashLoanCallbackBalancerV2');
+        vm.label(address(flashLoanCallback), 'BalancerV2FlashLoanCallback');
         vm.label(address(balancerV2Vault), 'BalancerV2Vault');
         vm.label(address(USDC), 'USDC');
     }

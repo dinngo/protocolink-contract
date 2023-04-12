@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface IFlashLoanCallbackAaveV3 {
+interface IAaveV3FlashLoanCallback {
     error InvalidCaller();
 
     error InvalidBalance(address asset);
