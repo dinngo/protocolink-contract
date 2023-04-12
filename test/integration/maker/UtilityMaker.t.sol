@@ -22,8 +22,8 @@ contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
     address public userDSProxy;
     IRouter public router;
     IAgent public agent;
-    IMakerUtility public utilityMaker;
-    address public utilityMakerDSProxy;
+    IMakerUtility public makerUtility;
+    address public makerUtilityDSProxy;
 
     // Empty arrays
     address[] public tokensReturnEmpty;
@@ -33,8 +33,8 @@ contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
         router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
-        utilityMaker = new MakerUtility(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
-        utilityMakerDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(utilityMaker));
+        makerUtility = new MakerUtility(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
+        makerUtilityDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(makerUtility));
 
         // Setup
         vm.startPrank(user);
@@ -50,8 +50,8 @@ contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
         vm.label(address(userDSProxy), 'UserDSProxy');
         vm.label(address(router), 'Router');
         vm.label(address(agent), 'Agent');
-        vm.label(address(utilityMaker), 'MakerUtility');
-        vm.label(address(utilityMakerDSProxy), 'MakerUtilityDSProxy');
+        vm.label(address(makerUtility), 'MakerUtility');
+        vm.label(address(makerUtilityDSProxy), 'MakerUtilityDSProxy');
 
         _makerCommonSetUp();
     }
@@ -83,11 +83,11 @@ contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
         router.execute{value: ethLockAmount}(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(utilityMaker)), 0);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(utilityMakerDSProxy)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(makerUtility)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(makerUtilityDSProxy)), 0);
         assertEq(address(agent).balance, 0);
-        assertEq(address(utilityMaker).balance, 0);
-        assertEq(address(utilityMakerDSProxy).balance, 0);
+        assertEq(address(makerUtility).balance, 0);
+        assertEq(address(makerUtilityDSProxy).balance, 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(user) - userDAIBalanceBefore, daiDrawAmount);
         assertEq(IMakerManager(CDP_MANAGER).count(userDSProxy) - userCdpCountBefore, 1); // cdp count should increase by 1
     }
@@ -121,11 +121,11 @@ contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
         router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(utilityMaker)), 0);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(utilityMakerDSProxy)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(makerUtility)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(makerUtilityDSProxy)), 0);
         assertEq(IERC20(GEM).balanceOf(address(agent)), 0);
-        assertEq(IERC20(GEM).balanceOf(address(utilityMaker)), 0);
-        assertEq(IERC20(GEM).balanceOf(address(utilityMakerDSProxy)), 0);
+        assertEq(IERC20(GEM).balanceOf(address(makerUtility)), 0);
+        assertEq(IERC20(GEM).balanceOf(address(makerUtilityDSProxy)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(user) - userDAIBalanceBefore, daiDrawAmount);
         assertEq(IMakerManager(CDP_MANAGER).count(userDSProxy) - userCdpCountBefore, 1); // cdp count should increase by 1
     }
@@ -165,7 +165,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
         return
             IParam.Logic(
-                address(utilityMaker),
+                address(makerUtility),
                 data,
                 inputs,
                 IParam.WrapMode.NONE,
@@ -181,7 +181,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
         return
             IParam.Logic(
                 token,
-                abi.encodeWithSelector(IERC20.transfer.selector, utilityMaker, amount),
+                abi.encodeWithSelector(IERC20.transfer.selector, makerUtility, amount),
                 inputsEmpty,
                 IParam.WrapMode.NONE,
                 address(0), // approveTo
@@ -201,7 +201,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
         return
             IParam.Logic(
-                address(utilityMaker),
+                address(makerUtility),
                 data,
                 inputsEmpty,
                 IParam.WrapMode.NONE,
