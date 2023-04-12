@@ -1,0 +1,45 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: deploy-local
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
+
+      - name: Run Forge anvil
+        run: |
+          anvil --fork-url ${{ secrets.RPC_URL }} &
+          sleep 10
+        id: anvil
+
+      - name: Run Forge scripts
+        run: |
+          forge script --broadcast --rpc-url ${{ secrets.LOCAL_RPC_URL }} --private-key ${{ secrets.PRIVATE_KEY }} --sig 'run(string)' script/DeployAll.s.sol:DeployAll script/deployParameters/local.json
+        id: script
