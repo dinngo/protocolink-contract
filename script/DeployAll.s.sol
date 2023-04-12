@@ -2,10 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {DeployRouter} from './DeployRouter.s.sol';
-import {DeployFlashLoanCallbackAaveV2} from './DeployFlashLoanCallbackAaveV2.s.sol';
-import {DeployFlashLoanCallbackAaveV3} from './DeployFlashLoanCallbackAaveV3.s.sol';
-import {DeployFlashLoanCallbackBalancerV2} from './DeployFlashLoanCallbackBalancerV2.s.sol';
-import {DeployUtilityMaker} from './DeployUtilityMaker.s.sol';
+import {DeployAaveV2FlashLoanCallback} from './DeployAaveV2FlashLoanCallback.s.sol';
+import {DeployAaveV3FlashLoanCallback} from './DeployAaveV3FlashLoanCallback.s.sol';
+import {DeployBalancerV2FlashLoanCallback} from './DeployBalancerV2FlashLoanCallback.s.sol';
+import {DeployMakerUtility} from './DeployMakerUtility.s.sol';
 import {DeployAaveBorrowFeeCalculator} from './DeployAaveBorrowFeeCalculator.s.sol';
 import {DeployAaveFlashLoanFeeCalculator} from './DeployAaveFlashLoanFeeCalculator.s.sol';
 import {DeployMakerDrawFeeCalculator} from './DeployMakerDrawFeeCalculator.s.sol';
@@ -15,10 +15,10 @@ import {DeployTransferFromFeeCalculator} from './DeployTransferFromFeeCalculator
 
 contract DeployAll is
     DeployRouter,
-    DeployFlashLoanCallbackAaveV2,
-    DeployFlashLoanCallbackAaveV3,
-    DeployFlashLoanCallbackBalancerV2,
-    DeployUtilityMaker,
+    DeployAaveV2FlashLoanCallback,
+    DeployAaveV3FlashLoanCallback,
+    DeployBalancerV2FlashLoanCallback,
+    DeployMakerUtility,
     DeployAaveBorrowFeeCalculator,
     DeployAaveFlashLoanFeeCalculator,
     DeployMakerDrawFeeCalculator,
@@ -32,10 +32,10 @@ contract DeployAll is
         internal
         override(
             DeployRouter,
-            DeployFlashLoanCallbackAaveV2,
-            DeployFlashLoanCallbackAaveV3,
-            DeployFlashLoanCallbackBalancerV2,
-            DeployUtilityMaker,
+            DeployAaveV2FlashLoanCallback,
+            DeployAaveV3FlashLoanCallback,
+            DeployBalancerV2FlashLoanCallback,
+            DeployMakerUtility,
             DeployAaveBorrowFeeCalculator,
             DeployAaveFlashLoanFeeCalculator,
             DeployMakerDrawFeeCalculator,
@@ -49,12 +49,12 @@ contract DeployAll is
         deployedAddress = params.router = DeployRouter._run(params);
 
         // callback
-        DeployFlashLoanCallbackAaveV2._run(params);
-        DeployFlashLoanCallbackAaveV3._run(params);
-        DeployFlashLoanCallbackBalancerV2._run(params);
+        DeployAaveV2FlashLoanCallback._run(params);
+        DeployAaveV3FlashLoanCallback._run(params);
+        DeployBalancerV2FlashLoanCallback._run(params);
 
         // utility
-        DeployUtilityMaker._run(params);
+        DeployMakerUtility._run(params);
 
         // fee
         DeployAaveBorrowFeeCalculator._run(params);

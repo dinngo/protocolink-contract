@@ -9,7 +9,9 @@ contract DeployAaveBorrowFeeCalculator is DeployBase {
     function _run(
         DeployParameters memory params
     ) internal virtual override isRouterAddressZero(params.router) returns (address deployedAddress) {
-        deployedAddress = address(new AaveBorrowFeeCalculator(params.router, params.aaveBorrowFeeCalculatorFeeRate));
+        deployedAddress = address(
+            new AaveBorrowFeeCalculator(params.router, params.aaveBorrowFeeCalculatorFeeRate, params.aaveV3Provider)
+        );
         console2.log('AaveBorrowFeeCalculator Deployed:', deployedAddress);
     }
 }

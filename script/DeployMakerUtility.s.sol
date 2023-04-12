@@ -3,14 +3,14 @@ pragma solidity ^0.8.0;
 
 import {console2} from 'forge-std/console2.sol';
 import {DeployBase} from './DeployBase.s.sol';
-import {UtilityMaker} from 'src/utility/UtilityMaker.sol';
+import {MakerUtility} from 'src/utilities/MakerUtility.sol';
 
-contract DeployUtilityMaker is DeployBase {
+contract DeployMakerUtility is DeployBase {
     function _run(
         DeployParameters memory params
     ) internal virtual override isRouterAddressZero(params.router) returns (address deployedAddress) {
         deployedAddress = address(
-            new UtilityMaker(
+            new MakerUtility(
                 params.router,
                 params.makerProxyRegistry,
                 params.makerCdpManager,
@@ -20,6 +20,6 @@ contract DeployUtilityMaker is DeployBase {
             )
         );
 
-        console2.log('UtilityMaker Deployed:', deployedAddress);
+        console2.log('MakerUtility Deployed:', deployedAddress);
     }
 }

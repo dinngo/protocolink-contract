@@ -10,7 +10,11 @@ contract DeployAaveFlashLoanFeeCalculator is DeployBase {
         DeployParameters memory params
     ) internal virtual override isRouterAddressZero(params.router) returns (address deployedAddress) {
         deployedAddress = address(
-            new AaveFlashLoanFeeCalculator(params.router, params.aaveFlashLoanFeeCalculatorFeeRate)
+            new AaveFlashLoanFeeCalculator(
+                params.router,
+                params.aaveFlashLoanFeeCalculatorFeeRate,
+                params.aaveV3Provider
+            )
         );
         console2.log('AaveFlashLoanFeeCalculator Deployed:', deployedAddress);
     }
