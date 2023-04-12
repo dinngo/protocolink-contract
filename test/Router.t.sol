@@ -357,6 +357,7 @@ contract RouterTest is Test, LogicSignature {
         vm.deal(address(this), value);
 
         vm.expectRevert();
-        address(router).call{value: value}('');
+        (bool succ,) = address(router).call{value: value}('');
+        assertTrue(succ);
     }
 }
