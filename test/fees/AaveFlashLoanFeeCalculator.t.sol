@@ -49,7 +49,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         bytes4(keccak256(bytes('borrow(address,uint256,uint256,uint16,address)')));
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     uint256 public constant SIGNER_REFERRAL = 1;
-    uint256 public constant SKIP = type(uint256).max;
+    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
     uint256 public constant BPS_BASE = 10_000;
     bytes32 public constant V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flashloan'));
     bytes32 public constant V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flashloan'));

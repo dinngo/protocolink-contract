@@ -13,7 +13,7 @@ contract NativeFeeCalculatorTest is Test {
     address public constant DUMMY_TO_ADDRESS = address(0);
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     bytes public constant EMPTY_LOGIC_DATA = new bytes(0);
-    uint256 public constant SKIP = type(uint256).max;
+    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
     uint256 public constant SIGNER_REFERRAL = 1;
     uint256 public constant BPS_BASE = 10_000;
 
