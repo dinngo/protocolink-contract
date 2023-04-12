@@ -21,7 +21,6 @@ contract AaveBorrowFeeCalculatorTest is Test {
         bytes4(keccak256(bytes('borrow(address,uint256,uint256,uint16,address)')));
     uint256 public constant SIGNER_REFERRAL = 1;
     uint256 public constant BPS_BASE = 10_000;
-    uint256 public constant SKIP = type(uint256).max;
 
     address public user;
     address public feeCollector;
