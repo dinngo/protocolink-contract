@@ -8,8 +8,8 @@ import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
-    bytes32 private constant _V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flashloan'));
-    bytes32 private constant _V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flashloan'));
+    bytes32 internal constant _V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flashloan'));
+    bytes32 internal constant _V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flashloan'));
 
     address public immutable aaveV3Provider;
 
@@ -83,7 +83,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
         address[] memory tokens,
         uint256[] memory amounts,
         bytes32 metadata
-    ) private pure returns (IParam.Fee[] memory) {
+    ) internal pure returns (IParam.Fee[] memory) {
         uint256 length = tokens.length;
         IParam.Fee[] memory fees = new IParam.Fee[](length);
         for (uint256 i = 0; i < length; ) {
@@ -99,7 +99,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     function _concatenateFees(
         IParam.Fee[] memory fees1,
         IParam.Fee[] memory fees2
-    ) private pure returns (IParam.Fee[] memory) {
+    ) internal pure returns (IParam.Fee[] memory) {
         uint256 length1 = fees1.length;
         uint256 length2 = fees2.length;
         IParam.Fee[] memory totalFees = new IParam.Fee[](length1 + length2);

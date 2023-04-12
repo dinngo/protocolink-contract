@@ -77,7 +77,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         }
     }
 
-    function _getBalance(address token) private view returns (uint256 balance) {
+    function _getBalance(address token) internal view returns (uint256 balance) {
         if (token == _NATIVE) {
             balance = address(this).balance;
         } else {
@@ -85,7 +85,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         }
     }
 
-    function _executeLogics(IParam.Logic[] calldata logics) private {
+    function _executeLogics(IParam.Logic[] calldata logics) internal {
         // Execute each logic
         uint256 logicsLength = logics.length;
         for (uint256 i = 0; i < logicsLength; ) {

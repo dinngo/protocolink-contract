@@ -6,7 +6,7 @@ import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 contract Permit2FeeCalculator is IFeeCalculator, FeeCalculatorBase {
-    bytes32 private constant _META_DATA = bytes32(bytes('permit2:pull-token'));
+    bytes32 internal constant _META_DATA = bytes32(bytes('permit2:pull-token'));
 
     constructor(address router, uint256 feeRate) FeeCalculatorBase(router, feeRate) {}
 

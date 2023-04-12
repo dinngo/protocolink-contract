@@ -7,8 +7,8 @@ import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 contract AaveBorrowFeeCalculator is IFeeCalculator, FeeCalculatorBase {
-    bytes32 private constant _V2_BORROW_META_DATA = bytes32(bytes('aave-v2:borrow'));
-    bytes32 private constant _V3_BORROW_META_DATA = bytes32(bytes('aave-v3:borrow'));
+    bytes32 internal constant _V2_BORROW_META_DATA = bytes32(bytes('aave-v2:borrow'));
+    bytes32 internal constant _V3_BORROW_META_DATA = bytes32(bytes('aave-v3:borrow'));
 
     address public immutable aaveV3Provider;
 
