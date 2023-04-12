@@ -18,11 +18,11 @@ The flexibility of Composable Router comes from its protocol-agnostic nature, wi
 
 Composable Router contracts consist of the following components:
 
-- `Router`: Users interact with the single entry point to execute transactions.
-- `Agents`: `Router` forwards each user's transaction to their respective `Agent`, which can securely hold a user's token approvals since only the user can access and utilize their own `Agent`.
-- `Callbacks`: One-time addresses for reentering `Agent` can only be set during contract execution
-- `Utilities`: Can be called by `Agent` to perform additional actions.
-- `Fees`: Calculates and verifies fees based on various fee scenarios.
+- `Router`: Users interact with the single entry point to execute transactions, and forwards each user's transaction to their respective `Agent`
+- `Agent`: Execute user's transaction and securely hold a user's token approvals since only the user can access and utilize their own `Agent`.
+- `Callback`: One-time address for reentering `Agent` can only be set during contract execution
+- `Utility`: Can be called by `Agent` to perform additional actions.
+- `Fee`: Calculates and verifies fees based on various fee scenarios.
 
 ## Usage
 
