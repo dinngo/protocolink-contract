@@ -12,7 +12,7 @@ import {LogicSignature} from './utils/LogicSignature.sol';
 contract RouterTest is Test, LogicSignature {
     using SafeERC20 for IERC20;
 
-    uint256 public constant SKIP = type(uint256).max;
+    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
     uint256 public constant SIGNER_REFERRAL = 1;
     address public constant INVALID_PAUSER = address(0);
 
@@ -357,6 +357,7 @@ contract RouterTest is Test, LogicSignature {
         vm.deal(address(this), value);
 
         vm.expectRevert();
-        address(router).call{value: value}('');
+        (bool succ,) = address(router).call{value: value}('');
+        assertTrue(succ);
     }
 }

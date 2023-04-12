@@ -6,8 +6,8 @@ import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 contract NativeFeeCalculator is IFeeCalculator, FeeCalculatorBase {
-    bytes32 private constant _META_DATA = bytes32(bytes('native-token'));
-    address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    bytes32 internal constant _META_DATA = bytes32(bytes('native-token'));
+    address internal constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     constructor(address router, uint256 feeRate) FeeCalculatorBase(router, feeRate) {}
 

@@ -18,7 +18,7 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
 
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     uint256 public constant BPS_BASE = 10_000;
-    uint256 public constant SKIP = type(uint256).max;
+    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
 
     address public user;
     uint256 public userPrivateKey;

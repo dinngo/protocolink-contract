@@ -10,9 +10,9 @@ abstract contract FeeVerifier is Ownable {
 
     event FeeCalculatorSet(bytes4 indexed selector, address indexed to, address indexed feeCalculator);
 
-    address private constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address private constant _DUMMY_TO_ADDRESS = address(0);
-    bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
+    address internal constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address internal constant _DUMMY_TO_ADDRESS = address(0);
+    bytes4 internal constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
 
     mapping(bytes4 selector => mapping(address to => address feeCalculator)) public feeCalculators;
 

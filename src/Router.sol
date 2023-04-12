@@ -17,9 +17,9 @@ contract Router is IRouter, EIP712, FeeVerifier {
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;
 
-    address private constant _INIT_USER = address(1);
-    address private constant _INVALID_PAUSER = address(0);
-    address private constant _INVALID_FEE_COLLECTOR = address(0);
+    address internal constant _INIT_USER = address(1);
+    address internal constant _INVALID_PAUSER = address(0);
+    address internal constant _INVALID_FEE_COLLECTOR = address(0);
 
     address public immutable agentImplementation;
 

@@ -17,7 +17,7 @@ contract AgentTest is Test {
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 public constant BPS_BASE = 10_000;
-    uint256 public constant SKIP = type(uint256).max;
+    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
 
     address public user;
     address public recipient;
