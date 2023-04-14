@@ -11,7 +11,6 @@ import {ApproveHelper} from '../libraries/ApproveHelper.sol';
 contract UtilityMaker is IUtilityMaker {
     using SafeERC20 for IERC20;
 
-    address public constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public immutable router;
     address public immutable proxyRegistry;
     address public immutable cdpManager;

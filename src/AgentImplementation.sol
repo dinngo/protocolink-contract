@@ -12,7 +12,7 @@ import {IFeeCalculator} from './interfaces/IFeeCalculator.sol';
 import {IWrappedNative} from './interfaces/IWrappedNative.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
-/// @title Implemtation contract of agent logics
+/// @title Implementation contract of agent logics
 contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     using SafeERC20 for IERC20;
     using Address for address;
@@ -22,7 +22,6 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
     address private constant _NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     bytes4 private constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
-    bytes private constant _NATIVE_FEE_CHARGE_DATA = new bytes(0);
     address private constant _DUMMY_ERC20_TOKEN = address(0xe20); // For ERC20 transferFrom charge fee using
     uint256 private constant _BPS_BASE = 10_000;
     uint256 private constant _SKIP = type(uint256).max;
