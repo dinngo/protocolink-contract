@@ -13,7 +13,6 @@ import {NativeFeeCalculator} from 'src/fees/NativeFeeCalculator.sol';
 import {Permit2FeeCalculator} from 'src/fees/Permit2FeeCalculator.sol';
 import {BalancerV2FlashLoanCallback, IBalancerV2FlashLoanCallback} from 'src/callbacks/BalancerV2FlashLoanCallback.sol';
 import {SpenderPermitUtils} from 'test/utils/SpenderPermitUtils.sol';
-import 'forge-std/console.sol';
 
 contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
     using SafeCast160 for uint256;
@@ -33,7 +32,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
     uint256 public constant BPS_BASE = 10_000;
-    bytes32 public constant META_DATA = bytes32(bytes('balancer-v2:flashloan'));
+    bytes32 public constant BALANCER_META_DATA = bytes32(bytes('balancer-v2:flashloan'));
     bytes32 public constant NATIVE_TOKEN_META_DATA = bytes32(bytes('native-token'));
     bytes32 public constant PERMIT2_META_DATA = bytes32(bytes('permit2:pull-token'));
 
@@ -72,7 +71,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         bytes4[] memory selectors = new bytes4[](3);
         selectors[0] = BALANCER_FLASHLOAN_SELECTOR;
         selectors[1] = NATIVE_FEE_SELECTOR;
-        selectors[2] = NATIVE_FEE_SELECTOR;
+        selectors[2] = PERMIT2_TRANSFER_FROM_SELECTOR;
         address[] memory tos = new address[](3);
         tos[0] = BALANCER_V2_VAULT;
         tos[1] = DUMMY_TO_ADDRESS;
@@ -140,7 +139,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
 
         // Execute
         vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(USDC, expectedFee, META_DATA);
+        emit FeeCharged(USDC, expectedFee, BALANCER_META_DATA);
         vm.prank(user);
         router.execute(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
 
@@ -204,13 +203,11 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
 
         {
             // Execute
-            address[] memory tokensReturns = new address[](1);
-            tokensReturns[0] = USDC;
             vm.expectEmit(true, true, true, true, address(userAgent));
-            emit FeeCharged(USDC, expectedFee, META_DATA);
+            emit FeeCharged(USDC, expectedFee, BALANCER_META_DATA);
             emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
             vm.prank(user);
-            router.execute{value: nativeNewAmount}(logics, fees, tokensReturns, SIGNER_REFERRAL);
+            router.execute{value: nativeNewAmount}(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
         }
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
@@ -224,27 +221,32 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
     function testChargeFlashLoanFeeWithTwoFeeScenarioInside(
         uint256 amount,
         uint256 nativeAmount,
-        uint256 feeRate
+        uint256 feeRate,
+        uint256 permit2FeeRate
     ) external {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
+        permit2FeeRate = bound(permit2FeeRate, 0, BPS_BASE - 1);
         amount = bound(amount, 1, (IERC20(USDC).balanceOf(BALANCER_V2_VAULT) * (BPS_BASE - feeRate)) / BPS_BASE);
         nativeAmount = bound(nativeAmount, 0, 5000 ether);
 
         // Set fee rate
         FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
         FeeCalculatorBase(nativeFeeCalculator).setFeeRate(feeRate);
-        FeeCalculatorBase(permit2FeeCalculator).setFeeRate(feeRate);
+        FeeCalculatorBase(permit2FeeCalculator).setFeeRate(permit2FeeRate);
 
         // Encode flashloan userData
-        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](3);
-        flashLoanLogics[0] = _logicTransferFlashLoanAmount(
-            address(flashLoanCallback),
-            USDC,
-            FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount)
-        );
-        flashLoanLogics[1] = _logicSendNativeToken(user2, nativeAmount);
-        flashLoanLogics[2] = logicSpenderPermit2ERC20PullToken(IERC20(USDT), amount.toUint160());
-        bytes memory userData = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+        bytes memory userData;
+        {
+            IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](3);
+            flashLoanLogics[0] = _logicTransferFlashLoanAmount(
+                address(flashLoanCallback),
+                USDC,
+                FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount)
+            );
+            flashLoanLogics[1] = _logicSendNativeToken(user2, nativeAmount);
+            flashLoanLogics[2] = logicSpenderPermit2ERC20PullToken(IERC20(USDT), amount.toUint160());
+            userData = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+        }
 
         // Get new logics and fees
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -266,10 +268,6 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
             _distributeToken(tokens, amounts);
         }
 
-        // debug
-        for (uint256 i = 0; i < fees.length; i++) {
-            console.log('[%d] token:%s amount:%d', i, fees[i].token, fees[i].amount);
-        }
         // Prepare assert data
         uint256 expectedUSDCFee;
         uint256 expectedUSDTFee;
@@ -295,7 +293,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
             address[] memory tokensReturns = new address[](1);
             tokensReturns[0] = USDT;
             vm.expectEmit(true, true, true, true, address(userAgent));
-            emit FeeCharged(USDC, expectedUSDCFee, META_DATA);
+            emit FeeCharged(USDC, expectedUSDCFee, BALANCER_META_DATA);
             emit FeeCharged(USDT, expectedUSDTFee, PERMIT2_META_DATA);
             emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
             vm.prank(user);
