@@ -92,7 +92,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         vm.label(flashLoanFeeCalculator, 'BalancerFlashLoanFeeCalculator');
         vm.label(nativeFeeCalculator, 'NativeFeeCalculator');
         vm.label(permit2FeeCalculator, 'Permit2FeeCalculator');
-        vm.label(PERMIT2_ADDRESS, 'Permit2Address');
+        vm.label(PERMIT2_ADDRESS, 'Permit2');
         vm.label(address(flashLoanCallback), 'BalancerV2FlashLoanCallback');
         vm.label(BALANCER_V2_VAULT, 'BalancerV2Vault');
         vm.label(USDC, 'USDC');
@@ -263,6 +263,8 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
             logics[0] = _logicBalancerV2FlashLoan(tokens, amounts, userData);
 
             (logics, nativeNewAmount, fees) = router.getLogicsAndFees(logics, nativeAmount);
+
+            // Distribute token
             deal(user, nativeNewAmount);
             deal(USDT, user, FeeCalculatorBase(permit2FeeCalculator).calculateAmountWithFee(amount));
             _distributeToken(tokens, amounts);
@@ -294,8 +296,8 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
             tokensReturns[0] = USDT;
             vm.expectEmit(true, true, true, true, address(userAgent));
             emit FeeCharged(USDC, expectedUSDCFee, BALANCER_META_DATA);
-            emit FeeCharged(USDT, expectedUSDTFee, PERMIT2_META_DATA);
             emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
+            emit FeeCharged(USDT, expectedUSDTFee, PERMIT2_META_DATA);
             vm.prank(user);
             router.execute{value: nativeNewAmount}(logics, fees, tokensReturns, SIGNER_REFERRAL);
         }
