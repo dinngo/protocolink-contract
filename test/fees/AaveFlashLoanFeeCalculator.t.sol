@@ -17,7 +17,7 @@ import {IAaveV2Provider} from 'src/interfaces/aaveV2/IAaveV2Provider.sol';
 import {IAaveV3Provider} from 'src/interfaces/aaveV3/IAaveV3Provider.sol';
 import {SpenderPermitUtils} from 'test/utils/SpenderPermitUtils.sol';
 
-interface IAavePool {
+interface IAaveV3Pool {
     function FLASHLOAN_PREMIUM_TOTAL() external view returns (uint128);
 }
 
@@ -179,6 +179,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         assertEq(newAmounts[0], expectedNewAmount);
     }
 
+    /// This test will do flashloan + send native token(inside flashloan)
     function testChargeFlashLoanV2FeeWithFeeScenarioInside(
         uint256 amount,
         uint256 nativeAmount,
@@ -251,6 +252,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         assertEq(user2.balance - user2NativeBalanceBefore, nativeAmount);
     }
 
+    /// This test will do flashloan + send native token(inside flashloan) + permit2 pull token(inside flashloan)
     function testChargeFlashLoanV2FeeWithTwoFeeScenarioInside(
         uint256 amount,
         uint256 nativeAmount,
@@ -489,7 +491,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         if (isAaveV2) {
             fee = (amount * 9) / BPS_BASE;
         } else {
-            uint256 percentage = IAavePool(v3Pool).FLASHLOAN_PREMIUM_TOTAL();
+            uint256 percentage = IAaveV3Pool(v3Pool).FLASHLOAN_PREMIUM_TOTAL();
             fee = _percentMul(amount, percentage);
         }
         return fee;

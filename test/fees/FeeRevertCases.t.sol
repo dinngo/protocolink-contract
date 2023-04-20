@@ -12,7 +12,7 @@ import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IAaveV2Provider} from 'src/interfaces/aaveV2/IAaveV2Provider.sol';
 
-contract FeeVerifyFailCasesTest is Test {
+contract FeeRevertCasesTest is Test {
     enum InterestRateMode {
         NONE,
         STABLE,
@@ -23,6 +23,7 @@ contract FeeVerifyFailCasesTest is Test {
     address public constant AAVE_V2_PROVIDER = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
     address public constant AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address public constant DUMMY_TO_ADDRESS = address(0);
     bytes4 public constant AAVE_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)')));
@@ -83,6 +84,17 @@ contract FeeVerifyFailCasesTest is Test {
         vm.label(USDC, 'USDC');
     }
 
+    function testInvalidFeeRateSender() external {
+        vm.expectRevert(FeeCalculatorBase.InvalidSender.selector);
+        vm.prank(user);
+        FeeCalculatorBase(nativeFeeCalculator).setFeeRate(99);
+    }
+
+    function testInvalidFeeRate() external {
+        vm.expectRevert(FeeCalculatorBase.InvalidRate.selector);
+        FeeCalculatorBase(nativeFeeCalculator).setFeeRate(BPS_BASE);
+    }
+
     function testFeeLessThanExpected() external {
         IParam.Logic[] memory logics = _buildFlashLoanLogics();
 
@@ -113,6 +125,27 @@ contract FeeVerifyFailCasesTest is Test {
         vm.expectRevert(IRouter.FeeVerificationFailed.selector);
         vm.prank(user);
         router.execute(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
+    }
+
+    function testFeeTokenMoreThanExpected() external {
+        IParam.Logic[] memory logics = _buildFlashLoanLogics();
+
+        // Get new logics and fees
+        IParam.Fee[] memory fees;
+        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+
+        // Add one more token to fees
+        IParam.Fee[] memory fees2 = new IParam.Fee[](fees.length + 1);
+        for (uint256 i = 0; i < fees.length; ++i) {
+            fees2[i] = fees[i];
+        }
+        fees2[fees.length].token = USDT;
+        fees2[fees.length].amount = 1;
+
+        // Execute
+        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
+        vm.prank(user);
+        router.execute(logics, fees2, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function testEmptyFees() external {

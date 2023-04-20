@@ -12,6 +12,8 @@ import {IDSProxy} from 'src/interfaces/maker/IDSProxy.sol';
 import {MakerCommonUtils, IDSProxyRegistry} from 'test/utils/MakerCommonUtils.sol';
 
 contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
+    event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
+
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant DUMMY_TO_ADDRESS = address(0);
     bytes4 public constant DSPROXY_EXECUTE_SELECTOR = bytes4(keccak256(bytes('execute(address,bytes)')));
@@ -21,6 +23,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
     uint256 public constant DRAW_DATA_END_INDEX = 264;
     uint256 public constant SIGNER_REFERRAL = 1;
     uint256 public constant BPS_BASE = 10_000;
+    bytes32 public constant META_DATA = bytes32(bytes('maker:borrow'));
 
     address public user;
     address public userDSProxy;
@@ -33,8 +36,8 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Input[] public inputsEmpty;
     IParam.Fee[] public feesEmpty;
+    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -93,27 +96,46 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         _makerCommonSetUp();
     }
 
-    function testChargeZeroDrawFee(uint256 amount) external {
-        // ETH_LOCK_AMOUNT * price(assume ETH price is 1000) * 60%(LTV)
-        uint256 estimateDaiDrawMaxAmount = (ETH_LOCK_AMOUNT * 1000 * 60) / 100;
-        amount = bound(amount, 1, estimateDaiDrawMaxAmount);
-
-        _executeAndVerify(amount);
-    }
-
     function testChargeDrawFee(uint256 amount, uint256 feeRate) external {
         // ETH_LOCK_AMOUNT * price(assume ETH price is 1000) * 60%(LTV)
         uint256 estimateDaiDrawMaxAmount = (ETH_LOCK_AMOUNT * 1000 * 60) / 100;
         amount = bound(amount, 1, estimateDaiDrawMaxAmount);
-        feeRate = bound(feeRate, 1, BPS_BASE - 1);
+        feeRate = bound(feeRate, 0, BPS_BASE - 1);
 
         // Set fee rate
         FeeCalculatorBase(makerDrawFeeCalculator).setFeeRate(feeRate);
 
-        _executeAndVerify(amount);
+        // Encode logic
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicDraw(ethCdp, amount);
+
+        // Get new logics
+        IParam.Fee[] memory fees;
+        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+
+        // Prepare assert data
+        uint256 expectedNewAmount = FeeCalculatorBase(makerDrawFeeCalculator).calculateAmountWithFee(amount);
+        uint256 expectedFee = FeeCalculatorBase(makerDrawFeeCalculator).calculateFee(expectedNewAmount);
+        uint256 newAmount = this.decodeDrawAmount(logics[0]);
+        uint256 userDaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user);
+        uint256 feeCollectorBalanceBefore = IERC20(DAI_TOKEN).balanceOf(feeCollector);
+
+        // Execute
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = DAI_TOKEN;
+        vm.expectEmit(true, true, true, true, address(userAgent));
+        emit FeeCharged(DAI_TOKEN, expectedFee, META_DATA);
+        vm.prank(user);
+        router.execute(logics, fees, tokensReturn, SIGNER_REFERRAL);
+
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(address(userAgent)), 0);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
+        assertEq(IERC20(DAI_TOKEN).balanceOf(user) - userDaiBalanceBefore, amount);
+        assertEq(newAmount, expectedNewAmount);
     }
 
-    // Should be no impact on other maker action
+    /// Should be no impact on other maker action
     function testOtherAction() external {
         // Setup
         uint256 freeETHAmount = 1 ether;
@@ -148,35 +170,6 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         );
 
         return amount;
-    }
-
-    function _executeAndVerify(uint256 amount) internal {
-        // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicDraw(ethCdp, amount);
-
-        // Get new logics
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
-
-        // Prepare assert data
-        uint256 expectedNewAmount = FeeCalculatorBase(makerDrawFeeCalculator).calculateAmountWithFee(amount);
-        uint256 expectedFee = FeeCalculatorBase(makerDrawFeeCalculator).calculateFee(expectedNewAmount);
-        uint256 newAmount = this.decodeDrawAmount(logics[0]);
-        uint256 userDaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user);
-        uint256 feeCollectorBalanceBefore = IERC20(DAI_TOKEN).balanceOf(feeCollector);
-
-        // Execute
-        address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(DAI_TOKEN);
-        vm.prank(user);
-        router.execute(logics, fees, tokensReturn, SIGNER_REFERRAL);
-
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(address(userAgent)), 0);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
-        assertEq(IERC20(DAI_TOKEN).balanceOf(user) - userDaiBalanceBefore, amount);
-        assertEq(newAmount, expectedNewAmount);
     }
 
     function _logicBuildDSProxy() internal view returns (IParam.Logic[] memory) {

@@ -9,6 +9,8 @@ import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 
 contract NativeFeeCalculatorTest is Test {
+    event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
+
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant DUMMY_TO_ADDRESS = address(0);
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
@@ -16,6 +18,7 @@ contract NativeFeeCalculatorTest is Test {
     uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
     uint256 public constant SIGNER_REFERRAL = 1;
     uint256 public constant BPS_BASE = 10_000;
+    bytes32 public constant META_DATA = bytes32(bytes('native-token'));
 
     address public user;
     address public receiver;
@@ -33,6 +36,7 @@ contract NativeFeeCalculatorTest is Test {
         feeCollector = makeAddr('FeeCollector');
         address pauser = makeAddr('Pauser');
         router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
+        vm.prank(user);
         userAgent = IAgent(router.newAgent());
 
         // Deploy native fee calculator
@@ -51,61 +55,6 @@ contract NativeFeeCalculatorTest is Test {
         vm.label(address(userAgent), 'UserAgent');
         vm.label(feeCollector, 'FeeCollector');
         vm.label(nativeFeeCalculator, 'NativeFeeCalculator');
-    }
-
-    function testInvalidFeeRateSender() external {
-        vm.expectRevert(FeeCalculatorBase.InvalidSender.selector);
-        vm.prank(user);
-        FeeCalculatorBase(nativeFeeCalculator).setFeeRate(99);
-    }
-
-    function testInvalidFeeRate() external {
-        vm.expectRevert(FeeCalculatorBase.InvalidRate.selector);
-        FeeCalculatorBase(nativeFeeCalculator).setFeeRate(BPS_BASE);
-    }
-
-    function testFeeVerificationFailed() external {
-        uint256 value = 1 ether;
-        uint256 feeRate = 20;
-
-        // Set fee rate
-        FeeCalculatorBase(nativeFeeCalculator).setFeeRate(feeRate);
-
-        // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicSendNative(value);
-
-        // Get new logics and msgValue
-        IParam.Fee[] memory fees;
-        uint256 newValue;
-        (logics, newValue, fees) = router.getLogicsAndFees(logics, value);
-        deal(user, newValue);
-
-        // Modify fees
-        fees[0].amount -= 1;
-
-        // Execute
-        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
-        vm.prank(user);
-        router.execute{value: newValue}(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
-    }
-
-    function testEmptyFees() external {
-        uint256 value = 1 ether;
-        uint256 feeRate = 20;
-        deal(user, value);
-
-        // Set fee rate
-        FeeCalculatorBase(nativeFeeCalculator).setFeeRate(feeRate);
-
-        // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicSendNative(value);
-
-        // Execute
-        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
-        vm.prank(user);
-        router.execute{value: value}(logics, new IParam.Fee[](0), tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function testChargeNativeFee(uint256 value, uint256 feeRate) external {
@@ -131,6 +80,8 @@ contract NativeFeeCalculatorTest is Test {
         uint256 expectedFee = FeeCalculatorBase(nativeFeeCalculator).calculateFee(newValue);
 
         // Execute
+        vm.expectEmit(true, true, true, true, address(userAgent));
+        emit FeeCharged(NATIVE, expectedFee, META_DATA);
         vm.prank(user);
         router.execute{value: newValue}(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
 
