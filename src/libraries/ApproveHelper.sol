@@ -19,13 +19,6 @@ library ApproveHelper {
         }
     }
 
-    function _approve(address token, address to, uint256 amount) internal {
-        try IERC20Usdt(token).approve(to, amount) {} catch {
-            IERC20Usdt(token).approve(to, 0);
-            IERC20Usdt(token).approve(to, amount);
-        }
-    }
-
     function _approveZero(address token, address to) internal {
         if (IERC20Usdt(token).allowance(address(this), to) > 0) {
             try IERC20Usdt(token).approve(to, 0) {} catch {
