@@ -59,8 +59,6 @@ interface IRouter {
 
     function domainSeparator() external view returns (bytes32);
 
-    function getAgent() external view returns (address);
-
     function getAgent(address user) external view returns (address);
 
     function getUserAgent() external view returns (address, address);

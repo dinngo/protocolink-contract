@@ -26,7 +26,7 @@ contract BalancerV2FlashLoanCallback is IBalancerV2FlashLoanCallback {
         bytes calldata userData
     ) external {
         if (msg.sender != balancerV2Vault) revert InvalidCaller();
-        address agent = IRouter(router).getAgent();
+        (, address agent) = IRouter(router).getUserAgent();
 
         // Transfer tokens to Router and record initial balances
         uint256 tokensLength = tokens.length;
