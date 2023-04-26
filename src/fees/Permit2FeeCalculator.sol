@@ -8,7 +8,7 @@ import {IParam} from '../interfaces/IParam.sol';
 contract Permit2FeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 internal constant _META_DATA = bytes32(bytes('permit2:pull-token'));
 
-    constructor(address router, uint256 feeRate) FeeCalculatorBase(router, feeRate) {}
+    constructor(address router_, uint256 feeRate_) FeeCalculatorBase(router_, feeRate_) {}
 
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         to;
