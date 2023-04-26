@@ -12,7 +12,7 @@ contract AaveBorrowFeeCalculator is IFeeCalculator, FeeCalculatorBase {
 
     address public immutable aaveV3Provider;
 
-    constructor(address router, uint256 feeRate, address aaveV3Provider_) FeeCalculatorBase(router, feeRate) {
+    constructor(address router_, uint256 feeRate_, address aaveV3Provider_) FeeCalculatorBase(router_, feeRate_) {
         aaveV3Provider = aaveV3Provider_;
     }
 

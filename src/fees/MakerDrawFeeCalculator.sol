@@ -16,7 +16,7 @@ contract MakerDrawFeeCalculator is IFeeCalculator, FeeCalculatorBase {
 
     address public daiToken;
 
-    constructor(address router, uint256 feeRate, address daiToken_) FeeCalculatorBase(router, feeRate) {
+    constructor(address router_, uint256 feeRate_, address daiToken_) FeeCalculatorBase(router_, feeRate_) {
         daiToken = daiToken_;
     }
 
