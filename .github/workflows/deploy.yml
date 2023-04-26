@@ -7,9 +7,6 @@ on:
   pull_request:
     branches: [master]
 
-env:
-  FOUNDRY_PROFILE: ci
-
 jobs:
   check:
     strategy:
@@ -35,11 +32,11 @@ jobs:
 
       - name: Run Forge anvil
         run: |
-          anvil --fork-url ${{ secrets.RPC_URL }} &
+          anvil --fork-url https://rpc.ankr.com/eth &
           sleep 10
         id: anvil
 
       - name: Run Forge scripts
         run: |
-          forge script --broadcast --rpc-url ${{ secrets.LOCAL_RPC_URL }} --private-key ${{ secrets.PRIVATE_KEY }} --sig 'run(string)' script/DeployAll.s.sol:DeployAll script/deployParameters/local.json
+          forge script --broadcast --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --sig 'run(string)' script/DeployAll.s.sol:DeployAll script/deployParameters/local.json
         id: script
