@@ -9,7 +9,7 @@ import {IParam} from '../interfaces/IParam.sol';
 contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 private constant _META_DATA = bytes32(bytes('balancer-v2:flashloan'));
 
-    constructor(address router, uint256 feeRate) FeeCalculatorBase(router, feeRate) {}
+    constructor(address router_, uint256 feeRate_) FeeCalculatorBase(router_, feeRate_) {}
 
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         to;
