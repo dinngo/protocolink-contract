@@ -65,10 +65,6 @@ contract Router is IRouter, EIP712, FeeVerifier {
         return _domainSeparatorV4();
     }
 
-    function getAgent() external view returns (address) {
-        return address(agents[user]);
-    }
-
     function getAgent(address owner_) external view returns (address) {
         return address(agents[owner_]);
     }

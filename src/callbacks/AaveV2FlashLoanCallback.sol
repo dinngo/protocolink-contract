@@ -36,7 +36,7 @@ contract AaveV2FlashLoanCallback is IAaveV2FlashLoanCallback {
         address pool = IAaveV2Provider(aaveV2Provider).getLendingPool();
 
         if (msg.sender != pool) revert InvalidCaller();
-        address agent = IRouter(router).getAgent();
+        (, address agent) = IRouter(router).getUserAgent();
 
         // Transfer assets to Agent and record initial balances
         uint256 assetsLength = assets.length;

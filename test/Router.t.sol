@@ -147,13 +147,13 @@ contract RouterTest is Test, LogicSignature {
         );
         vm.prank(user);
         router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
-        agent = router.getAgent();
+        (, agent) = router.getUserAgent();
         // The executing agent should be reset to 0
         assertEq(agent, address(0));
     }
 
     function checkExecutingAgent(address agent) external view {
-        address executingAgent = router.getAgent();
+        (, address executingAgent) = router.getUserAgent();
         if (agent != executingAgent) revert();
     }
 
