@@ -5,21 +5,21 @@ import {Test} from 'forge-std/Test.sol';
 import {IERC721} from 'openzeppelin-contracts/contracts/token/ERC721/ERC721.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 
-contract SpenderERC721Utils is Test {
+contract ERC721Utils is Test {
     address internal _erc721User;
-    address internal _erc721Spender;
+    address internal _erc721Agent;
 
-    function spenderERC721SetUp(address user_, address agent_) internal {
+    function erc721UtilsSetUp(address user_, address agent_) internal {
         _erc721User = user_;
-        _erc721Spender = agent_;
+        _erc721Agent = agent_;
     }
 
     function permitERC721Token(address token) internal {
         vm.prank(_erc721User);
-        IERC721(token).setApprovalForAll(address(_erc721Spender), true);
+        IERC721(token).setApprovalForAll(address(_erc721Agent), true);
     }
 
-    function logicSpenderERC721PullToken(address token, uint256 tokenId) internal view returns (IParam.Logic memory) {
+    function logicERC721PullToken(address token, uint256 tokenId) internal view returns (IParam.Logic memory) {
         IParam.Input[] memory inputsEmpty;
         return
             IParam.Logic(
@@ -27,7 +27,7 @@ contract SpenderERC721Utils is Test {
                 abi.encodeWithSignature(
                     'safeTransferFrom(address,address,uint256)',
                     _erc721User,
-                    _erc721Spender,
+                    _erc721Agent,
                     tokenId
                 ),
                 inputsEmpty,

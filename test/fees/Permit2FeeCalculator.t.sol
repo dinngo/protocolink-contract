@@ -9,9 +9,9 @@ import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
 import {Permit2FeeCalculator} from 'src/fees/Permit2FeeCalculator.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
-import {SpenderPermitUtils} from 'test/utils/SpenderPermitUtils.sol';
+import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
 
-contract Permit2FeeCalculatorTest is Test, SpenderPermitUtils {
+contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
     using SafeCast160 for uint256;
 
     bytes4 public constant PERMIT2_TRANSFER_FROM_SELECTOR =
@@ -43,7 +43,7 @@ contract Permit2FeeCalculatorTest is Test, SpenderPermitUtils {
         permit2FeeCalculator = address(new Permit2FeeCalculator(address(router), 0));
 
         // Setup permit2
-        spenderSetUp(user, userPrivateKey, router, userAgent);
+        erc20Permit2UtilsSetUp(user, userPrivateKey, address(userAgent));
         permitToken(USDC);
 
         // Setup fee calculator
@@ -71,7 +71,7 @@ contract Permit2FeeCalculatorTest is Test, SpenderPermitUtils {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = logicSpenderPermit2ERC20PullToken(USDC, amount.toUint160());
+        logics[0] = logicERC20Permit2PullToken(USDC, amount.toUint160());
 
         // Get new logics
         IParam.Fee[] memory fees;

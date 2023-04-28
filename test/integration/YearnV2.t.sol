@@ -6,7 +6,7 @@ import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ut
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
+import {ERC20Permit2Utils} from '../utils/ERC20Permit2Utils.sol';
 
 interface IYVault {
     function deposit(uint256) external;
@@ -15,7 +15,7 @@ interface IYVault {
 }
 
 // Test Yearn V2 which is also an ERC20-compliant token
-contract YearnV2Test is Test, SpenderPermitUtils {
+contract YearnV2Test is Test, ERC20Permit2Utils {
     using SafeERC20 for IERC20;
 
     IERC20 public constant USDT = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7); // USDT
@@ -39,7 +39,7 @@ contract YearnV2Test is Test, SpenderPermitUtils {
         agent = IAgent(router.newAgent());
 
         // User permit token
-        spenderSetUp(user, userPrivateKey, router, agent);
+        erc20Permit2UtilsSetUp(user, userPrivateKey, address(agent));
         permitToken(USDT);
 
         vm.label(address(router), 'Router');
@@ -55,7 +55,7 @@ contract YearnV2Test is Test, SpenderPermitUtils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, uint160(amountIn));
+        logics[0] = logicERC20Permit2PullToken(tokenIn, uint160(amountIn));
         logics[1] = _logicYearn(tokenIn, amountIn, BPS_BASE);
 
         // Execute

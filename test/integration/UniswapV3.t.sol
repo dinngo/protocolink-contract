@@ -7,8 +7,8 @@ import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
-import {SpenderERC721Utils} from '../utils/SpenderERC721Utils.sol';
+import {ERC20Permit2Utils} from '../utils/ERC20Permit2Utils.sol';
+import {ERC721Utils} from '../utils/ERC721Utils.sol';
 
 interface INonfungiblePositionManager {
     function positions(
@@ -88,7 +88,7 @@ interface INonfungiblePositionManager {
     function setApprovalForAll(address operator, bool _approved) external;
 }
 
-contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
+contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
     using SafeERC20 for IERC20;
     using SafeCast160 for uint256;
 
@@ -125,10 +125,10 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
         agent = IAgent(router.newAgent());
 
         // User permit token
-        spenderSetUp(user, userPrivateKey, router, agent);
+        erc20Permit2UtilsSetUp(user, userPrivateKey, address(agent));
         permitToken(USDT);
         permitToken(USDC);
-        spenderERC721SetUp(user, address(router));
+        erc721UtilsSetUp(user, address(router));
         permitERC721Token(address(NON_FUNGIBLE_POSITION_MANAGER));
 
         vm.label(address(router), 'Router');
@@ -177,8 +177,8 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn0, amountIn0.toUint160());
-        logics[1] = logicSpenderPermit2ERC20PullToken(tokenIn1, amountIn1.toUint160());
+        logics[0] = logicERC20Permit2PullToken(tokenIn0, amountIn0.toUint160());
+        logics[1] = logicERC20Permit2PullToken(tokenIn1, amountIn1.toUint160());
         logics[2] = _logicUniswapV3MintLiquidityNFT(tokenIn0, tokenIn1, amountIn0, amountIn1, mintParams);
 
         address[] memory tokensReturn = new address[](2);
@@ -248,8 +248,8 @@ contract UniswapV3Test is Test, SpenderPermitUtils, SpenderERC721Utils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn0, amountIn0.toUint160());
-        logics[1] = logicSpenderPermit2ERC20PullToken(tokenIn1, amountIn1.toUint160());
+        logics[0] = logicERC20Permit2PullToken(tokenIn0, amountIn0.toUint160());
+        logics[1] = logicERC20Permit2PullToken(tokenIn1, amountIn1.toUint160());
         logics[2] = _logicUniswapV3IncreaseLiquidity(tokenIn0, tokenIn1, amountIn0, amountIn1, increaseParams);
 
         address[] memory tokensReturn = new address[](2);

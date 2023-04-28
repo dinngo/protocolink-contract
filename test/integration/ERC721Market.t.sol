@@ -8,11 +8,11 @@ import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
-import {SpenderERC721Utils} from '../utils/SpenderERC721Utils.sol';
+import {ERC20Permit2Utils} from '../utils/ERC20Permit2Utils.sol';
+import {ERC721Utils} from '../utils/ERC721Utils.sol';
 import {MockERC721Market} from '../mocks/MockERC721Market.sol';
 
-contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
+contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
     using SafeERC20 for IERC20;
     using SafeCast160 for uint256;
 
@@ -40,9 +40,9 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
         nft = IERC721(address(market.nft()));
 
         // User permit token
-        spenderSetUp(user, userPrivateKey, router, agent);
+        erc20Permit2UtilsSetUp(user, userPrivateKey, address(agent));
         permitToken(USDC);
-        spenderERC721SetUp(user, address(agent));
+        erc721UtilsSetUp(user, address(agent));
         permitERC721Token(address(nft));
 
         vm.label(address(router), 'Router');
@@ -60,7 +60,7 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
+        logics[0] = logicERC20Permit2PullToken(tokenIn, amountIn.toUint160());
         logics[1] = _logicERC721MarketTokenToNFT(tokenIn, amountIn, tokenId, user);
 
         address[] memory tokensReturn = new address[](1);
@@ -90,7 +90,7 @@ contract ERC721MarketTest is Test, SpenderPermitUtils, SpenderERC721Utils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicSpenderERC721PullToken(address(nft), tokenId);
+        logics[0] = logicERC721PullToken(address(nft), tokenId);
         logics[1] = _logicERC721Approval(nft, address(market));
         logics[2] = _logicERC721MarketNFTToToken(tokenId);
 

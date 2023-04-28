@@ -7,7 +7,7 @@ import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
+import {ERC20Permit2Utils} from '../utils/ERC20Permit2Utils.sol';
 
 interface IUniswapV2Factory {
     function getPair(address tokenA, address tokenB) external view returns (address pair);
@@ -49,7 +49,7 @@ interface IUniswapV2Router02 {
 }
 
 // Test Uniswap whose Router is not ERC20-compliant token
-contract UniswapV2Test is Test, SpenderPermitUtils {
+contract UniswapV2Test is Test, ERC20Permit2Utils {
     using SafeERC20 for IERC20;
     using SafeCast160 for uint256;
 
@@ -77,7 +77,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
         agent = IAgent(router.newAgent());
 
         // User permit token
-        spenderSetUp(user, userPrivateKey, router, agent);
+        erc20Permit2UtilsSetUp(user, userPrivateKey, address(agent));
         permitToken(USDT);
         permitToken(USDC);
 
@@ -129,7 +129,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
+        logics[0] = logicERC20Permit2PullToken(tokenIn, amountIn.toUint160());
         logics[1] = _logicUniswapV2Swap(tokenIn, amountIn, SKIP, tokenOut, IParam.WrapMode.UNWRAP_AFTER); // Fixed amount
 
         // Execute
@@ -155,7 +155,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
+        logics[0] = logicERC20Permit2PullToken(tokenIn, amountIn.toUint160());
         logics[1] = _logicUniswapV2Swap(tokenIn, amountIn / 2, BPS_BASE, tokenOut, IParam.WrapMode.NONE);
 
         // Execute
@@ -186,7 +186,7 @@ contract UniswapV2Test is Test, SpenderPermitUtils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](5);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn0, amountIn0.toUint160());
+        logics[0] = logicERC20Permit2PullToken(tokenIn0, amountIn0.toUint160());
         logics[1] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1, IParam.WrapMode.NONE); // Swap 50% amountIn0 to amountIn1
         logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1); // Add liquidity with 50% amountIn0 and all amountIn1
         logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, 0, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity

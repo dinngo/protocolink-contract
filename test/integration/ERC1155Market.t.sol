@@ -8,11 +8,11 @@ import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {SpenderPermitUtils} from '../utils/SpenderPermitUtils.sol';
-import {SpenderERC1155Utils} from '../utils/SpenderERC1155Utils.sol';
+import {ERC20Permit2Utils} from '../utils/ERC20Permit2Utils.sol';
+import {ERC1155Utils} from '../utils/ERC1155Utils.sol';
 import {MockERC1155Market} from '../mocks/MockERC1155Market.sol';
 
-contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
+contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
     using SafeERC20 for IERC20;
     using SafeCast160 for uint256;
 
@@ -40,9 +40,9 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
         nft = IERC1155(address(market.nft()));
 
         // User permit token
-        spenderSetUp(user, userPrivateKey, router, agent);
+        erc20Permit2UtilsSetUp(user, userPrivateKey, address(agent));
         permitToken(USDC);
-        spenderERC1155SetUp(user, address(agent));
+        erc1155UtilsSetUp(user, address(agent));
         permitERC1155Token(address(nft));
 
         vm.label(address(router), 'Router');
@@ -61,7 +61,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
+        logics[0] = logicERC20Permit2PullToken(tokenIn, amountIn.toUint160());
         logics[1] = _logicERC1155MarketTokenToNFT(tokenIn, amountIn, tokenId, amount, user);
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenIn);
@@ -91,7 +91,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicSpenderERC1155PullToken(address(nft), tokenId, amount);
+        logics[0] = logicERC1155PullToken(address(nft), tokenId, amount);
         logics[1] = _logicERC1155Approval(nft, address(market));
         logics[2] = _logicERC1155MarketNFTToToken(tokenId, amount);
         address[] memory tokensReturn = new address[](1);
@@ -119,7 +119,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicSpenderPermit2ERC20PullToken(tokenIn, amountIn.toUint160());
+        logics[0] = logicERC20Permit2PullToken(tokenIn, amountIn.toUint160());
         logics[1] = _logicERC1155MarketTokenToNFTBatch(tokenIn, amountIn, tokenId, amount, user);
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenIn);
@@ -149,7 +149,7 @@ contract ERC1155MarketTest is Test, SpenderPermitUtils, SpenderERC1155Utils {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicSpenderERC1155PullToken(address(nft), tokenId, amount);
+        logics[0] = logicERC1155PullToken(address(nft), tokenId, amount);
         logics[1] = _logicERC1155Approval(nft, address(market));
         logics[2] = _logicERC1155MarketNFTBatchToToken(tokenId, amount);
         address[] memory tokensReturn = new address[](1);
