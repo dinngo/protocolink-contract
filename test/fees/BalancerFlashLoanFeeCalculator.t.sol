@@ -12,9 +12,9 @@ import {BalancerFlashLoanFeeCalculator} from 'src/fees/BalancerFlashLoanFeeCalcu
 import {NativeFeeCalculator} from 'src/fees/NativeFeeCalculator.sol';
 import {Permit2FeeCalculator} from 'src/fees/Permit2FeeCalculator.sol';
 import {BalancerV2FlashLoanCallback, IBalancerV2FlashLoanCallback} from 'src/callbacks/BalancerV2FlashLoanCallback.sol';
-import {SpenderPermitUtils} from 'test/utils/SpenderPermitUtils.sol';
+import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
 
-contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
+contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     using SafeCast160 for uint256;
 
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
@@ -83,7 +83,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         router.setFeeCalculators(selectors, tos, feeCalculators);
 
         // Setup permit2
-        spenderSetUp(user, userPrivateKey, router, userAgent);
+        erc20Permit2UtilsSetUp(user, userPrivateKey, address(userAgent));
         permitToken(IERC20(USDT));
 
         vm.label(address(router), 'Router');
@@ -244,7 +244,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
                 FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount)
             );
             flashLoanLogics[1] = _logicSendNativeToken(user2, nativeAmount);
-            flashLoanLogics[2] = logicSpenderPermit2ERC20PullToken(IERC20(USDT), amount.toUint160());
+            flashLoanLogics[2] = logicERC20Permit2PullToken(IERC20(USDT), amount.toUint160());
             userData = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
         }
 

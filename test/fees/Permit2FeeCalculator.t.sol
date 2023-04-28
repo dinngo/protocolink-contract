@@ -47,7 +47,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
 
         // Setup permit2
         erc20Permit2UtilsSetUp(user, userPrivateKey, address(userAgent));
-        permitToken(USDC);
+        permitToken(IERC20(USDC));
 
         // Setup fee calculator
         bytes4[] memory selectors = new bytes4[](1);
@@ -74,7 +74,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = logicERC20Permit2PullToken(USDC, amount.toUint160());
+        logics[0] = logicERC20Permit2PullToken(IERC20(USDC), amount.toUint160());
 
         // Get new logics
         IParam.Fee[] memory fees;

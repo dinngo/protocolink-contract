@@ -15,13 +15,13 @@ import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IAaveV2Provider} from 'src/interfaces/aaveV2/IAaveV2Provider.sol';
 import {IAaveV3Provider} from 'src/interfaces/aaveV3/IAaveV3Provider.sol';
-import {SpenderPermitUtils} from 'test/utils/SpenderPermitUtils.sol';
+import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
 
 interface IAaveV3Pool {
     function FLASHLOAN_PREMIUM_TOTAL() external view returns (uint128);
 }
 
-contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
+contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     using SafeCast160 for uint256;
 
     enum InterestRateMode {
@@ -107,7 +107,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         router.setFeeCalculators(selectors, tos, feeCalculators);
 
         // Setup permit2
-        spenderSetUp(user, userPrivateKey, router, userAgent);
+        erc20Permit2UtilsSetUp(user, userPrivateKey, address(userAgent));
         permitToken(IERC20(USDT));
 
         vm.label(address(router), 'Router');
@@ -280,7 +280,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
                 true
             );
             flashLoanLogics[1] = _logicSendNativeToken(user2, nativeAmount);
-            flashLoanLogics[2] = logicSpenderPermit2ERC20PullToken(IERC20(USDT), amount.toUint160());
+            flashLoanLogics[2] = logicERC20Permit2PullToken(IERC20(USDT), amount.toUint160());
             params = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
         }
 
