@@ -7,11 +7,11 @@ import {Router, IRouter} from 'src/Router.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IDSProxy} from 'src/interfaces/maker/IDSProxy.sol';
-import {SpenderPermitUtils} from 'test/utils/SpenderPermitUtils.sol';
+import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
 import {MakerCommonUtils, IMakerManager, IMakerVat, IDSProxyRegistry} from 'test/utils/MakerCommonUtils.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 
-contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
+contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     using SafeCast160 for uint256;
 
     uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
@@ -108,7 +108,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
         vm.stopPrank();
 
         // Setup permit2
-        spenderSetUp(user2, user2PrivateKey, router, user2Agent);
+        erc20Permit2UtilsSetUp(user2, user2PrivateKey, address(user2Agent));
         permitToken(IERC20(GEM));
         permitToken(IERC20(DAI_TOKEN));
 
@@ -215,7 +215,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicSpenderPermit2ERC20PullToken(IERC20(GEM), lockGemAmount.toUint160());
+        logics[0] = logicERC20Permit2PullToken(IERC20(GEM), lockGemAmount.toUint160());
         logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, GEM, lockGemAmount);
         logics[2] = _logicLockGem(gemCdp, lockGemAmount);
 
@@ -264,7 +264,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicSpenderPermit2ERC20PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
+        logics[0] = logicERC20Permit2PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
         logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
         logics[2] = _logicWipe(gemCdp, wipeAmount);
 
@@ -291,7 +291,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicSpenderPermit2ERC20PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
+        logics[0] = logicERC20Permit2PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
         logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
         logics[2] = _logicWipeAll(gemCdp);
 

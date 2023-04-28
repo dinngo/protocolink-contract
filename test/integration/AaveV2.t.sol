@@ -104,7 +104,7 @@ contract AaveV2IntegrationTest is Test {
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicSpenderAaveV2Delegation(tokenOut, amountIn, uint256(InterestRateMode.VARIABLE));
+        logics[0] = _logicAaveV2Borrow(tokenOut, amountIn, uint256(InterestRateMode.VARIABLE));
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -146,7 +146,7 @@ contract AaveV2IntegrationTest is Test {
         assertEq(token.balanceOf(user), 0);
     }
 
-    function _logicSpenderAaveV2Delegation(
+    function _logicAaveV2Borrow(
         IERC20 token,
         uint256 amount,
         uint256 interestRateMode

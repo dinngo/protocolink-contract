@@ -7,11 +7,11 @@ import {MakerUtility, IMakerUtility} from 'src/utilities/MakerUtility.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {SpenderPermitUtils} from 'test/utils/SpenderPermitUtils.sol';
+import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
 import {MakerCommonUtils, IMakerManager, IMakerVat, IDSProxyRegistry} from 'test/utils/MakerCommonUtils.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 
-contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
+contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     using SafeCast160 for uint256;
 
     uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
@@ -43,7 +43,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
         vm.stopPrank();
 
         // Setup permit2
-        spenderSetUp(user, userPrivateKey, router, agent);
+        erc20Permit2UtilsSetUp(user, userPrivateKey, address(agent));
         permitToken(IERC20(GEM));
 
         // Label
@@ -106,7 +106,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, SpenderPermitUtils {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicSpenderPermit2ERC20PullToken(IERC20(GEM), tokenLockAmount.toUint160());
+        logics[0] = logicERC20Permit2PullToken(IERC20(GEM), tokenLockAmount.toUint160());
         logics[1] = _logicTransferERC20ToMakerUtility(GEM, tokenLockAmount);
         logics[2] = _logicOpenLockGemAndDraw(tokenLockAmount, daiDrawAmount);
 

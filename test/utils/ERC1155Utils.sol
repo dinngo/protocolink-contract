@@ -5,21 +5,21 @@ import {Test} from 'forge-std/Test.sol';
 import {IERC1155} from 'openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 
-contract SpenderERC1155Utils is Test {
+contract ERC1155Utils is Test {
     address internal _erc1155User;
-    address internal _erc1155Spender;
+    address internal _erc1155Agent;
 
-    function spenderERC1155SetUp(address user_, address agent_) internal {
+    function erc1155UtilsSetUp(address user_, address agent_) internal {
         _erc1155User = user_;
-        _erc1155Spender = agent_;
+        _erc1155Agent = agent_;
     }
 
     function permitERC1155Token(address token) internal {
         vm.prank(_erc1155User);
-        IERC1155(token).setApprovalForAll(address(_erc1155Spender), true);
+        IERC1155(token).setApprovalForAll(address(_erc1155Agent), true);
     }
 
-    function logicSpenderERC1155PullToken(
+    function logicERC1155PullToken(
         address token,
         uint256 tokenId,
         uint256 amount
@@ -36,7 +36,7 @@ contract SpenderERC1155Utils is Test {
                 abi.encodeWithSignature(
                     'safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)',
                     _erc1155User,
-                    _erc1155Spender,
+                    _erc1155Agent,
                     tokenIds,
                     amounts,
                     ''
