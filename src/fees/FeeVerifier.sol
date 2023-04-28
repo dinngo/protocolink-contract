@@ -66,7 +66,7 @@ abstract contract FeeVerifier is Ownable {
         IParam.Fee[] memory tempFees = new IParam.Fee[](32); // Create a temporary `tempFees` with size 32 to store fee
         uint256 realFeeLength;
         uint256 logicsLength = logics.length;
-        for (uint256 i = 0; i < logicsLength; ++i) {
+        for (uint256 i = 0; i < logicsLength; ) {
             bytes memory data = logics[i].data;
             bytes4 selector = bytes4(data);
             address to = logics[i].to;
@@ -82,8 +82,16 @@ abstract contract FeeVerifier is Ownable {
                 continue; // No need to charge fee
             }
 
-            for (uint256 feeIndex = 0; feeIndex < feesByLogicLength; ++feeIndex) {
+            for (uint256 feeIndex = 0; feeIndex < feesByLogicLength; ) {
                 tempFees[realFeeLength++] = feesByLogic[feeIndex];
+
+                unchecked {
+                    ++feeIndex;
+                }
+            }
+
+            unchecked {
+                ++i;
             }
         }
 
@@ -95,8 +103,12 @@ abstract contract FeeVerifier is Ownable {
 
         // Copy tempFees to fees
         IParam.Fee[] memory fees = new IParam.Fee[](realFeeLength);
-        for (uint256 i = 0; i < realFeeLength; ++i) {
+        for (uint256 i = 0; i < realFeeLength; ) {
             fees[i] = tempFees[i];
+
+            unchecked {
+                ++i;
+            }
         }
 
         return fees;
@@ -109,7 +121,7 @@ abstract contract FeeVerifier is Ownable {
     ) public view returns (bool) {
         uint256 feesLength = fees.length;
         uint256 logicsLength = logics.length;
-        for (uint256 i = 0; i < logicsLength; ++i) {
+        for (uint256 i = 0; i < logicsLength; ) {
             bytes memory data = logics[i].data;
             address to = logics[i].to;
             bytes4 selector = bytes4(data);
@@ -123,8 +135,8 @@ abstract contract FeeVerifier is Ownable {
             uint256 feesByLogicLength = feesByLogic.length;
 
             // Deduct all fee from fees
-            for (uint256 j = 0; j < feesByLogicLength; ++j) {
-                for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+            for (uint256 j = 0; j < feesByLogicLength; ) {
+                for (uint256 feesIndex = 0; feesIndex < feesLength; ) {
                     if (feesByLogic[j].token == fees[feesIndex].token) {
                         if (feesByLogic[j].amount > fees[feesIndex].amount) {
                             feesByLogic[j].amount -= fees[feesIndex].amount;
@@ -135,10 +147,22 @@ abstract contract FeeVerifier is Ownable {
                             break;
                         }
                     }
+
+                    unchecked {
+                        ++feesIndex;
+                    }
                 }
 
                 // Make sure feesByLogic.amount equals 0
                 if (feesByLogic[j].amount > 0) return false;
+
+                unchecked {
+                    ++j;
+                }
+            }
+
+            unchecked {
+                ++i;
             }
         }
 
@@ -146,7 +170,7 @@ abstract contract FeeVerifier is Ownable {
         IFeeCalculator nativeFeeCalculator = getNativeFeeCalculator();
         if (msgValue > 0 && address(nativeFeeCalculator) != address(0)) {
             uint256 nativeFee = nativeFeeCalculator.getFees(_DUMMY_TO_ADDRESS, abi.encodePacked(msgValue))[0].amount;
-            for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+            for (uint256 feesIndex = 0; feesIndex < feesLength; ) {
                 if (fees[feesIndex].token == _NATIVE) {
                     if (nativeFee > fees[feesIndex].amount) {
                         nativeFee -= fees[feesIndex].amount;
@@ -157,6 +181,10 @@ abstract contract FeeVerifier is Ownable {
                         break;
                     }
                 }
+
+                unchecked {
+                    ++feesIndex;
+                }
             }
 
             // Make sure nativeFee equals 0
@@ -164,8 +192,12 @@ abstract contract FeeVerifier is Ownable {
         }
 
         // No overcharging
-        for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
+        for (uint256 feesIndex = 0; feesIndex < feesLength; ) {
             if (fees[feesIndex].amount > 0) return false;
+
+            unchecked {
+                ++feesIndex;
+            }
         }
 
         return true;

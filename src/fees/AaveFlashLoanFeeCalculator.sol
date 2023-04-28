@@ -8,8 +8,8 @@ import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
-    bytes32 internal constant _V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flashloan'));
-    bytes32 internal constant _V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flashloan'));
+    bytes32 internal constant _V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flash-loan'));
+    bytes32 internal constant _V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flash-loan'));
 
     address public immutable aaveV3Provider;
 
@@ -18,7 +18,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     }
 
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
-        // Aave flashloan signature:'flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)', selector: 0xab9c4b5d
+        // Aave flash loan signature:'flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)', selector: 0xab9c4b5d
         (, address[] memory tokens, uint256[] memory amounts, , , bytes memory params, ) = abi.decode(
             data[4:],
             (address, address[], uint256[], uint256[], address, bytes, uint16)
@@ -32,7 +32,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
         IParam.Fee[] memory feesWithFlashLoan = _createFees(tokens, amounts, metadata);
 
         if (params.length > 0) {
-            // Decode data in the flashLoan
+            // Decode data in the flash loan
             (IParam.Logic[] memory logics, , ) = abi.decode(params, (IParam.Logic[], IParam.Fee[], address[]));
 
             // Get fees
@@ -58,7 +58,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
         ) = abi.decode(data[4:], (address, address[], uint256[], uint256[], address, bytes, uint16));
 
         if (params.length > 0) {
-            // Decode data in the flashLoan
+            // Decode data in the flash loan
             (IParam.Logic[] memory logics, IParam.Fee[] memory fees, address[] memory tokensReturn) = abi.decode(
                 params,
                 (IParam.Logic[], IParam.Fee[], address[])

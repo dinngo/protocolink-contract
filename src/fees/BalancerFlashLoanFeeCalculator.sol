@@ -7,14 +7,14 @@ import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
-    bytes32 internal constant _META_DATA = bytes32(bytes('balancer-v2:flashloan'));
+    bytes32 internal constant _META_DATA = bytes32(bytes('balancer-v2:flash-loan'));
 
     constructor(address router_, uint256 feeRate_) FeeCalculatorBase(router_, feeRate_) {}
 
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         to;
 
-        // Balancer flashloan signature:'flashLoan(address,address[],uint256[],bytes)', selector: 0x5c38449e
+        // Balancer flash loan signature:'flashLoan(address,address[],uint256[],bytes)', selector: 0x5c38449e
         (, address[] memory tokens, uint256[] memory amounts, bytes memory userData) = abi.decode(
             data[4:],
             (address, address[], uint256[], bytes)
@@ -25,7 +25,7 @@ contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
         IParam.Fee[] memory feesWithFlashLoan = _createFees(tokens, amounts, _META_DATA);
 
         if (userData.length > 0) {
-            // Decode data in the flashLoan
+            // Decode data in the flash loan
             (IParam.Logic[] memory logics, , ) = abi.decode(userData, (IParam.Logic[], IParam.Fee[], address[]));
 
             // Get fees
@@ -46,7 +46,7 @@ contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
         );
 
         if (userData.length > 0) {
-            // Decode data in the flashLoan
+            // Decode data in the flash loan
             (IParam.Logic[] memory logics, IParam.Fee[] memory fees, address[] memory tokensReturn) = abi.decode(
                 userData,
                 (IParam.Logic[], IParam.Fee[], address[])

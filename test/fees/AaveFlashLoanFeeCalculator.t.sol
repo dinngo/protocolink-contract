@@ -48,8 +48,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
     uint256 public constant BPS_BASE = 10_000;
-    bytes32 public constant V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flashloan'));
-    bytes32 public constant V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flashloan'));
+    bytes32 public constant V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flash-loan'));
+    bytes32 public constant V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flash-loan'));
     bytes32 public constant NATIVE_TOKEN_META_DATA = bytes32(bytes('native-token'));
     bytes32 public constant PERMIT2_META_DATA = bytes32(bytes('permit2:pull-token'));
 
@@ -135,7 +135,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         // Set fee rate
         FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
 
-        // Encode flashloan params
+        // Encode flash loan params
         IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
         flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(
             address(flashLoanCallbackV2),
@@ -179,7 +179,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         assertEq(newAmounts[0], expectedNewAmount);
     }
 
-    /// This test will do flashloan + send native token(inside flashloan)
+    /// This test will do flash loan + send native token(inside flash loan)
     function testChargeFlashLoanV2FeeWithFeeScenarioInside(
         uint256 amount,
         uint256 nativeAmount,
@@ -194,7 +194,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
         FeeCalculatorBase(nativeFeeCalculator).setFeeRate(feeRate);
 
-        // Encode flashloan params
+        // Encode flash loan params
         bytes memory params;
         {
             IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](2);
@@ -252,7 +252,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         assertEq(user2.balance - user2NativeBalanceBefore, nativeAmount);
     }
 
-    /// This test will do flashloan + send native token(inside flashloan) + permit2 pull token(inside flashloan)
+    /// This test will do flash loan + send native token(inside flash loan) + permit2 pull token(inside flash loan)
     function testChargeFlashLoanV2FeeWithTwoFeeScenarioInside(
         uint256 amount,
         uint256 nativeAmount,
@@ -269,7 +269,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         FeeCalculatorBase(nativeFeeCalculator).setFeeRate(feeRate);
         FeeCalculatorBase(permit2FeeCalculator).setFeeRate(permit2FeeRate);
 
-        // Encode flashloan params
+        // Encode flash loan params
         bytes memory params;
         {
             IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](3);
@@ -355,7 +355,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         // Set fee rate
         FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
 
-        // Encode flashloan params
+        // Encode flash loan params
         IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
         flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(
             address(flashLoanCallbackV3),
@@ -478,7 +478,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         for (uint256 i = 0; i < tokens.length; ++i) {
             uint256 amountWithRouterFee = FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amounts[i]);
 
-            // Airdrop aave flashloan fee and router flashloan fee to agent
+            // Airdrop aave flash loan fee and router flash loan fee to agent
             uint256 aaveFee = getAaveFlashLoanFee(amountWithRouterFee, isAaveV2);
             uint256 routerFee = FeeCalculatorBase(flashLoanFeeCalculator).calculateFee(amountWithRouterFee);
 

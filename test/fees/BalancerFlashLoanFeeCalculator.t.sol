@@ -32,7 +32,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
     uint256 public constant BPS_BASE = 10_000;
-    bytes32 public constant BALANCER_META_DATA = bytes32(bytes('balancer-v2:flashloan'));
+    bytes32 public constant BALANCER_META_DATA = bytes32(bytes('balancer-v2:flash-loan'));
     bytes32 public constant NATIVE_TOKEN_META_DATA = bytes32(bytes('native-token'));
     bytes32 public constant PERMIT2_META_DATA = bytes32(bytes('permit2:pull-token'));
 
@@ -106,7 +106,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         // Set fee rate
         FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
 
-        // Encode flashloan userData
+        // Encode flash loan userData
         IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
         flashLoanLogics[0] = _logicTransferFlashLoanAmount(
             address(flashLoanCallback),
@@ -149,7 +149,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         assertEq(newAmounts[0], expectedNewAmount);
     }
 
-    /// This test will do flashloan + send native token(inside flashloan)
+    /// This test will do flash loan + send native token(inside flash loan)
     function testChargeFlashLoanFeeWithFeeScenarioInside(
         uint256 amount,
         uint256 nativeAmount,
@@ -163,7 +163,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
         FeeCalculatorBase(nativeFeeCalculator).setFeeRate(feeRate);
 
-        // Encode flashloan userData
+        // Encode flash loan userData
         IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](2);
         flashLoanLogics[0] = _logicTransferFlashLoanAmount(
             address(flashLoanCallback),
@@ -217,7 +217,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         assertEq(user2.balance - user2NativeBalanceBefore, nativeAmount);
     }
 
-    /// This test will do flashloan + send native token(inside flashloan) + permit2 pull token(inside flashloan)
+    /// This test will do flash loan + send native token(inside flash loan) + permit2 pull token(inside flash loan)
     function testChargeFlashLoanFeeWithTwoFeeScenarioInside(
         uint256 amount,
         uint256 nativeAmount,
@@ -234,7 +234,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         FeeCalculatorBase(nativeFeeCalculator).setFeeRate(feeRate);
         FeeCalculatorBase(permit2FeeCalculator).setFeeRate(permit2FeeRate);
 
-        // Encode flashloan userData
+        // Encode flash loan userData
         bytes memory userData;
         {
             IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](3);
@@ -378,7 +378,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, SpenderPermitUtils {
         for (uint256 i = 0; i < tokens.length; ++i) {
             uint256 amountWithRouterFee = FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amounts[i]);
 
-            // Airdrop router flashloan fee to agent
+            // Airdrop router flash loan fee to agent
             uint256 routerFee = FeeCalculatorBase(flashLoanFeeCalculator).calculateFee(amountWithRouterFee);
 
             deal(tokens[i], address(userAgent), routerFee);

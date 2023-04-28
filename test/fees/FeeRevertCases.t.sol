@@ -161,7 +161,7 @@ contract FeeRevertCasesTest is Test {
         uint256 amount = 100e6;
         uint256 nativeAmount = 1 ether;
 
-        // Encode flashloan params
+        // Encode flash loan params
         IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](2);
         flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(
             address(flashLoanCallbackV2),
@@ -199,7 +199,7 @@ contract FeeRevertCasesTest is Test {
     function _buildFlashLoanLogics() internal view returns (IParam.Logic[] memory) {
         uint256 amount = 100e6;
 
-        // Encode flashloan params
+        // Encode flash loan params
         IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
         flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(
             address(flashLoanCallbackV2),
