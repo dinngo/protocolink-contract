@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
 import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
@@ -7,7 +7,7 @@ import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
-    bytes32 private constant _META_DATA = bytes32(bytes('balancer-v2:flashloan'));
+    bytes32 internal constant _META_DATA = bytes32(bytes('balancer-v2:flashloan'));
 
     constructor(address router_, uint256 feeRate_) FeeCalculatorBase(router_, feeRate_) {}
 
@@ -67,7 +67,7 @@ contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
         address[] memory tokens,
         uint256[] memory amounts,
         bytes32 metadata
-    ) private pure returns (IParam.Fee[] memory) {
+    ) internal pure returns (IParam.Fee[] memory) {
         uint256 length = tokens.length;
         IParam.Fee[] memory fees = new IParam.Fee[](length);
         for (uint256 i = 0; i < length; ) {
@@ -83,7 +83,7 @@ contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     function _concatenateFees(
         IParam.Fee[] memory fees1,
         IParam.Fee[] memory fees2
-    ) private pure returns (IParam.Fee[] memory) {
+    ) internal pure returns (IParam.Fee[] memory) {
         uint256 length1 = fees1.length;
         uint256 length2 = fees2.length;
         IParam.Fee[] memory totalFees = new IParam.Fee[](length1 + length2);

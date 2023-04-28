@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {Router, IRouter} from 'src/Router.sol';
+import {Router} from 'src/Router.sol';
 import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
 import {NativeFeeCalculator} from 'src/fees/NativeFeeCalculator.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
