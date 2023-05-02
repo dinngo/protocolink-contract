@@ -11,7 +11,7 @@ contract RouterInvariantsTest is Test {
     Router public router;
     RouterHandler public handler;
 
-    function setUp() public {
+    function setUp() external {
         router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('Signer'));
         handler = new RouterHandler(router);
 
@@ -20,23 +20,48 @@ contract RouterInvariantsTest is Test {
         selectors[1] = RouterHandler.executeWithSignature.selector;
         selectors[2] = RouterHandler.newAgent.selector;
         selectors[3] = RouterHandler.newAgentFor.selector;
-
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
-
         targetContract(address(handler));
+
+        vm.label(address(router), 'Router');
+        vm.label(address(handler), 'RouterHandler');
     }
 
-    function invariant_InitializedUser() public {
+    function invariant_initializedUser() external {
         assertEq(router.user(), _INIT_USER);
     }
 
-    function invariant_ExactAgentsLength() public {
-        assertEq(handler.ghostAgentsLength(), handler.actors().length);
+    function invariant_matchedAgentsLength() external {
+        assertEq(handler.ghostAgentsLength(), handler.actorsLength());
     }
 
-    function invariant_UniqueAgent() public {}
+    function invariant_matchedAgents() external {
+        for (uint256 i; i < handler.ghostAgentsLength(); ++i) {
+            address ghostAgent = handler.ghostAgents(i);
+            assertFalse(ghostAgent == address(0));
 
-    function invariant_callSummary() public view {
+            bool found;
+            for (uint256 j; j < handler.actorsLength(); ++j) {
+                address user = handler.actors(j);
+                // Each ghost agent should be found in router agents by each user
+                if (ghostAgent == address(router.agents(user))) {
+                    found = true;
+                    break;
+                }
+            }
+            assertTrue(found);
+        }
+    }
+
+    function invariant_uniqueAgent() external {
+        for (uint256 i; i < handler.ghostAgentsLength(); ++i) {
+            for (uint256 j = i + 1; j < handler.ghostAgentsLength(); ++j) {
+                assertFalse(handler.ghostAgents(i) == handler.ghostAgents(j));
+            }
+        }
+    }
+
+    function invariant_callSummary() external view {
         handler.callSummary();
     }
 }

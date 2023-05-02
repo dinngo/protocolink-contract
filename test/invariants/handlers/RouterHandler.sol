@@ -2,15 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {console} from 'forge-std/Test.sol';
+import {console2} from 'forge-std/Test.sol';
 import {Router} from '../../../src/Router.sol';
 import {IParam} from '../../../src/interfaces/IRouter.sol';
 import {LogicSignature} from '../../utils/LogicSignature.sol';
-import {AddressSet, LibAddressSet} from '../helpers/AddressSet.sol';
 
 contract RouterHandler is Test, LogicSignature {
-    using LibAddressSet for AddressSet;
-
     uint256 public constant SIGNER_REFERRAL = 1;
 
     // Setup
@@ -21,7 +18,8 @@ contract RouterHandler is Test, LogicSignature {
 
     // Actors
     address public currentActor;
-    AddressSet internal _actors;
+    address[] public actors;
+    mapping(address actor => bool exist) actorsExist;
 
     // Ghost variables
     address[] public ghostAgents;
@@ -44,20 +42,18 @@ contract RouterHandler is Test, LogicSignature {
         router.addSigner(signer);
     }
 
-    modifier createActor() {
-        currentActor = msg.sender;
-        _actors.add(currentActor);
-        _;
-    }
-
-    modifier useActor(uint256 actorIndexSeed) {
-        // 10% probability of using an existing user
-        if (_actors.count() == 0 || actorIndexSeed % 10 < 9) {
+    modifier useActor(uint256 actorSeed) {
+        if (actors.length == 0 || actorSeed % 10 < 9) {
+            // 90% probability of creating an new actor
             currentActor = msg.sender;
-            _actors.add(currentActor);
-            calls['actorsNum']++;
+            if (!actorsExist[currentActor]) {
+                actorsExist[currentActor] = true;
+                actors.push(currentActor);
+                calls['actorsNum']++;
+            }
         } else {
-            currentActor = _actors.rand(actorIndexSeed);
+            // 10% probability of using an existing actor
+            currentActor = actors[actorSeed % actors.length];
         }
         _;
     }
@@ -66,7 +62,7 @@ contract RouterHandler is Test, LogicSignature {
         bool isExistingAgent = address(router.agents(currentActor)) != address(0) ? true : false;
         _;
         if (!isExistingAgent) {
-            ghostAgents.push(router.calcAgent(currentActor));
+            ghostAgents.push(address(router.agents(currentActor)));
         }
     }
 
@@ -75,10 +71,8 @@ contract RouterHandler is Test, LogicSignature {
         _;
     }
 
-    receive() external payable {}
-
-    function actors() external view returns (address[] memory) {
-        return _actors.addrs;
+    function actorsLength() external view returns (uint256) {
+        return actors.length;
     }
 
     function ghostAgentsLength() external view returns (uint256) {
@@ -86,14 +80,12 @@ contract RouterHandler is Test, LogicSignature {
     }
 
     function callSummary() external view {
-        console.log('Call summary:');
-        console.log('-------------');
-        console.log('execute', calls['execute']);
-        console.log('executeWithSignature', calls['executeWithSignature']);
-        console.log('newAgent', calls['newAgent']);
-        console.log('newAgentFor', calls['newAgentFor']);
-        console.log('actorsNum', calls['actorsNum']);
-        console.log('-------------');
+        console2.log('\nCall Summary\n');
+        console2.log('execute', calls['execute']);
+        console2.log('executeWithSignature', calls['executeWithSignature']);
+        console2.log('newAgent', calls['newAgent']);
+        console2.log('newAgentFor', calls['newAgentFor']);
+        console2.log('actorsNum', calls['actorsNum']);
     }
 
     function execute(uint256 actorSeed) external useActor(actorSeed) recordAgent countCall('execute') {

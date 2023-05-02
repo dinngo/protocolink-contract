@@ -40,7 +40,7 @@ contract AgentImplementationInvariants is Test {
         assertEq(agent.caller(), router);
     }
 
-    function invariant_call_summary() external view {
+    function invariant_callSummary() external view {
         uint256 numExecuteWithCallback = agentHandler.numCalls('executeWithCallback');
         uint256 numExecuteWithoutCallback = agentHandler.numCalls('executeWithoutCallback');
 

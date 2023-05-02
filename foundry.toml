@@ -5,11 +5,3 @@ libs = ['lib']
 solc_version = '0.8.18'
 fs_permissions = [{ access = "read", path = "./script/deployParameters/"}]
 
-[invariant]
-runs = 200
-depth = 25
-fail_on_revert = false
-call_override = false
-dictionary_weight = 80
-include_storage = true
-include_push_bytes = true
