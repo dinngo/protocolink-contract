@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {console2} from 'forge-std/console2.sol';
 import {Agent} from 'src/Agent.sol';
-import {AgentHandler} from '../handlers/AgentHandler.sol';
+import {AgentHandler} from './handlers/AgentHandler.sol';
 import {MockFallback} from '../mocks/MockFallback.sol';
 import {MockCallback} from '../mocks/MockCallback.sol';
 import {IMockAgent, MockAgentImplementation} from '../mocks/MockAgentImplementation.sol';

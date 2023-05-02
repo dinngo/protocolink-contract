@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {IMockAgent} from '../mocks/MockAgentImplementation.sol';
-import {ICallback} from '../mocks/MockCallback.sol';
+import {IMockAgent} from '../../mocks/MockAgentImplementation.sol';
+import {ICallback} from '../../mocks/MockCallback.sol';
 
 contract AgentHandler is Test {
     address public immutable router;
