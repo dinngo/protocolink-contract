@@ -35,7 +35,7 @@ contract RouterTest is Test, LogicSignature {
     event PauserSet(address indexed pauser);
     event Paused();
     event Resumed();
-    event AgentCreated(address indexed agent, address indexed owner);
+    event AgentCreated(address indexed agent, address indexed user);
     event Execute(address indexed user, address indexed agent, uint256 indexed referralCode);
 
     function setUp() external {
@@ -357,7 +357,7 @@ contract RouterTest is Test, LogicSignature {
         vm.deal(address(this), value);
 
         vm.expectRevert();
-        (bool succ,) = address(router).call{value: value}('');
+        (bool succ, ) = address(router).call{value: value}('');
         assertTrue(succ);
     }
 }

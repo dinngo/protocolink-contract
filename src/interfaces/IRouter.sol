@@ -19,7 +19,7 @@ interface IRouter {
 
     event Execute(address indexed user, address indexed agent, uint256 indexed referralCode);
 
-    event AgentCreated(address indexed agent, address indexed owner);
+    event AgentCreated(address indexed agent, address indexed user);
 
     error Reentrancy();
 
@@ -43,11 +43,11 @@ interface IRouter {
 
     function agentImplementation() external view returns (address);
 
-    function agents(address owner) external view returns (IAgent);
+    function agents(address user) external view returns (IAgent);
 
     function signers(address signer) external view returns (bool);
 
-    function user() external view returns (address);
+    function currentUser() external view returns (address);
 
     function feeCollector() external view returns (address);
 
