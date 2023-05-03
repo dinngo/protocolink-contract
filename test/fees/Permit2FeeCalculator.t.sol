@@ -14,11 +14,14 @@ import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
 contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
     using SafeCast160 for uint256;
 
+    event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
+
     bytes4 public constant PERMIT2_TRANSFER_FROM_SELECTOR =
         bytes4(keccak256(bytes('transferFrom(address,address,uint160,address)')));
-    IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant PERMIT2_ADDR = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     uint256 public constant BPS_BASE = 10_000;
+    bytes32 public constant META_DATA = bytes32(bytes('permit2:pull-token'));
 
     address public user;
     uint256 public userPrivateKey;
@@ -44,7 +47,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
 
         // Setup permit2
         erc20Permit2UtilsSetUp(user, userPrivateKey, address(userAgent));
-        permitToken(USDC);
+        permitToken(IERC20(USDC));
 
         // Setup fee calculator
         bytes4[] memory selectors = new bytes4[](1);
@@ -63,15 +66,15 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
     }
 
     function testChargePermit2TransferFromFee(uint256 amount, uint256 feeRate) external {
-        amount = bound(amount, 1e3, 1e18);
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
+        amount = bound(amount, 1, (IERC20(USDC).totalSupply() * (BPS_BASE - feeRate)) / BPS_BASE);
 
         // Set fee rate
         FeeCalculatorBase(permit2FeeCalculator).setFeeRate(feeRate);
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = logicERC20Permit2PullToken(USDC, amount.toUint160());
+        logics[0] = logicERC20Permit2PullToken(IERC20(USDC), amount.toUint160());
 
         // Get new logics
         IParam.Fee[] memory fees;
@@ -81,20 +84,22 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
         uint256 expectedNewAmount = FeeCalculatorBase(permit2FeeCalculator).calculateAmountWithFee(amount);
         uint256 expectedFee = FeeCalculatorBase(permit2FeeCalculator).calculateFee(expectedNewAmount);
         uint256 newAmount = this.decodePermit2TransferFromAmount(logics[0]);
-        uint256 feeCollectorBalanceBefore = USDC.balanceOf(feeCollector);
+        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
 
-        deal(address(USDC), user, newAmount);
+        deal(USDC, user, newAmount);
 
         // Execute
         address[] memory tokensReturns = new address[](1);
-        tokensReturns[0] = address(USDC);
+        tokensReturns[0] = USDC;
+        vm.expectEmit(true, true, true, true, address(userAgent));
+        emit FeeCharged(USDC, expectedFee, META_DATA);
         vm.prank(user);
         router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
 
-        assertEq(USDC.balanceOf(address(router)), 0);
-        assertEq(USDC.balanceOf(address(userAgent)), 0);
-        assertEq(USDC.balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
-        assertEq(USDC.balanceOf(user), amount);
+        assertEq(IERC20(USDC).balanceOf(address(router)), 0);
+        assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
+        assertEq(IERC20(USDC).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
+        assertEq(IERC20(USDC).balanceOf(user), amount);
         assertEq(newAmount, expectedNewAmount);
     }
 

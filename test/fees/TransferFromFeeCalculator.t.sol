@@ -10,11 +10,14 @@ import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 
 contract TransferFromFeeCalculatorTest is Test {
+    event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
+
     bytes4 public constant TRANSFER_FROM_SELECTOR = bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
     address public constant DUMMY_TO_ADDRESS = address(0);
-    IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     uint256 public constant SIGNER_REFERRAL = 1;
     uint256 public constant BPS_BASE = 10_000;
+    bytes32 public constant META_DATA = bytes32(bytes('erc20:transfer-from'));
 
     address public user;
     address public feeCollector;
@@ -50,19 +53,19 @@ contract TransferFromFeeCalculatorTest is Test {
         vm.label(address(userAgent), 'UserAgent');
         vm.label(feeCollector, 'FeeCollector');
         vm.label(transferFromFeeCalculator, 'TransferFromFeeCalculator');
-        vm.label(address(USDC), 'USDC');
+        vm.label(USDC, 'USDC');
     }
 
     function testChargeTransferFromFee(uint256 amount, uint256 feeRate) external {
-        amount = bound(amount, 1e3, 1e18);
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
+        amount = bound(amount, 1, (IERC20(USDC).totalSupply() * (BPS_BASE - feeRate)) / BPS_BASE);
 
         // Set fee rate
         FeeCalculatorBase(transferFromFeeCalculator).setFeeRate(feeRate);
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicTransferFrom(address(USDC), user, address(userAgent), amount);
+        logics[0] = _logicTransferFrom(USDC, user, address(userAgent), amount);
 
         // Get new logics
         IParam.Fee[] memory fees;
@@ -72,23 +75,25 @@ contract TransferFromFeeCalculatorTest is Test {
         uint256 expectedNewAmount = FeeCalculatorBase(transferFromFeeCalculator).calculateAmountWithFee(amount);
         uint256 expectedFee = FeeCalculatorBase(transferFromFeeCalculator).calculateFee(expectedNewAmount);
         uint256 newAmount = this.decodeTransferFromAmount(logics[0]);
-        uint256 feeCollectorBalanceBefore = USDC.balanceOf(feeCollector);
+        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
 
         // Approve to agent
         vm.prank(user);
-        USDC.approve(address(userAgent), newAmount);
-        deal(address(USDC), user, newAmount);
+        IERC20(USDC).approve(address(userAgent), newAmount);
+        deal(USDC, user, newAmount);
 
         // Execute
         address[] memory tokensReturns = new address[](1);
-        tokensReturns[0] = address(USDC);
+        tokensReturns[0] = USDC;
+        vm.expectEmit(true, true, true, true, address(userAgent));
+        emit FeeCharged(USDC, expectedFee, META_DATA);
         vm.prank(user);
         router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
 
-        assertEq(USDC.balanceOf(address(router)), 0);
-        assertEq(USDC.balanceOf(address(userAgent)), 0);
-        assertEq(USDC.balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
-        assertEq(USDC.balanceOf(user), amount);
+        assertEq(IERC20(USDC).balanceOf(address(router)), 0);
+        assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
+        assertEq(IERC20(USDC).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
+        assertEq(IERC20(USDC).balanceOf(user), amount);
         assertEq(newAmount, expectedNewAmount);
     }
 
