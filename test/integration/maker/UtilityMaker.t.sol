@@ -61,7 +61,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         IMakerVat vat = IMakerVat(VAT);
         bytes32 ilkETH = bytes32(bytes(ETH_JOIN_NAME));
         (, uint256 rate, uint256 spot, , uint256 dust) = vat.ilks(ilkETH);
-        (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust);
+        (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust, 18);
 
         ethLockAmount = bound(ethLockAmount, minCollateral, 1e22);
         deal(user, ethLockAmount);
@@ -97,9 +97,9 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         IMakerVat vat = IMakerVat(VAT);
         bytes32 ilkToken = bytes32(bytes(TOKEN_JOIN_NAME));
         (, uint256 rate, uint256 spot, , uint256 dust) = vat.ilks(ilkToken);
-        (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust);
+        (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust, GEM_DECIMAL);
+        tokenLockAmount = bound(tokenLockAmount, minCollateral, 20 * (10 ** GEM_DECIMAL));
 
-        tokenLockAmount = bound(tokenLockAmount, minCollateral, 1e23);
         deal(GEM, user, tokenLockAmount);
         uint256 daiDrawMax = _getDAIDrawMaxAmount(tokenLockAmount, daiDrawMin, spot, rate);
         daiDrawAmount = bound(daiDrawAmount, daiDrawMin, daiDrawMax);
@@ -130,9 +130,14 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         assertEq(IMakerManager(CDP_MANAGER).count(userDSProxy) - userCdpCountBefore, 1); // cdp count should increase by 1
     }
 
-    function _getDAIDrawMinAndMinCollateral(uint256 spot, uint256 dust) internal pure returns (uint256, uint256) {
+    function _getDAIDrawMinAndMinCollateral(
+        uint256 spot,
+        uint256 dust,
+        uint256 collateralDecimal
+    ) internal pure returns (uint256, uint256) {
         uint256 daiDrawMin = dust / 1000000000 ether; // at least draw this much DAI
-        uint256 minCollateral = (((daiDrawMin * 1000000000 ether) / spot) * 105) / 100;
+        uint256 minCollateral = dust / spot / (10 ** (18 - collateralDecimal));
+        minCollateral = (minCollateral * 105) / 100; // 5% Buffer
         return (daiDrawMin, minCollateral);
     }
 
@@ -192,7 +197,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     function _logicOpenLockGemAndDraw(uint256 value, uint256 amountOutMin) public view returns (IParam.Logic memory) {
         bytes memory data = abi.encodeWithSelector(
             IMakerUtility.openLockGemAndDraw.selector,
-            GEM_JOIN_LINK_A,
+            GEM_JOIN_TOKEN,
             DAI_JOIN,
             bytes32(bytes(TOKEN_JOIN_NAME)),
             value,
