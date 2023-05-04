@@ -16,5 +16,6 @@
   "makerDrawFeeCalculatorFeeRate": 0,
   "nativeFeeCalculatorFeeRate": 0,
   "permit2FeeCalculatorFeeRate": 0,
-  "transferFromFeeCalculatorFeeRate": 0
+  "transferFromFeeCalculatorFeeRate": 0,
+  "compoundBorrowFeeCalculatorFeeRate": 0
 }

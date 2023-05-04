@@ -32,6 +32,7 @@ contract DeployBase is Script {
         uint256 nativeFeeCalculatorFeeRate;
         uint256 permit2FeeCalculatorFeeRate;
         uint256 transferFromFeeCalculatorFeeRate;
+        uint256 compoundBorrowFeeCalculatorFeeRate;
     }
 
     modifier isRouterAddressZero(address router) {

@@ -75,9 +75,9 @@ contract CompoundBorrowFeeCalculatorTest is Test {
 
         // Setup collateral
         vm.startPrank(user);
-        deal(collateral, user, amount);
-        IERC20(collateral).safeApprove(comet, amount);
-        IComet(comet).supply(collateral, amount);
+        deal(collateral, user, collateralAmount);
+        IERC20(collateral).safeApprove(comet, collateralAmount);
+        IComet(comet).supply(collateral, collateralAmount);
         IComet(comet).allow(address(userAgent), true);
         vm.stopPrank();
 
@@ -112,7 +112,7 @@ contract CompoundBorrowFeeCalculatorTest is Test {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicCompoundBorrow(comet, amount);
+        logics[0] = _logicCompoundBorrow(amount);
 
         // Get new logics
         IParam.Fee[] memory fees;

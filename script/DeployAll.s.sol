@@ -12,6 +12,7 @@ import {DeployMakerDrawFeeCalculator} from './DeployMakerDrawFeeCalculator.s.sol
 import {DeployNativeFeeCalculator} from './DeployNativeFeeCalculator.s.sol';
 import {DeployPermit2FeeCalculator} from './DeployPermit2FeeCalculator.s.sol';
 import {DeployTransferFromFeeCalculator} from './DeployTransferFromFeeCalculator.s.sol';
+import {DeployCompoundBorrowFeeCalculator} from './DeployCompoundBorrowFeeCalculator.s.sol';
 
 contract DeployAll is
     DeployRouter,
@@ -24,7 +25,8 @@ contract DeployAll is
     DeployMakerDrawFeeCalculator,
     DeployNativeFeeCalculator,
     DeployPermit2FeeCalculator,
-    DeployTransferFromFeeCalculator
+    DeployTransferFromFeeCalculator,
+    DeployCompoundBorrowFeeCalculator
 {
     function _run(
         DeployParameters memory params
@@ -41,7 +43,8 @@ contract DeployAll is
             DeployMakerDrawFeeCalculator,
             DeployNativeFeeCalculator,
             DeployPermit2FeeCalculator,
-            DeployTransferFromFeeCalculator
+            DeployTransferFromFeeCalculator,
+            DeployCompoundBorrowFeeCalculator
         )
         returns (address deployedAddress)
     {
@@ -63,5 +66,6 @@ contract DeployAll is
         DeployNativeFeeCalculator._run(params);
         DeployPermit2FeeCalculator._run(params);
         DeployTransferFromFeeCalculator._run(params);
+        DeployCompoundBorrowFeeCalculator._run(params);
     }
 }
