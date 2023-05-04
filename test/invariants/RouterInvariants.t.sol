@@ -28,7 +28,7 @@ contract RouterInvariantsTest is Test {
     }
 
     function invariant_initializedUser() external {
-        assertEq(router.user(), _INIT_USER);
+        assertEq(router.currentUser(), _INIT_USER);
     }
 
     function invariant_matchedAgentsLength() external {

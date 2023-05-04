@@ -9,7 +9,7 @@ import {MockFallback} from '../mocks/MockFallback.sol';
 import {MockCallback} from '../mocks/MockCallback.sol';
 import {IMockAgent, MockAgentImplementation} from '../mocks/MockAgentImplementation.sol';
 
-contract AgentImplementationInvariants is Test {
+contract AgentInvariants is Test {
     address public router;
     address public agentImp;
     address public mockCallback;
