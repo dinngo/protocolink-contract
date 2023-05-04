@@ -45,9 +45,8 @@ contract BalancerV2IntegrationTest is Test {
     }
 
     function testExecuteBalancerV2FlashLoan(uint256 amountIn) external {
-        vm.assume(amountIn > 1e6);
         IERC20 token = USDC;
-        amountIn = bound(amountIn, 1, token.balanceOf(address(balancerV2Vault)));
+        amountIn = bound(amountIn, 1e6, token.balanceOf(address(balancerV2Vault)));
         vm.label(address(token), 'Token');
 
         address[] memory tokens = new address[](1);
@@ -93,7 +92,7 @@ contract BalancerV2IntegrationTest is Test {
     function _encodeExecute(address[] memory tokens, uint256[] memory amounts) public view returns (bytes memory) {
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; ) {
+        for (uint256 i = 0; i < tokens.length; ++i) {
             // Encode transfering token to the flash loan callback
             logics[i] = IParam.Logic(
                 address(tokens[i]), // to
@@ -103,10 +102,6 @@ contract BalancerV2IntegrationTest is Test {
                 address(0), // approveTo
                 address(0) // callback
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Encode execute data
