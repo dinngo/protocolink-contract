@@ -89,47 +89,47 @@ contract AaveV3IntegrationTest is Test {
         vm.label(address(AUSDC_V3_DEBT_VARIABLE), 'variableDebtUSDC');
     }
 
-    function testExecuteAaveV3Borrow(uint256 amountIn) external {
-        vm.assume(amountIn > 1e8);
-        IDebtToken tokenIn = AUSDC_V3_DEBT_VARIABLE;
-        IERC20 tokenOut = IERC20(tokenIn.UNDERLYING_ASSET_ADDRESS());
-        amountIn = bound(amountIn, 1, tokenIn.totalSupply());
-        vm.label(address(tokenOut), 'Token');
+    function testExecuteAaveV3Borrow(uint256 borrowedAmount) external {
+        IDebtToken debtToken = AUSDC_V3_DEBT_VARIABLE;
+        IERC20 borrowedToken = IERC20(debtToken.UNDERLYING_ASSET_ADDRESS());
+        IERC20 collateralToken = borrowedToken;
+        borrowedAmount = bound(borrowedAmount, 1e8, debtToken.totalSupply());
+        vm.label(address(borrowedToken), 'Borrowed Token');
 
         // Setup collateral
         vm.startPrank(user);
-        uint256 collateralAmount = amountIn * 3;
-        deal(address(tokenOut), user, collateralAmount);
-        tokenOut.safeApprove(address(pool), collateralAmount);
-        pool.supply(address(tokenOut), collateralAmount, user, 0);
+        uint256 collateralAmount = borrowedAmount * 3;
+        deal(address(collateralToken), user, collateralAmount);
+        collateralToken.safeApprove(address(pool), collateralAmount);
+        pool.supply(address(collateralToken), collateralAmount, user, 0);
         vm.stopPrank();
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicAaveV3Borrow(tokenOut, amountIn, uint256(InterestRateMode.VARIABLE));
+        logics[0] = _logicAaveV3Borrow(borrowedToken, borrowedAmount, uint256(InterestRateMode.VARIABLE));
 
         // Execute
         address[] memory tokensReturn = new address[](1);
-        tokensReturn[0] = address(tokenOut);
+        tokensReturn[0] = address(borrowedToken);
         vm.prank(user);
         router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
 
-        assertEq(tokenOut.balanceOf(address(router)), 0);
-        assertEq(tokenOut.balanceOf(address(agent)), 0);
-        assertEq(tokenOut.balanceOf(user), amountIn);
+        assertEq(borrowedToken.balanceOf(address(router)), 0);
+        assertEq(borrowedToken.balanceOf(address(agent)), 0);
+        assertEq(borrowedToken.balanceOf(user), borrowedAmount);
     }
 
-    function testExecuteAaveV3FlashLoan(uint256 amountIn) external {
-        vm.assume(amountIn > 1e6);
-        IERC20 token = USDC;
-        amountIn = bound(amountIn, 1, token.balanceOf(AUSDC_V3));
-        vm.label(address(token), 'Token');
+    function testExecuteAaveV3FlashLoan(uint256 amount) external {
+        IERC20 borrowedToken = USDC;
+        address flashloanPool = AUSDC_V3;
+        amount = bound(amount, 1e6, borrowedToken.balanceOf(flashloanPool));
+        vm.label(address(borrowedToken), 'Borrowed Token');
 
         address[] memory tokens = new address[](1);
-        tokens[0] = address(token);
+        tokens[0] = address(borrowedToken);
 
         uint256[] memory amounts = new uint256[](1);
-        amounts[0] = amountIn;
+        amounts[0] = amount;
 
         uint256[] memory modes = new uint256[](1);
         modes[0] = uint256(InterestRateMode.NONE);
@@ -142,10 +142,10 @@ contract AaveV3IntegrationTest is Test {
         vm.prank(user);
         router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
 
-        assertEq(token.balanceOf(address(router)), 0);
-        assertEq(token.balanceOf(address(agent)), 0);
-        assertEq(token.balanceOf(address(flashLoanCallback)), 0);
-        assertEq(token.balanceOf(user), 0);
+        assertEq(borrowedToken.balanceOf(address(router)), 0);
+        assertEq(borrowedToken.balanceOf(address(agent)), 0);
+        assertEq(borrowedToken.balanceOf(address(flashLoanCallback)), 0);
+        assertEq(borrowedToken.balanceOf(user), 0);
     }
 
     function _logicAaveV3Borrow(
@@ -207,7 +207,7 @@ contract AaveV3IntegrationTest is Test {
         IParam.Logic[] memory logics = new IParam.Logic[](tokens.length);
         uint256 percentage = pool.FLASHLOAN_PREMIUM_TOTAL();
 
-        for (uint256 i = 0; i < tokens.length; ) {
+        for (uint256 i = 0; i < tokens.length; ++i) {
             // Airdrop fee to Agent
             uint256 fee = _percentMul(amounts[i], percentage);
             deal(address(tokens[i]), address(agent), fee);
@@ -221,10 +221,6 @@ contract AaveV3IntegrationTest is Test {
                 address(0), // approveTo
                 address(0) // callback
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Encode execute data
