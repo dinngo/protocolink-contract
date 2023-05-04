@@ -47,7 +47,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _caller = router;
     }
 
-    /// @notice Execute logics and return tokens to user
+    /// @notice Execute logics and return tokens to the current user
     function execute(
         IParam.Logic[] calldata logics,
         IParam.Fee[] calldata fees,
@@ -60,7 +60,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         // Push tokensReturn if any balance
         uint256 tokensReturnLength = tokensReturn.length;
         if (tokensReturnLength > 0) {
-            address user = IRouter(router).user();
+            address user = IRouter(router).currentUser();
             for (uint256 i = 0; i < tokensReturnLength; ) {
                 address token = tokensReturn[i];
                 if (token == _NATIVE) {

@@ -23,21 +23,21 @@ contract Router is IRouter, EIP712, FeeVerifier {
 
     address public immutable agentImplementation;
 
-    mapping(address owner => IAgent agent) public agents;
+    mapping(address user => IAgent agent) public agents;
     mapping(address signer => bool valid) public signers;
-    address public user;
+    address public currentUser;
     address public feeCollector;
     address public pauser;
     bool public paused;
 
     modifier checkCaller() {
-        if (user == _INIT_USER) {
-            user = msg.sender;
+        if (currentUser == _INIT_USER) {
+            currentUser = msg.sender;
         } else {
             revert Reentrancy();
         }
         _;
-        user = _INIT_USER;
+        currentUser = _INIT_USER;
     }
 
     modifier isPaused() {
@@ -51,7 +51,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
     }
 
     constructor(address wrappedNative, address pauser_, address feeCollector_) EIP712('Composable Router', '1') {
-        user = _INIT_USER;
+        currentUser = _INIT_USER;
         agentImplementation = address(new AgentImplementation(wrappedNative));
         _setPauser(pauser_);
         _setFeeCollector(feeCollector_);
@@ -65,16 +65,16 @@ contract Router is IRouter, EIP712, FeeVerifier {
         return _domainSeparatorV4();
     }
 
-    function getAgent(address owner_) external view returns (address) {
-        return address(agents[owner_]);
+    function getAgent(address user) external view returns (address) {
+        return address(agents[user]);
     }
 
     function getUserAgent() external view returns (address, address) {
-        address _user = user;
-        return (_user, address(agents[_user]));
+        address user = currentUser;
+        return (user, address(agents[user]));
     }
 
-    function calcAgent(address owner_) external view returns (address) {
+    function calcAgent(address user) external view returns (address) {
         address result = address(
             uint160(
                 uint256(
@@ -82,7 +82,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
                         abi.encodePacked(
                             bytes1(0xff),
                             address(this),
-                            bytes32(bytes20((uint160(owner_)))),
+                            bytes32(bytes20((uint160(user)))),
                             keccak256(abi.encodePacked(type(Agent).creationCode, abi.encode(agentImplementation)))
                         )
                     )
@@ -136,7 +136,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
         emit Resumed();
     }
 
-    /// @notice Execute logics through user's agent. Create agent for user if not created.
+    /// @notice Execute logics through current user's agent. Create agent for user if not created.
     function execute(
         IParam.Logic[] calldata logics,
         IParam.Fee[] calldata fees,
@@ -145,6 +145,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
     ) external payable isPaused checkCaller {
         if (!verifyFees(logics, msg.value, fees)) revert FeeVerificationFailed();
 
+        address user = currentUser;
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
@@ -169,6 +170,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
         if (!signers[signer]) revert InvalidSigner(signer);
         if (!signer.isValidSignatureNow(_hashTypedDataV4(logicBatch._hash()), signature)) revert InvalidSignature();
 
+        address user = currentUser;
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
@@ -184,14 +186,14 @@ contract Router is IRouter, EIP712, FeeVerifier {
         return newAgent(msg.sender);
     }
 
-    /// @notice Create an agent for `owner_`
-    function newAgent(address owner_) public returns (address payable) {
-        if (address(agents[owner_]) != address(0)) {
+    /// @notice Create an agent for `user`
+    function newAgent(address user) public returns (address payable) {
+        if (address(agents[user]) != address(0)) {
             revert AgentAlreadyCreated();
         } else {
-            IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20((uint160(owner_))))}(agentImplementation)));
-            agents[owner_] = agent;
-            emit AgentCreated(address(agent), owner_);
+            IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20((uint160(user))))}(agentImplementation)));
+            agents[user] = agent;
+            emit AgentCreated(address(agent), user);
             return payable(address(agent));
         }
     }
