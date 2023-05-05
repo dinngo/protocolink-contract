@@ -126,7 +126,7 @@ contract CompoundBorrowFeeCalculatorTest is Test {
 
         // Execute
         address[] memory tokensReturns = new address[](1);
-        tokensReturns[0] = IComet(comet).baseToken();
+        tokensReturns[0] = baseToken;
         vm.expectEmit(true, true, true, true, address(userAgent));
         emit FeeCharged(baseToken, expectedFee, META_DATA);
         vm.prank(user);
