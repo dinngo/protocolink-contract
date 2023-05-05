@@ -1,4 +1,4 @@
-name: deploy
+name: Deploy test
 
 on:
   workflow_dispatch:
@@ -8,12 +8,12 @@ on:
     branches: [master]
 
 jobs:
-  check:
+  deploy-test:
+    name: Deploy script to local
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: true
 
-    name: deploy-local
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
@@ -28,15 +28,12 @@ jobs:
         run: |
           forge --version
           forge build --sizes
-        id: build
 
       - name: Run Forge anvil
         run: |
           anvil --fork-url https://rpc.ankr.com/eth &
           sleep 10
-        id: anvil
 
       - name: Run Forge scripts
         run: |
           forge script --broadcast --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --sig 'run(string)' script/DeployAll.s.sol:DeployAll script/deployParameters/local.json
-        id: script

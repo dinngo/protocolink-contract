@@ -1,4 +1,4 @@
-name: test
+name: Test
 
 on:
   workflow_dispatch:
@@ -8,12 +8,12 @@ on:
     branches: [master]
 
 jobs:
-  check:
+  test:
+    name: Run forge test
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: true
 
-    name: test
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
@@ -28,11 +28,13 @@ jobs:
         run: |
           forge --version
           forge build --sizes
-        id: build
 
-      - name: Run Forge tests
+      - name: Run invariants tests
         run: |
-          forge test -vvv
-        id: test
+          forge test --match-path 'test/invariants/*' -vvv
+
+      - name: Run other tests with forking
+        run: |
+          forge test --no-match-path 'test/invariants/*' -vvv
         env:
           FOUNDRY_ETH_RPC_URL: https://rpc.ankr.com/eth

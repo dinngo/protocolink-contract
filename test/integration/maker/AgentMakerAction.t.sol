@@ -73,8 +73,8 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         ethCdp = uint256(ret);
         assertEq(IERC20(DAI_TOKEN).balanceOf(user), DRAW_DAI_AMOUNT);
 
-        // Open LINK Vault
-        uint256 gemAmount = 500000 ether;
+        // Open GEM Vault
+        uint256 gemAmount = 20 * (10 ** GEM_DECIMAL);
         deal(GEM, user, gemAmount);
         IERC20(GEM).approve(userDSProxy, gemAmount);
         ret = IDSProxy(userDSProxy).execute(
@@ -84,7 +84,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
                 0xdb802a32,
                 CDP_MANAGER,
                 JUG,
-                GEM_JOIN_LINK_A,
+                GEM_JOIN_TOKEN,
                 DAI_JOIN,
                 bytes32(bytes(TOKEN_JOIN_NAME)),
                 gemAmount,
@@ -208,7 +208,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
 
     function testLockGem() external {
         // Setup
-        uint256 lockGemAmount = 100 ether;
+        uint256 lockGemAmount = 10 * (10 ** GEM_DECIMAL);
         deal(GEM, user2, lockGemAmount);
         uint256 user2GemBalanceBefore = IERC20(GEM).balanceOf(user2);
         (, uint256 collateralBefore) = _getCdpInfo(gemCdp);
@@ -224,18 +224,19 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
 
         (, uint256 collateralAfter) = _getCdpInfo(gemCdp);
+        uint256 collateralDiff = (collateralAfter - collateralBefore) / (10 ** (18 - GEM_DECIMAL));
         uint256 user2GemBalanceAfter = IERC20(GEM).balanceOf(user2);
 
         assertEq(IERC20(GEM).balanceOf(address(router)), 0);
         assertEq(IERC20(GEM).balanceOf(address(user2Agent)), 0);
         assertEq(IERC20(GEM).balanceOf(address(user2AgentDSProxy)), 0);
         assertEq(user2GemBalanceBefore - user2GemBalanceAfter, lockGemAmount);
-        assertEq(collateralAfter - collateralBefore, lockGemAmount);
+        assertEq(collateralDiff, lockGemAmount);
     }
 
     function testFreeGem() external {
         // Setup
-        uint256 freeGemAmount = 100 ether;
+        uint256 freeGemAmount = 10 * (10 ** GEM_DECIMAL);
         uint256 userEthBalanceBefore = IERC20(GEM).balanceOf(user);
 
         // Encode logic
@@ -435,7 +436,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
             abi.encodeWithSelector(
                 0x3e29e565, // selector of "lockGem(address,address,uint256,uint256,bool)"
                 CDP_MANAGER,
-                GEM_JOIN_LINK_A,
+                GEM_JOIN_TOKEN,
                 cdp,
                 amount,
                 true
@@ -461,7 +462,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
             abi.encodeWithSelector(
                 0x6ab6a491, // selector of "freeGem(address,address,uint256,uint256)"
                 CDP_MANAGER,
-                GEM_JOIN_LINK_A,
+                GEM_JOIN_TOKEN,
                 cdp,
                 amount
             )

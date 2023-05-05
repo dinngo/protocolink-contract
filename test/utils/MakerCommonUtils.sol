@@ -5,7 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {IDSProxy} from 'src/interfaces/maker/IDSProxy.sol';
 
 contract MakerCommonUtils is Test {
-    address public constant LINK_TOKEN = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
+    address public constant WBTC_TOKEN = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
 
     // MCD contract address
     address public constant PROXY_REGISTRY = 0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4;
@@ -15,12 +15,15 @@ contract MakerCommonUtils is Test {
     address public constant JUG = 0x19c0976f590D67707E62397C87829d896Dc0f1F1;
     address public constant ETH_JOIN_A = 0x2F0b23f53734252Bda2277357e97e1517d6B042A;
     address public constant DAI_JOIN = 0x9759A6Ac90977b93B58547b4A71c78317f391A28;
-    address public constant GEM_JOIN_LINK_A = 0xdFccAf8fDbD2F4805C174f856a317765B49E4a50;
+    address public constant GEM_JOIN_WBTC_C = 0x7f62f9592b823331E012D3c5DdF2A7714CfB9de2;
     address public constant DAI_TOKEN = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
 
-    address public constant GEM = LINK_TOKEN;
+    address public constant GEM = WBTC_TOKEN;
+    uint256 public constant GEM_DECIMAL = 8;
+    uint256 public constant ETH_DECIMAL = 18;
     string public constant ETH_JOIN_NAME = 'ETH-A';
-    string public constant TOKEN_JOIN_NAME = 'LINK-A';
+    string public constant TOKEN_JOIN_NAME = 'WBTC-C';
+    address public constant GEM_JOIN_TOKEN = GEM_JOIN_WBTC_C;
 
     function _makerCommonSetUp() internal {
         // Label
