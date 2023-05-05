@@ -2,40 +2,41 @@
 pragma solidity ^0.8.0;
 
 interface IParam {
+    /// @notice LogicBatch is signed by a signer using EIP-712
     struct LogicBatch {
-        Logic[] logics;
-        Fee[] fees;
-        uint256 deadline;
+        Logic[] logics; // An array of logics to be executed
+        Fee[] fees; // An array of fees to be charged
+        uint256 deadline; // The deadline for a signer's signature
     }
 
+    /// @notice Logic represents a single action to be executed
     struct Logic {
-        address to;
-        bytes data;
-        Input[] inputs;
-        WrapMode wrapMode;
-        // Approve to another contract instead of `to` since some protocols use spender contract to pull tokens from user
-        address approveTo;
-        address callback;
+        address to; // The target address for the execution
+        bytes data; // Encoded function call data
+        Input[] inputs; // An array of inputs for amount calculation and token approval
+        WrapMode wrapMode; // Determines if wrap or unwrap native
+        address approveTo; // The address to approve tokens for if different from `to` such as a spender contract
+        address callback; // The address allowed to make a one-time call to the agent
     }
 
+    /// @notice Input represents a single input for token amount calculation and approval
     struct Input {
-        address token;
-        // 7_000 means the replacing amount is 70% of token balance. Set type(uint256).max to skip bps calculation so simply use amountOrOffset as amount
-        uint256 amountBps;
-        // If amountBps is skip, can simply read amountOrOffset as amount
-        // If amountBps is not skip, amountOrOffset is byte offset of amount in Logic.data used for replacement. Set type(uint256).max to skip if don't need to replace.
-        uint256 amountOrOffset;
+        address token; // Token address
+        uint256 amountBps; // Basis points for calculating the amount, set to _SKIP to use amountOrOffset as amount
+        uint256 amountOrOffset; // Read as amount if amountBps is _SKIP; otherwise, read as byte offset of amount in Logic.data for replacement
     }
 
+    /// @notice Fee represents a fee to be charged
     struct Fee {
-        address token;
-        uint256 amount;
-        bytes32 metadata;
+        address token; // The token address
+        uint256 amount; // The fee amount
+        bytes32 metadata; // Metadata related to the fee
     }
 
+    /// @notice WrapMode determines how to handle native during execution
     enum WrapMode {
-        NONE,
-        WRAP_BEFORE,
-        UNWRAP_AFTER
+        NONE, // No wrapping or unwrapping of native
+        WRAP_BEFORE, // Wrap native before calling `Logic.to`
+        UNWRAP_AFTER // Unwrap native after calling `Logic.to`
     }
 }

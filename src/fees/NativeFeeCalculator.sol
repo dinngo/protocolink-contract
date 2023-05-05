@@ -5,6 +5,7 @@ import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
+/// @title Native fee calculator
 contract NativeFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 internal constant _META_DATA = bytes32(bytes('native-token'));
     address internal constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;

@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import {IParam} from '../interfaces/IParam.sol';
 
+/// @title Library for EIP-712 encode
+/// @notice Contains typehash constants and hash functions for structs
 library LogicHash {
     bytes32 internal constant _FEE_TYPEHASH = keccak256('Fee(address token,uint256 amount,bytes32 metadata)');
     bytes32 internal constant _INPUT_TYPEHASH =

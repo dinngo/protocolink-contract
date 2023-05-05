@@ -5,6 +5,7 @@ import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
+/// @title Maker draw fee calculator
 contract MakerDrawFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 internal constant _META_DATA = bytes32(bytes('maker:borrow'));
     bytes4 internal constant _DRAW_FUNCTION_SELECTOR =

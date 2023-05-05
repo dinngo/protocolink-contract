@@ -6,6 +6,7 @@ import {Router} from '../Router.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
+/// @title Balancer flash loan fee calculator
 contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 internal constant _META_DATA = bytes32(bytes('balancer-v2:flash-loan'));
 

@@ -8,6 +8,8 @@ import {IDSProxy, IDSProxyRegistry} from '../interfaces/maker/IDSProxy.sol';
 import {IMakerGemJoin} from '../interfaces/maker/IMaker.sol';
 import {ApproveHelper} from '../libraries/ApproveHelper.sol';
 
+/// @title Maker utility contract
+/// @notice Perform additional actions after interacting with Maker
 contract MakerUtility is IMakerUtility {
     using SafeERC20 for IERC20;
 

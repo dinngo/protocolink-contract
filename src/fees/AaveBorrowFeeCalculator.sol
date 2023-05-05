@@ -6,6 +6,7 @@ import {IAaveV3Provider} from '../interfaces/aaveV3/IAaveV3Provider.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
+/// @title Aave borrow fee calculator
 contract AaveBorrowFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 internal constant _V2_BORROW_META_DATA = bytes32(bytes('aave-v2:borrow'));
     bytes32 internal constant _V3_BORROW_META_DATA = bytes32(bytes('aave-v3:borrow'));

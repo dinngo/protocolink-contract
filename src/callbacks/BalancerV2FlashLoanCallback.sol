@@ -7,6 +7,7 @@ import {IRouter} from '../interfaces/IRouter.sol';
 import {IBalancerV2FlashLoanCallback} from '../interfaces/IBalancerV2FlashLoanCallback.sol';
 
 /// @title Balancer V2 flash loan callback
+/// @notice Invoked by Balancer V2 vault to call the current user's agent
 contract BalancerV2FlashLoanCallback is IBalancerV2FlashLoanCallback {
     using SafeERC20 for IERC20;
     using Address for address;
@@ -28,7 +29,7 @@ contract BalancerV2FlashLoanCallback is IBalancerV2FlashLoanCallback {
         if (msg.sender != balancerV2Vault) revert InvalidCaller();
         (, address agent) = IRouter(router).getUserAgent();
 
-        // Transfer tokens to Router and record initial balances
+        // Transfer assets to the agent and record initial balances
         uint256 tokensLength = tokens.length;
         uint256[] memory initBalances = new uint256[](tokensLength);
         for (uint256 i = 0; i < tokensLength; ) {
