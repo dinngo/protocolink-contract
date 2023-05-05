@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IERC20} from 'forge-std/interfaces/IERC20.sol';
 import {Router} from 'src/Router.sol';
 import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
 import {CompoundBorrowFeeCalculator} from 'src/fees/CompoundBorrowFeeCalculator.sol';
@@ -33,8 +33,6 @@ interface IComet {
 }
 
 contract CompoundBorrowFeeCalculatorTest is Test {
-    using SafeERC20 for IERC20;
-
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -76,7 +74,7 @@ contract CompoundBorrowFeeCalculatorTest is Test {
         // Setup collateral
         vm.startPrank(user);
         deal(collateral, user, collateralAmount);
-        IERC20(collateral).safeApprove(comet, collateralAmount);
+        IERC20(collateral).approve(comet, collateralAmount);
         IComet(comet).supply(collateral, collateralAmount);
         IComet(comet).allow(address(userAgent), true);
         vm.stopPrank();
@@ -103,7 +101,9 @@ contract CompoundBorrowFeeCalculatorTest is Test {
         // Calculate borrow limit, assume ETH price is 1000
         IComet.AssetInfo memory assetInfo = IComet(comet).getAssetInfoByAddress(collateral);
         uint256 collateralRatio = assetInfo.borrowCollateralFactor;
-        uint256 borrowMax = (((((collateralAmount / 1 ether) * 1000) * collateralRatio) / 1 ether) * 10 ** 6);
+        uint256 baseTokenDecimal = IERC20(baseToken).decimals();
+        uint256 borrowMax = (((((collateralAmount / 1 ether) * 1000) * collateralRatio) / 1 ether) *
+            10 ** (baseTokenDecimal));
         uint256 borrowMin = IComet(comet).baseBorrowMin();
         amount = bound(amount, borrowMin, (borrowMax * (BPS_BASE - feeRate)) / BPS_BASE);
 
