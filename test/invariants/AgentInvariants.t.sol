@@ -9,7 +9,7 @@ import {MockFallback} from '../mocks/MockFallback.sol';
 import {MockCallback} from '../mocks/MockCallback.sol';
 import {IMockAgent, MockAgentImplementation} from '../mocks/MockAgentImplementation.sol';
 
-contract AgentImplementationInvariants is Test {
+contract AgentInvariants is Test {
     address public router;
     address public agentImp;
     address public mockCallback;
@@ -40,7 +40,7 @@ contract AgentImplementationInvariants is Test {
         assertEq(agent.caller(), router);
     }
 
-    function invariant_call_summary() external view {
+    function invariant_callSummary() external view {
         uint256 numExecuteWithCallback = agentHandler.numCalls('executeWithCallback');
         uint256 numExecuteWithoutCallback = agentHandler.numCalls('executeWithoutCallback');
 

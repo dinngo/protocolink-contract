@@ -65,7 +65,7 @@ interface IRouter {
 
     function calcAgent(address user) external view returns (address);
 
-    function addSigner(address newSigner) external;
+    function addSigner(address signer) external;
 
     function removeSigner(address signer) external;
 
