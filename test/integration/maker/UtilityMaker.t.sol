@@ -61,7 +61,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         IMakerVat vat = IMakerVat(VAT);
         bytes32 ilkETH = bytes32(bytes(ETH_JOIN_NAME));
         (, uint256 rate, uint256 spot, , uint256 dust) = vat.ilks(ilkETH);
-        (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust, 18);
+        (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust, ETH_DECIMAL);
 
         ethLockAmount = bound(ethLockAmount, minCollateral, 1e22);
         deal(user, ethLockAmount);

@@ -20,6 +20,7 @@ contract MakerCommonUtils is Test {
 
     address public constant GEM = WBTC_TOKEN;
     uint256 public constant GEM_DECIMAL = 8;
+    uint256 public constant ETH_DECIMAL = 18;
     string public constant ETH_JOIN_NAME = 'ETH-A';
     string public constant TOKEN_JOIN_NAME = 'WBTC-C';
     address public constant GEM_JOIN_TOKEN = GEM_JOIN_WBTC_C;

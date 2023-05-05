@@ -73,7 +73,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         ethCdp = uint256(ret);
         assertEq(IERC20(DAI_TOKEN).balanceOf(user), DRAW_DAI_AMOUNT);
 
-        // Open WBTC Vault
+        // Open GEM Vault
         uint256 gemAmount = 20 * (10 ** GEM_DECIMAL);
         deal(GEM, user, gemAmount);
         IERC20(GEM).approve(userDSProxy, gemAmount);
