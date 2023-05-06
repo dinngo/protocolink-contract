@@ -45,7 +45,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         address pauser = makeAddr('Pauser');
 
         // Depoly contracts
-        router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), address(this), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
         makerDrawFeeCalculator = address(new MakerDrawFeeCalculator(address(router), 0, DAI_TOKEN));

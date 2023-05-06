@@ -12,7 +12,7 @@ contract RouterInvariantsTest is Test {
     RouterHandler public handler;
 
     function setUp() external {
-        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('Signer'));
+        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('Signer'));
         handler = new RouterHandler(router);
 
         bytes4[] memory selectors = new bytes4[](4);

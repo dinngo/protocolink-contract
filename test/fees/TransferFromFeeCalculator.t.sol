@@ -35,7 +35,7 @@ contract TransferFromFeeCalculatorTest is Test {
         address pauser = makeAddr('Pauser');
 
         // Depoly contracts
-        router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), address(this), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
         transferFromFeeCalculator = address(new TransferFromFeeCalculator(address(router), 0));

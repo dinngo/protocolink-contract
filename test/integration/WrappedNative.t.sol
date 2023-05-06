@@ -22,7 +22,7 @@ contract WrappedNativeTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
-        router = new Router(address(WRAPPED_NATIVE), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(address(WRAPPED_NATIVE), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
 
         // Empty router the balance
         vm.prank(address(router));

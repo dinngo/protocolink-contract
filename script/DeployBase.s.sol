@@ -8,6 +8,7 @@ contract DeployBase is Script {
     using stdJson for string;
 
     error InvalidRouterAddress();
+    error InvalidCREATE3FactoryAddress();
 
     struct DeployParameters {
         address router;
@@ -18,6 +19,7 @@ contract DeployBase is Script {
         address wrappedNative;
         address dai;
         // external
+        address create3Factory;
         address aaveV2Provider;
         address aaveV3Provider;
         address balancerV2Vault;
@@ -37,6 +39,11 @@ contract DeployBase is Script {
 
     modifier isRouterAddressZero(address router) {
         if (router == address(0)) revert InvalidRouterAddress();
+        _;
+    }
+
+    modifier isCREATE3FactoryAddressZero(address factory) {
+        if (factory == address(0)) revert InvalidCREATE3FactoryAddress();
         _;
     }
 

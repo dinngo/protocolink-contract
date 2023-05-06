@@ -35,7 +35,8 @@ contract NativeFeeCalculatorTest is Test {
         receiver = makeAddr('Receiver');
         feeCollector = makeAddr('FeeCollector');
         address pauser = makeAddr('Pauser');
-        router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
+
+        router = new Router(makeAddr('WrappedNative'), address(this), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
 

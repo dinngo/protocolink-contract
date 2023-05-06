@@ -40,7 +40,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
         address pauser = makeAddr('Pauser');
 
         // Depoly contracts
-        router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), address(this), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
         permit2FeeCalculator = address(new Permit2FeeCalculator(address(router), 0));

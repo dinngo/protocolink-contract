@@ -35,7 +35,7 @@ contract BalancerV2IntegrationTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
-        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
         flashLoanCallback = new BalancerV2FlashLoanCallback(address(router), address(balancerV2Vault));
 
         vm.label(address(router), 'Router');
