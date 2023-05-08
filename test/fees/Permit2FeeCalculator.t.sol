@@ -77,8 +77,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
         logics[0] = logicERC20Permit2PullToken(IERC20(USDC), amount.toUint160());
 
         // Get new logics
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(permit2FeeCalculator).calculateAmountWithFee(amount);
@@ -94,7 +93,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
         vm.expectEmit(true, true, true, true, address(userAgent));
         emit FeeCharged(USDC, expectedFee, META_DATA);
         vm.prank(user);
-        router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
         assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);

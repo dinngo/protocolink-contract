@@ -23,7 +23,6 @@ contract FeeRevertCasesTest is Test {
     address public constant AAVE_V2_PROVIDER = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
     address public constant AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address public constant DUMMY_TO_ADDRESS = address(0);
     bytes4 public constant AAVE_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)')));
@@ -95,105 +94,25 @@ contract FeeRevertCasesTest is Test {
         FeeCalculatorBase(nativeFeeCalculator).setFeeRate(BPS_BASE);
     }
 
-    function testFeeLessThanExpected() external {
-        IParam.Logic[] memory logics = _buildFlashLoanLogics();
-
-        // Get new logics and fees
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
-
-        // Modify fees
-        fees[0].amount -= 1;
-
-        // Execute
-        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
-        vm.prank(user);
-        router.execute(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
-    }
-
-    function testFeeMoreThanExpected() external {
-        IParam.Logic[] memory logics = _buildFlashLoanLogics();
-
-        // Get new logics and fees
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
-
-        // Modify fees
-        fees[0].amount += 1;
-
-        // Execute
-        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
-        vm.prank(user);
-        router.execute(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
-    }
-
-    function testFeeTokenMoreThanExpected() external {
-        IParam.Logic[] memory logics = _buildFlashLoanLogics();
-
-        // Get new logics and fees
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
-
-        // Add one more token to fees
-        IParam.Fee[] memory fees2 = new IParam.Fee[](fees.length + 1);
-        for (uint256 i = 0; i < fees.length; ++i) {
-            fees2[i] = fees[i];
-        }
-        fees2[fees.length].token = USDT;
-        fees2[fees.length].amount = 1;
-
-        // Execute
-        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
-        vm.prank(user);
-        router.execute(logics, fees2, tokensReturnEmpty, SIGNER_REFERRAL);
-    }
-
-    function testEmptyFees() external {
+    function testFeesNotIncludedInLogics() external {
         IParam.Logic[] memory logics = _buildFlashLoanLogics();
 
         // Execute
-        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
+        vm.expectRevert();
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
-    function testFeeLessThanExpectedWithFeeScenarioInside() external {
-        uint256 amount = 100e6;
+    function testMsgValueNotEnoughForFees() external {
         uint256 nativeAmount = 1 ether;
-
-        // Encode flash loan params
-        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](2);
-        flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(
-            address(flashLoanCallbackV2),
-            USDC,
-            FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount)
-        );
-        flashLoanLogics[1] = _logicSendNativeToken(user, nativeAmount);
-        bytes memory params = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
-
-        // Encode logic
-        address[] memory tokens = new address[](1);
-        tokens[0] = USDC;
-
-        uint256[] memory amounts = new uint256[](1);
-        amounts[0] = amount;
-
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicAaveFlashLoan(v2Pool, address(flashLoanCallbackV2), tokens, amounts, params);
-
-        // Get new logics and fees
-        IParam.Fee[] memory fees;
-        uint256 nativeNewAmount;
-        (logics, nativeNewAmount, fees) = router.getLogicsAndFees(logics, nativeAmount);
-        deal(user, nativeNewAmount);
-
-        // Modify fees
-        fees[1].amount -= 1;
+        logics[0] = _logicSendNativeToken(feeCollector, nativeAmount);
 
         // Execute
-        vm.expectRevert(IRouter.FeeVerificationFailed.selector);
+        deal(user, nativeAmount);
+        vm.expectRevert('Address: insufficient balance');
         vm.prank(user);
-        router.execute{value: nativeNewAmount}(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute{value: nativeAmount}(logics, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function _buildFlashLoanLogics() internal view returns (IParam.Logic[] memory) {

@@ -132,8 +132,7 @@ contract AaveBorrowFeeCalculatorTest is Test {
         logics[0] = _logicAaveBorrow(v2Pool, collateral, amount, uint256(InterestRateMode.VARIABLE));
 
         // Get new logics
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(borrowFeeCalculator).calculateAmountWithFee(amount);
@@ -147,7 +146,7 @@ contract AaveBorrowFeeCalculatorTest is Test {
         vm.expectEmit(true, true, true, true, address(userAgent));
         emit FeeCharged(collateral, expectedFee, V2_BORROW_META_DATA);
         vm.prank(user);
-        router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 
         assertEq(IERC20(collateral).balanceOf(address(router)), 0);
         assertEq(IERC20(collateral).balanceOf(address(userAgent)), 0);
@@ -173,8 +172,7 @@ contract AaveBorrowFeeCalculatorTest is Test {
         logics[0] = _logicAaveBorrow(v3Pool, collateral, amount, uint256(InterestRateMode.VARIABLE));
 
         // Get new logics
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(borrowFeeCalculator).calculateAmountWithFee(amount);
@@ -188,7 +186,7 @@ contract AaveBorrowFeeCalculatorTest is Test {
         vm.expectEmit(true, true, true, true, address(userAgent));
         emit FeeCharged(collateral, expectedFee, V3_BORROW_META_DATA);
         vm.prank(user);
-        router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 
         assertEq(IERC20(collateral).balanceOf(address(router)), 0);
         assertEq(IERC20(collateral).balanceOf(address(userAgent)), 0);

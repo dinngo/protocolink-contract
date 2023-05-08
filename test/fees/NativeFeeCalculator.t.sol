@@ -69,9 +69,8 @@ contract NativeFeeCalculatorTest is Test {
         logics[0] = _logicSendNative(value);
 
         // Get new logics and msgValue
-        IParam.Fee[] memory fees;
         uint256 newValue;
-        (logics, newValue, fees) = router.getLogicsAndFees(logics, value);
+        (logics, newValue) = router.getUpdatedLogicsAndMsgValue(logics, value);
         deal(user, newValue);
 
         // Prepare assert data
@@ -83,7 +82,7 @@ contract NativeFeeCalculatorTest is Test {
         vm.expectEmit(true, true, true, true, address(userAgent));
         emit FeeCharged(NATIVE, expectedFee, META_DATA);
         vm.prank(user);
-        router.execute{value: newValue}(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute{value: newValue}(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         assertEq(address(router).balance, 0);
         assertEq(address(userAgent).balance, 0);

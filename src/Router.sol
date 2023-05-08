@@ -189,18 +189,17 @@ contract Router is IRouter, EIP712, FeeVerifier {
     /// @param referralCode Referral code
     function execute(
         IParam.Logic[] calldata logics,
-        IParam.Fee[] calldata fees,
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable isPaused checkCaller {
-        if (!verifyFees(logics, msg.value, fees)) revert FeeVerificationFailed();
-
         address user = currentUser;
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
             agent = IAgent(newAgent(user));
         }
+
+        IParam.Fee[] memory fees = getFeesByLogics(logics, msg.value);
 
         emit Execute(user, address(agent), referralCode);
         agent.execute{value: msg.value}(logics, fees, tokensReturn);

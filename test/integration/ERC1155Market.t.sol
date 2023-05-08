@@ -28,7 +28,6 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
     MockERC1155Market public market;
 
     // Empty arrays
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -68,7 +67,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
@@ -100,7 +99,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         // Execute
         uint256 tokenBefore = tokenIn.balanceOf(user);
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
@@ -126,7 +125,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
@@ -158,7 +157,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         // Execute
         uint256 tokenBefore = tokenIn.balanceOf(user);
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);

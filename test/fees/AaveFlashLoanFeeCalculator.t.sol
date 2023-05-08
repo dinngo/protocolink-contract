@@ -155,9 +155,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicAaveFlashLoan(v2Pool, address(flashLoanCallbackV2), tokens, amounts, params);
 
-        // Get new logics and fees
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+        // Get new logics
+        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
 
         _distributeToken(tokens, amounts, isAaveV2);
 
@@ -171,7 +170,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         vm.expectEmit(true, true, true, true, address(userAgent));
         emit FeeCharged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
         vm.prank(user);
-        router.execute(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
         assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
@@ -209,7 +208,6 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         }
 
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        IParam.Fee[] memory fees;
         uint256 nativeNewAmount;
         {
             // Encode logic
@@ -221,8 +219,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
             logics[0] = _logicAaveFlashLoan(v2Pool, address(flashLoanCallbackV2), tokens, amounts, params);
 
-            // Get new logics and fees
-            (logics, nativeNewAmount, fees) = router.getLogicsAndFees(logics, nativeAmount);
+            // Get new logics and msg.value amount
+            (logics, nativeNewAmount) = router.getUpdatedLogicsAndMsgValue(logics, nativeAmount);
             deal(user, nativeNewAmount);
             _distributeToken(tokens, amounts, isAaveV2);
         }
@@ -242,7 +240,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             emit FeeCharged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
             emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
             vm.prank(user);
-            router.execute{value: nativeNewAmount}(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
+            router.execute{value: nativeNewAmount}(logics, tokensReturnEmpty, SIGNER_REFERRAL);
         }
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
@@ -284,9 +282,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             params = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
         }
 
-        // Get new logics and fees
+        // Get new logics and msg.value amount
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        IParam.Fee[] memory fees;
         uint256 nativeNewAmount;
         {
             // Encode logic
@@ -297,7 +294,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             amounts[0] = amount;
 
             logics[0] = _logicAaveFlashLoan(v2Pool, address(flashLoanCallbackV2), tokens, amounts, params);
-            (logics, nativeNewAmount, fees) = router.getLogicsAndFees(logics, nativeAmount);
+            (logics, nativeNewAmount) = router.getUpdatedLogicsAndMsgValue(logics, nativeAmount);
 
             // Distribute token
             deal(user, nativeNewAmount);
@@ -334,7 +331,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
             emit FeeCharged(USDT, expectedUSDTFee, PERMIT2_META_DATA);
             vm.prank(user);
-            router.execute{value: nativeNewAmount}(logics, fees, tokensReturns, SIGNER_REFERRAL);
+            router.execute{value: nativeNewAmount}(logics, tokensReturns, SIGNER_REFERRAL);
         }
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
@@ -375,9 +372,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = _logicAaveFlashLoan(v3Pool, address(flashLoanCallbackV3), tokens, amounts, params);
 
-        // Get new logics and fees
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+        // Get new logics
+        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
 
         _distributeToken(tokens, amounts, isAaveV2);
 
@@ -391,7 +387,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         vm.expectEmit(true, true, true, true, address(userAgent));
         emit FeeCharged(USDC, expectedFee, V3_FLASHLOAN_META_DATA);
         vm.prank(user);
-        router.execute(logics, fees, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
         assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
