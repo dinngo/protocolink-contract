@@ -5,6 +5,7 @@ import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
+/// @title Compound V3 borrow fee calculator
 contract CompoundBorrowFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 internal constant _META_DATA = bytes32(bytes('compound-v3:borrow'));
 

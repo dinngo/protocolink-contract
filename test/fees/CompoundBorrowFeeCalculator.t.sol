@@ -5,7 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'forge-std/interfaces/IERC20.sol';
 import {Router} from 'src/Router.sol';
 import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
-import {CompoundBorrowFeeCalculator} from 'src/fees/CompoundBorrowFeeCalculator.sol';
+import {CompoundV3BorrowFeeCalculator} from 'src/fees/CompoundV3BorrowFeeCalculator.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 
@@ -32,7 +32,7 @@ interface IComet {
     function allow(address manager, bool isAllowed) external;
 }
 
-contract CompoundBorrowFeeCalculatorTest is Test {
+contract CompoundV3BorrowFeeCalculatorTest is Test {
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -45,6 +45,11 @@ contract CompoundBorrowFeeCalculatorTest is Test {
     uint256 public constant BPS_BASE = 10_000;
     uint256 public constant SIGNER_REFERRAL = 1;
 
+    address public comet = C_USDCV3;
+    address public collateral = WETH;
+    uint256 public collateralAmount = 3000 ether;
+    address public baseToken = IComet(comet).baseToken();
+
     address public user;
     address public feeCollector;
     Router public router;
@@ -52,13 +57,7 @@ contract CompoundBorrowFeeCalculatorTest is Test {
     address public borrowFeeCalculator;
 
     // Empty arrays
-    address[] public tokensReturnEmpty;
     IParam.Input[] public inputsEmpty;
-
-    address public comet = C_USDCV3;
-    address public collateral = WETH;
-    uint256 public collateralAmount = 3000 ether;
-    address public baseToken = IComet(comet).baseToken();
 
     function setUp() external {
         user = makeAddr('User');
@@ -69,7 +68,7 @@ contract CompoundBorrowFeeCalculatorTest is Test {
         router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
-        borrowFeeCalculator = address(new CompoundBorrowFeeCalculator(address(router), 0));
+        borrowFeeCalculator = address(new CompoundV3BorrowFeeCalculator(address(router), 0));
 
         // Setup collateral
         vm.startPrank(user);
@@ -112,7 +111,7 @@ contract CompoundBorrowFeeCalculatorTest is Test {
 
         // Encode logic
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicCompoundBorrow(amount);
+        logics[0] = _logicCompoundV3Borrow(amount);
 
         // Get new logics
         IParam.Fee[] memory fees;
@@ -145,7 +144,7 @@ contract CompoundBorrowFeeCalculatorTest is Test {
         return amount;
     }
 
-    function _logicCompoundBorrow(uint256 amount) internal view returns (IParam.Logic memory) {
+    function _logicCompoundV3Borrow(uint256 amount) internal view returns (IParam.Logic memory) {
         return
             IParam.Logic(
                 comet,

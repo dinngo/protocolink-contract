@@ -8,11 +8,11 @@ import {DeployBalancerV2FlashLoanCallback} from './DeployBalancerV2FlashLoanCall
 import {DeployMakerUtility} from './DeployMakerUtility.s.sol';
 import {DeployAaveBorrowFeeCalculator} from './DeployAaveBorrowFeeCalculator.s.sol';
 import {DeployAaveFlashLoanFeeCalculator} from './DeployAaveFlashLoanFeeCalculator.s.sol';
+import {DeployCompoundV3BorrowFeeCalculator} from './DeployCompoundV3BorrowFeeCalculator.s.sol';
 import {DeployMakerDrawFeeCalculator} from './DeployMakerDrawFeeCalculator.s.sol';
 import {DeployNativeFeeCalculator} from './DeployNativeFeeCalculator.s.sol';
 import {DeployPermit2FeeCalculator} from './DeployPermit2FeeCalculator.s.sol';
 import {DeployTransferFromFeeCalculator} from './DeployTransferFromFeeCalculator.s.sol';
-import {DeployCompoundBorrowFeeCalculator} from './DeployCompoundBorrowFeeCalculator.s.sol';
 
 contract DeployAll is
     DeployRouter,
@@ -22,11 +22,11 @@ contract DeployAll is
     DeployMakerUtility,
     DeployAaveBorrowFeeCalculator,
     DeployAaveFlashLoanFeeCalculator,
+    DeployCompoundV3BorrowFeeCalculator,
     DeployMakerDrawFeeCalculator,
     DeployNativeFeeCalculator,
     DeployPermit2FeeCalculator,
-    DeployTransferFromFeeCalculator,
-    DeployCompoundBorrowFeeCalculator
+    DeployTransferFromFeeCalculator
 {
     function _run(
         DeployParameters memory params
@@ -40,11 +40,11 @@ contract DeployAll is
             DeployMakerUtility,
             DeployAaveBorrowFeeCalculator,
             DeployAaveFlashLoanFeeCalculator,
+            DeployCompoundV3BorrowFeeCalculator,
             DeployMakerDrawFeeCalculator,
             DeployNativeFeeCalculator,
             DeployPermit2FeeCalculator,
-            DeployTransferFromFeeCalculator,
-            DeployCompoundBorrowFeeCalculator
+            DeployTransferFromFeeCalculator
         )
         returns (address deployedAddress)
     {
@@ -62,10 +62,10 @@ contract DeployAll is
         // fee
         DeployAaveBorrowFeeCalculator._run(params);
         DeployAaveFlashLoanFeeCalculator._run(params);
+        DeployCompoundV3BorrowFeeCalculator._run(params);
         DeployMakerDrawFeeCalculator._run(params);
         DeployNativeFeeCalculator._run(params);
         DeployPermit2FeeCalculator._run(params);
         DeployTransferFromFeeCalculator._run(params);
-        DeployCompoundBorrowFeeCalculator._run(params);
     }
 }
