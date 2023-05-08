@@ -5,9 +5,9 @@ import {Ownable} from 'openzeppelin-contracts/contracts/access/Ownable.sol';
 import {IParam} from '../interfaces/IParam.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
-/// @title Fee verifier
-/// @notice An abstract contract that verifies and calculates fees on-chain
-abstract contract FeeVerifier is Ownable {
+/// @title Fee generator
+/// @notice An abstract contract that generates and calculates fees on-chain
+abstract contract FeeGenerator is Ownable {
     error LengthMismatch();
 
     event FeeCalculatorSet(bytes4 indexed selector, address indexed to, address indexed feeCalculator);

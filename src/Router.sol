@@ -6,13 +6,13 @@ import {EIP712} from 'openzeppelin-contracts/contracts/utils/cryptography/EIP712
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
 import {IAgent, AgentImplementation} from './AgentImplementation.sol';
 import {Agent} from './Agent.sol';
-import {FeeVerifier} from './fees/FeeVerifier.sol';
+import {FeeGenerator} from './fees/FeeGenerator.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
 
 /// @title Entry point for Composable Router
-contract Router is IRouter, EIP712, FeeVerifier {
+contract Router is IRouter, EIP712, FeeGenerator {
     using SafeERC20 for IERC20;
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;

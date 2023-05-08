@@ -31,8 +31,6 @@ interface IRouter {
 
     error InvalidNewPauser();
 
-    error FeeVerificationFailed();
-
     error SignatureExpired(uint256 deadline);
 
     error InvalidSigner(address signer);
