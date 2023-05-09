@@ -44,7 +44,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
     /// @notice Address for invoking pause
     address public pauser;
 
-    /// @notice Flag for indicating pasue
+    /// @notice Flag for indicating pause
     bool public paused;
 
     modifier checkCaller() {
@@ -87,7 +87,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
         return _domainSeparatorV4();
     }
 
-    /// @notice Get agent address of an user
+    /// @notice Get agent address of a user
     /// @param user The user address
     /// @return The agent address of the user
     function getAgent(address user) external view returns (address) {
@@ -102,7 +102,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
         return (user, address(agents[user]));
     }
 
-    /// @notice Calculate agent address for an user using the CREATE2 formula
+    /// @notice Calculate agent address for a user using the CREATE2 formula
     /// @param user The user address
     /// @return The calculated agent address for the user
     function calcAgent(address user) external view returns (address) {

@@ -4,16 +4,16 @@ pragma solidity ^0.8.0;
 interface IParam {
     /// @notice LogicBatch is signed by a signer using EIP-712
     struct LogicBatch {
-        Logic[] logics; // An array of logics to be executed
-        Fee[] fees; // An array of fees to be charged
+        Logic[] logics; // An array of `Logic` structs to be executed
+        Fee[] fees; // An array of `Fee` structs to be charged
         uint256 deadline; // The deadline for a signer's signature
     }
 
     /// @notice Logic represents a single action to be executed
     struct Logic {
         address to; // The target address for the execution
-        bytes data; // Encoded function call data
-        Input[] inputs; // An array of inputs for amount calculation and token approval
+        bytes data; // Encoded function calldata
+        Input[] inputs; // An array of `Input` structs for amount calculation and token approval
         WrapMode wrapMode; // Determines if wrap or unwrap native
         address approveTo; // The address to approve tokens for if different from `to` such as a spender contract
         address callback; // The address allowed to make a one-time call to the agent

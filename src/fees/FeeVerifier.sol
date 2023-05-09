@@ -6,7 +6,7 @@ import {IParam} from '../interfaces/IParam.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
 /// @title Fee verifier
-/// @notice An abstruct contract that verifies and calculates fees on-chain
+/// @notice An abstract contract that verifies and calculates fees on-chain
 abstract contract FeeVerifier is Ownable {
     error LengthMismatch();
 
