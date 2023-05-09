@@ -7,6 +7,7 @@ import {IAaveV3Provider} from '../interfaces/aaveV3/IAaveV3Provider.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
+/// @title Aave flash loan fee calculator
 contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 internal constant _V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flash-loan'));
     bytes32 internal constant _V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flash-loan'));

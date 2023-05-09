@@ -5,7 +5,8 @@ import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
-/// @notice Fee calculator for ERC20::transferFrom action. This will also cause ERC721::transferFrom being executed and fail in transaction.
+/// @title TransferFrom fee calculator for ERC20::transferFrom
+/// @dev Cause a failed transaction when the rarely used ERC721::transferFrom is executed
 contract TransferFromFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     bytes32 internal constant _META_DATA = bytes32(bytes('erc20:transfer-from'));
 

@@ -11,23 +11,40 @@ import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
 
-/// @title Router executes arbitrary logics
+/// @title Entry point for Composable Router
 contract Router is IRouter, EIP712, FeeVerifier {
     using SafeERC20 for IERC20;
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;
 
+    /// @dev Flag for reducing gas cost when reset `currentUser`
     address internal constant _INIT_USER = address(1);
+
+    /// @dev Flag for identifying an invalid pauser address
     address internal constant _INVALID_PAUSER = address(0);
+
+    /// @dev Flag for identifying an invalid fee collector address
     address internal constant _INVALID_FEE_COLLECTOR = address(0);
 
+    /// @notice Immutable implementation contract for all users' agents
     address public immutable agentImplementation;
 
+    /// @notice Mapping for recording exclusive agent contract to each user
     mapping(address user => IAgent agent) public agents;
+
+    /// @notice Mapping for recording valid signers
     mapping(address signer => bool valid) public signers;
+
+    /// @notice Transient address for recording `msg.sender` which resets to `_INIT_USER` after each execution
     address public currentUser;
+
+    /// @notice Address for receiving collected fees
     address public feeCollector;
+
+    /// @notice Address for invoking pause
     address public pauser;
+
+    /// @notice Flag for indicating pause
     bool public paused;
 
     modifier checkCaller() {
@@ -50,6 +67,7 @@ contract Router is IRouter, EIP712, FeeVerifier {
         _;
     }
 
+    /// @dev Create the router with EIP-712 and the agent implementation contracts
     constructor(address wrappedNative, address pauser_, address feeCollector_) EIP712('Composable Router', '1') {
         currentUser = _INIT_USER;
         agentImplementation = address(new AgentImplementation(wrappedNative));
@@ -57,23 +75,36 @@ contract Router is IRouter, EIP712, FeeVerifier {
         _setFeeCollector(feeCollector_);
     }
 
+    /// @notice Get owner address
+    /// @return The owner address
     function owner() public view override(IRouter, Ownable) returns (address) {
         return super.owner();
     }
 
+    /// @notice Get domain separator used for EIP-712
+    /// @return The domain separator of Composable Router
     function domainSeparator() external view returns (bytes32) {
         return _domainSeparatorV4();
     }
 
+    /// @notice Get agent address of a user
+    /// @param user The user address
+    /// @return The agent address of the user
     function getAgent(address user) external view returns (address) {
         return address(agents[user]);
     }
 
+    /// @notice Get user and agent addresses of the current user
+    /// @return The user address
+    /// @return The agent address
     function getUserAgent() external view returns (address, address) {
         address user = currentUser;
         return (user, address(agents[user]));
     }
 
+    /// @notice Calculate agent address for a user using the CREATE2 formula
+    /// @param user The user address
+    /// @return The calculated agent address for the user
     function calcAgent(address user) external view returns (address) {
         address result = address(
             uint160(
@@ -92,16 +123,22 @@ contract Router is IRouter, EIP712, FeeVerifier {
         return result;
     }
 
+    /// @notice Add a signer whose signature can pass the validation in `executeWithSignature` by owner
+    /// @param signer The signer address to be added
     function addSigner(address signer) external onlyOwner {
         signers[signer] = true;
         emit SignerAdded(signer);
     }
 
+    /// @notice Remove a signer by owner
+    /// @param signer The signer address to be removed
     function removeSigner(address signer) external onlyOwner {
         delete signers[signer];
         emit SignerRemoved(signer);
     }
 
+    /// @notice Set the fee collector address that collects fees from each user's agent by owner
+    /// @param feeCollector_ The fee collector address
     function setFeeCollector(address feeCollector_) external onlyOwner {
         _setFeeCollector(feeCollector_);
     }
@@ -112,6 +149,8 @@ contract Router is IRouter, EIP712, FeeVerifier {
         emit FeeCollectorSet(feeCollector_);
     }
 
+    /// @notice Set the pauser address that can pause `execute` and `executeWithSignature` by owner
+    /// @param pauser_ The pauser address
     function setPauser(address pauser_) external onlyOwner {
         _setPauser(pauser_);
     }
@@ -122,21 +161,32 @@ contract Router is IRouter, EIP712, FeeVerifier {
         emit PauserSet(pauser_);
     }
 
+    /// @notice Rescue ERC-20 tokens in case of stuck tokens by owner
+    /// @param token The token address
+    /// @param receiver The receiver address
+    /// @param amount The amount of tokens to be rescued
     function rescue(address token, address receiver, uint256 amount) external onlyOwner {
         IERC20(token).safeTransfer(receiver, amount);
     }
 
+    /// @notice Pause `execute` and `executeWithSignature` by pauser
     function pause() external onlyPauser {
         paused = true;
         emit Paused();
     }
 
+    /// @notice Resume `execute` and `executeWithSignature` by pauser
     function resume() external onlyPauser {
         paused = false;
         emit Resumed();
     }
 
-    /// @notice Execute logics through current user's agent. Create agent for user if not created.
+    /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for users if not created.
+    ///         Charge fees based on the scenarios defined in the FeeVerifier contract, which calculates fees on-chain.
+    /// @param logics Array of logics to be executed
+    /// @param fees Array of fees
+    /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
+    /// @param referralCode Referral code
     function execute(
         IParam.Logic[] calldata logics,
         IParam.Fee[] calldata fees,
@@ -156,7 +206,14 @@ contract Router is IRouter, EIP712, FeeVerifier {
         agent.execute{value: msg.value}(logics, fees, tokensReturn);
     }
 
-    /// @notice Execute logics with signer's signature.
+    /// @notice Execute arbitrary logics through the current user's agent using a signer's signature. Creates an agent
+    ///         for users if not created. The fees in logicBatch are off-chain encoded, instead of being calculated by
+    ///         the FeeVerifier contract.
+    /// @param logicBatch A struct containing logics, fees and deadline, signed by a signer using EIP-712
+    /// @param signer The signer address
+    /// @param signature The signer's signature bytes
+    /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
+    /// @param referralCode Referral code
     function executeWithSignature(
         IParam.LogicBatch calldata logicBatch,
         address signer,
@@ -182,11 +239,14 @@ contract Router is IRouter, EIP712, FeeVerifier {
     }
 
     /// @notice Create an agent for `msg.sender`
+    /// @return The newly created agent address
     function newAgent() external returns (address payable) {
         return newAgent(msg.sender);
     }
 
-    /// @notice Create an agent for `user`
+    /// @notice Create an agent for the user
+    /// @param user The user address
+    /// @return The newly created agent address
     function newAgent(address user) public returns (address payable) {
         if (address(agents[user]) != address(0)) {
             revert AgentAlreadyCreated();

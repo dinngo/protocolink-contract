@@ -5,15 +5,23 @@ import {Ownable} from 'openzeppelin-contracts/contracts/access/Ownable.sol';
 import {IParam} from '../interfaces/IParam.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
+/// @title Fee verifier
+/// @notice An abstract contract that verifies and calculates fees on-chain
 abstract contract FeeVerifier is Ownable {
     error LengthMismatch();
 
     event FeeCalculatorSet(bytes4 indexed selector, address indexed to, address indexed feeCalculator);
 
+    /// @dev Flag for identifying the native address such as ETH on Ethereum
     address internal constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    /// @dev Flag for identifying any to address in `feeCalculators`
     address internal constant _DUMMY_TO_ADDRESS = address(0);
+
+    /// @dev Flag for identifying the native fee calculator
     bytes4 internal constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
 
+    /// @notice Mapping for storing fee calculators for each combination of selector and to address
     mapping(bytes4 selector => mapping(address to => address feeCalculator)) public feeCalculators;
 
     /// @notice Get logics, msg.value and fees that contains fee

@@ -9,6 +9,7 @@ import {IAaveV3Provider} from '../interfaces/aaveV3/IAaveV3Provider.sol';
 import {ApproveHelper} from '../libraries/ApproveHelper.sol';
 
 /// @title Aave V3 flash loan callback
+/// @notice Invoked by Aave V3 pool to call the current user's agent
 contract AaveV3FlashLoanCallback is IAaveV3FlashLoanCallback {
     using SafeERC20 for IERC20;
     using Address for address;
@@ -21,11 +22,11 @@ contract AaveV3FlashLoanCallback is IAaveV3FlashLoanCallback {
         aaveV3Provider = aaveV3Provider_;
     }
 
-    /// @dev No need to check whether `initiator` is Agent as it's certain when the below conditions are satisfied:
-    ///      1. `to` in Agent is Aave Pool, i.e, user signed a correct `to`
-    ///      2. `_callback` in Agent is set to this callback, i.e, user signed a correct `callback`
-    ///      3. `msg.sender` of this callback is Aave Pool
-    ///      4. Aave Pool contract is benign
+    /// @dev No need to check if `initiator` is the agent as it's certain when the below conditions are satisfied:
+    ///      1. The `to` address used in agent is Aave Pool, i.e, the user signed a correct `to`
+    ///      2. The `_callback` address set in agent is this callback, i.e, the user signed a correct `callback`
+    ///      3. The `msg.sender` of this callback is Aave Pool
+    ///      4. The Aave pool is benign
     function executeOperation(
         address[] calldata assets,
         uint256[] calldata amounts,
@@ -38,7 +39,7 @@ contract AaveV3FlashLoanCallback is IAaveV3FlashLoanCallback {
         if (msg.sender != pool) revert InvalidCaller();
         (, address agent) = IRouter(router).getUserAgent();
 
-        // Transfer assets to Agent and record initial balances
+        // Transfer assets to the agent and record initial balances
         uint256 assetsLength = assets.length;
         uint256[] memory initBalances = new uint256[](assetsLength);
         for (uint256 i = 0; i < assetsLength; ) {

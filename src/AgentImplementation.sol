@@ -10,19 +10,29 @@ import {IRouter} from './interfaces/IRouter.sol';
 import {IWrappedNative} from './interfaces/IWrappedNative.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
-/// @title Implemtation contract of agent logics
+/// @title Agent implementation contract
+/// @notice Delegated by all users' agents
 contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     using SafeERC20 for IERC20;
     using Address for address;
     using Address for address payable;
 
+    /// @dev Flag for identifying the native address such as ETH on Ethereum
     address internal constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    uint256 internal constant _BPS_BASE = 10_000;
-    uint256 internal constant _SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000; // Equivalent to 1<<255, i.e. a singular 1 in the most significant bit.
 
+    /// @dev Denominator for calculating basis points
+    uint256 internal constant _BPS_BASE = 10_000;
+
+    /// @dev Flag for indicating a skipped value by setting the most significant bit to 1 (1<<255)
+    uint256 internal constant _SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
+
+    /// @notice Immutable address for recording the router address
     address public immutable router;
+
+    /// @notice Immutable address for recording wrapped native address such as WETH on Ethereum
     address public immutable wrappedNative;
 
+    /// @notice Transient address for recording a valid caller which should be the router address after each execution
     address internal _caller;
 
     modifier checkCaller() {
@@ -37,17 +47,22 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _;
     }
 
+    /// @dev Create the agent implementation contract
     constructor(address wrappedNative_) {
         router = msg.sender;
         wrappedNative = wrappedNative_;
     }
 
+    /// @notice Initialize user's agent and can only be called once.
     function initialize() external {
         if (_caller != address(0)) revert Initialized();
         _caller = router;
     }
 
-    /// @notice Execute logics and return tokens to the current user
+    /// @notice Execute arbitrary logics
+    /// @param logics Array of logics to be executed
+    /// @param fees Array of fees
+    /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     function execute(
         IParam.Logic[] calldata logics,
         IParam.Fee[] calldata fees,

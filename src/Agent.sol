@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-/// @title Agent executes arbitrary logics
+/// @title A user's agent contract created by the router
+/// @notice A proxy for delegating calls to the immutable agent implementation contract
 contract Agent {
     address internal immutable _implementation;
 
+    /// @dev Create an initialized agent
     constructor(address implementation) {
         _implementation = implementation;
         (bool ok, ) = implementation.delegatecall(abi.encodeWithSignature('initialize()'));
@@ -13,12 +15,14 @@ contract Agent {
 
     receive() external payable {}
 
-    /// @notice All the function will be delegated to `_implementation`
+    /// @notice Delegate all function calls to `_implementation`
     fallback() external payable {
         _delegate(_implementation);
     }
 
-    /// @notice Referenced from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.8.1/contracts/proxy/Proxy.sol#L22
+    /// @notice Delegate the call to `_implementation`
+    /// @dev Referenced from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.8.1/contracts/proxy/Proxy.sol#L22
+    /// @param implementation The address of the implementation contract that this agent delegates calls to
     function _delegate(address implementation) internal {
         assembly {
             // Copy msg.data. We take full control of memory in this inline assembly
