@@ -114,8 +114,7 @@ contract CompoundV3BorrowFeeCalculatorTest is Test {
         logics[0] = _logicCompoundV3Borrow(amount);
 
         // Get new logics
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(borrowFeeCalculator).calculateAmountWithFee(amount);
@@ -129,7 +128,7 @@ contract CompoundV3BorrowFeeCalculatorTest is Test {
         vm.expectEmit(true, true, true, true, address(userAgent));
         emit FeeCharged(baseToken, expectedFee, META_DATA);
         vm.prank(user);
-        router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 
         assertEq(IERC20(baseToken).balanceOf(address(router)), 0);
         assertEq(IERC20(baseToken).balanceOf(address(userAgent)), 0);
