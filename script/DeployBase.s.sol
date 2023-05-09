@@ -28,6 +28,7 @@ contract DeployBase is Script {
         // fee
         uint256 aaveBorrowFeeCalculatorFeeRate;
         uint256 aaveFlashLoanFeeCalculatorFeeRate;
+        uint256 compoundV3BorrowFeeCalculatorFeeRate;
         uint256 makerDrawFeeCalculatorFeeRate;
         uint256 nativeFeeCalculatorFeeRate;
         uint256 permit2FeeCalculatorFeeRate;
