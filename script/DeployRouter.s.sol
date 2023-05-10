@@ -14,7 +14,7 @@ contract DeployRouter is DeployBase {
         bytes32 salt = keccak256('router');
         bytes memory creationCode = abi.encodePacked(
             type(Router).creationCode,
-            abi.encode(params.wrappedNative, msg.sender, params.pauser, params.feeCollector)
+            abi.encode(params.wrappedNative, params.owner, params.pauser, params.feeCollector)
         );
         deployedAddress = factory.deploy(salt, creationCode);
         console2.log('Router Deployed:', deployedAddress);

@@ -13,6 +13,7 @@ contract DeployBase is Script {
     struct DeployParameters {
         address router;
         // role
+        address owner;
         address pauser;
         address feeCollector;
         // token
