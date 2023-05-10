@@ -92,7 +92,7 @@ contract RouterTest is Test, LogicSignature {
         );
         assertEq(router.getAgent(user), address(0));
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
         assertFalse(router.getAgent(user) == address(0));
     }
 
@@ -111,7 +111,7 @@ contract RouterTest is Test, LogicSignature {
         assertFalse(router.getAgent(user) == address(0));
         vm.expectEmit(true, true, true, true, address(router));
         emit Execute(user, address(router.agents(user)), SIGNER_REFERRAL);
-        router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }
 
@@ -119,7 +119,7 @@ contract RouterTest is Test, LogicSignature {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
             address(router), // to
-            abi.encodeCall(IRouter.execute, (logicsEmpty, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL)),
+            abi.encodeCall(IRouter.execute, (logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL)),
             inputsEmpty,
             IParam.WrapMode.NONE,
             address(0), // approveTo
@@ -128,7 +128,7 @@ contract RouterTest is Test, LogicSignature {
         vm.startPrank(user);
         router.newAgent();
         vm.expectRevert(IRouter.Reentrancy.selector);
-        router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }
 
@@ -146,7 +146,7 @@ contract RouterTest is Test, LogicSignature {
             address(0) // callback
         );
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
         (, agent) = router.getUserAgent();
         // The executing agent should be reset to 0
         assertEq(agent, address(0));
@@ -225,13 +225,13 @@ contract RouterTest is Test, LogicSignature {
         // Execution revert when router paused
         vm.expectRevert(IRouter.RouterIsPaused.selector);
         vm.prank(user);
-        router.execute(logicsEmpty, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
 
         // Execution success when router resumed
         vm.prank(pauser);
         router.resume();
         assertFalse(router.paused());
-        router.execute(logicsEmpty, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function testCannotExecuteSignatureExpired() external {

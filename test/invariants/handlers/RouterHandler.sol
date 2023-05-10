@@ -90,7 +90,7 @@ contract RouterHandler is Test, LogicSignature {
 
     function execute(uint256 actorSeed) external useActor(actorSeed) recordAgent countCall('execute') {
         vm.prank(currentActor);
-        router.execute(logicsEmpty, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function executeWithSignature(

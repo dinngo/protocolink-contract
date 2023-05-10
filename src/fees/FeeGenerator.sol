@@ -5,17 +5,13 @@ import {Ownable} from 'openzeppelin-contracts/contracts/access/Ownable.sol';
 import {IParam} from '../interfaces/IParam.sol';
 import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
 
-/// @title Fee verifier
-/// @notice An abstract contract that verifies and calculates fees on-chain
-abstract contract FeeVerifier is Ownable {
+/// @title Fee generator
+/// @notice An abstract contract that generates and calculates fees on-chain
+abstract contract FeeGenerator is Ownable {
     error LengthMismatch();
 
     event FeeCalculatorSet(bytes4 indexed selector, address indexed to, address indexed feeCalculator);
 
-    /// @dev Flag for identifying the native address such as ETH on Ethereum
-    address internal constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-    /// @dev Flag for identifying any to address in `feeCalculators`
     address internal constant _DUMMY_TO_ADDRESS = address(0);
 
     /// @dev Flag for identifying the native fee calculator
@@ -24,21 +20,18 @@ abstract contract FeeVerifier is Ownable {
     /// @notice Mapping for storing fee calculators for each combination of selector and to address
     mapping(bytes4 selector => mapping(address to => address feeCalculator)) public feeCalculators;
 
-    /// @notice Get logics, msg.value and fees that contains fee
-    function getLogicsAndFees(
+    /// @notice Get logics and msg.value that contains fee
+    function getUpdatedLogicsAndMsgValue(
         IParam.Logic[] memory logics,
         uint256 msgValue
-    ) external view returns (IParam.Logic[] memory, uint256, IParam.Fee[] memory) {
+    ) external view returns (IParam.Logic[] memory, uint256) {
         // Update logics
         logics = getLogicsDataWithFee(logics);
 
         // Update value
         msgValue = getMsgValueWithFee(msgValue);
 
-        // Get fees
-        IParam.Fee[] memory fees = getFeesByLogics(logics, msgValue);
-
-        return (logics, msgValue, fees);
+        return (logics, msgValue);
     }
 
     function getLogicsDataWithFee(IParam.Logic[] memory logics) public view returns (IParam.Logic[] memory) {
@@ -108,75 +101,6 @@ abstract contract FeeVerifier is Ownable {
         }
 
         return fees;
-    }
-
-    function verifyFees(
-        IParam.Logic[] calldata logics,
-        uint256 msgValue,
-        IParam.Fee[] memory fees
-    ) public view returns (bool) {
-        uint256 feesLength = fees.length;
-        uint256 logicsLength = logics.length;
-        for (uint256 i = 0; i < logicsLength; ++i) {
-            bytes memory data = logics[i].data;
-            address to = logics[i].to;
-            bytes4 selector = bytes4(data);
-
-            // Get feeCalculator
-            address feeCalculator = getFeeCalculator(selector, to);
-            if (feeCalculator == address(0)) continue; // No need to charge fee
-
-            // Get charge tokens and amounts
-            IParam.Fee[] memory feesByLogic = IFeeCalculator(feeCalculator).getFees(to, data);
-            uint256 feesByLogicLength = feesByLogic.length;
-
-            // Deduct all fee from fees
-            for (uint256 j = 0; j < feesByLogicLength; ++j) {
-                for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-                    if (feesByLogic[j].token == fees[feesIndex].token) {
-                        if (feesByLogic[j].amount > fees[feesIndex].amount) {
-                            feesByLogic[j].amount -= fees[feesIndex].amount;
-                            fees[feesIndex].amount = 0;
-                        } else {
-                            fees[feesIndex].amount -= feesByLogic[j].amount;
-                            feesByLogic[j].amount = 0;
-                            break;
-                        }
-                    }
-                }
-
-                // Make sure feesByLogic.amount equals 0
-                if (feesByLogic[j].amount > 0) return false;
-            }
-        }
-
-        // Deduct native fee from fees
-        IFeeCalculator nativeFeeCalculator = getNativeFeeCalculator();
-        if (msgValue > 0 && address(nativeFeeCalculator) != address(0)) {
-            uint256 nativeFee = nativeFeeCalculator.getFees(_DUMMY_TO_ADDRESS, abi.encodePacked(msgValue))[0].amount;
-            for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-                if (fees[feesIndex].token == _NATIVE) {
-                    if (nativeFee > fees[feesIndex].amount) {
-                        nativeFee -= fees[feesIndex].amount;
-                        fees[feesIndex].amount = 0;
-                    } else {
-                        fees[feesIndex].amount -= nativeFee;
-                        nativeFee = 0;
-                        break;
-                    }
-                }
-            }
-
-            // Make sure nativeFee equals 0
-            if (nativeFee > 0) return false;
-        }
-
-        // No overcharging
-        for (uint256 feesIndex = 0; feesIndex < feesLength; ++feesIndex) {
-            if (fees[feesIndex].amount > 0) return false;
-        }
-
-        return true;
     }
 
     /// @notice Set fee calculator contracts

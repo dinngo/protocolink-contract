@@ -29,7 +29,6 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
     IAgent public agent;
 
     // Empty arrays
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -62,7 +61,7 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenIn.balanceOf(address(agent)), 0);

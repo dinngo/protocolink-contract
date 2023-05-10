@@ -72,7 +72,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         assertEq(IERC20(DAI_TOKEN).balanceOf(user), DRAW_DAI_AMOUNT);
 
         // Build user agent's DSProxy
-        router.execute(_logicBuildDSProxy(), feesEmpty, new address[](0), SIGNER_REFERRAL);
+        router.execute(_logicBuildDSProxy(), new address[](0), SIGNER_REFERRAL);
         userAgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(userAgent));
 
         vm.stopPrank();
@@ -110,8 +110,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         logics[0] = _logicDraw(ethCdp, amount);
 
         // Get new logics
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(makerDrawFeeCalculator).calculateAmountWithFee(amount);
@@ -126,7 +125,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         vm.expectEmit(true, true, true, true, address(userAgent));
         emit FeeCharged(DAI_TOKEN, expectedFee, META_DATA);
         vm.prank(user);
-        router.execute(logics, fees, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(router)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(userAgent)), 0);
@@ -147,14 +146,13 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         logics[0] = _logicFreeETH(userAgentDSProxy, ethCdp, freeETHAmount);
 
         // Get new logics
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
 
         // Execute
         address[] memory tokensReturns = new address[](1);
         tokensReturns[0] = address(NATIVE);
         vm.prank(user);
-        router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 
         assertEq(address(router).balance, 0);
         assertEq(address(userAgent).balance, 0);

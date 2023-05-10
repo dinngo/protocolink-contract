@@ -110,7 +110,7 @@ contract AaveV2IntegrationTest is Test {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(borrowedToken);
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(borrowedToken.balanceOf(address(router)), 0);
         assertEq(borrowedToken.balanceOf(address(agent)), 0);
@@ -138,7 +138,7 @@ contract AaveV2IntegrationTest is Test {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         assertEq(borrowedToken.balanceOf(address(router)), 0);
         assertEq(borrowedToken.balanceOf(address(agent)), 0);

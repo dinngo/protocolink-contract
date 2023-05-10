@@ -68,8 +68,7 @@ contract TransferFromFeeCalculatorTest is Test {
         logics[0] = _logicTransferFrom(USDC, user, address(userAgent), amount);
 
         // Get new logics
-        IParam.Fee[] memory fees;
-        (logics, , fees) = router.getLogicsAndFees(logics, 0);
+        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(transferFromFeeCalculator).calculateAmountWithFee(amount);
@@ -88,7 +87,7 @@ contract TransferFromFeeCalculatorTest is Test {
         vm.expectEmit(true, true, true, true, address(userAgent));
         emit FeeCharged(USDC, expectedFee, META_DATA);
         vm.prank(user);
-        router.execute(logics, fees, tokensReturns, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
         assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);

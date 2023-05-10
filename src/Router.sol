@@ -6,13 +6,13 @@ import {EIP712} from 'openzeppelin-contracts/contracts/utils/cryptography/EIP712
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
 import {IAgent, AgentImplementation} from './AgentImplementation.sol';
 import {Agent} from './Agent.sol';
-import {FeeVerifier} from './fees/FeeVerifier.sol';
+import {FeeGenerator} from './fees/FeeGenerator.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
 
 /// @title Entry point for Composable Router
-contract Router is IRouter, EIP712, FeeVerifier {
+contract Router is IRouter, EIP712, FeeGenerator {
     using SafeERC20 for IERC20;
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;
@@ -182,19 +182,15 @@ contract Router is IRouter, EIP712, FeeVerifier {
     }
 
     /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for users if not created.
-    ///         Charge fees based on the scenarios defined in the FeeVerifier contract, which calculates fees on-chain.
+    ///         Charge fees based on the scenarios defined in the FeeGenerator contract, which calculates fees on-chain.
     /// @param logics Array of logics to be executed
-    /// @param fees Array of fees
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     /// @param referralCode Referral code
     function execute(
         IParam.Logic[] calldata logics,
-        IParam.Fee[] calldata fees,
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable isPaused checkCaller {
-        if (!verifyFees(logics, msg.value, fees)) revert FeeVerificationFailed();
-
         address user = currentUser;
         IAgent agent = agents[user];
 
@@ -202,13 +198,15 @@ contract Router is IRouter, EIP712, FeeVerifier {
             agent = IAgent(newAgent(user));
         }
 
+        IParam.Fee[] memory fees = getFeesByLogics(logics, msg.value);
+
         emit Execute(user, address(agent), referralCode);
         agent.execute{value: msg.value}(logics, fees, tokensReturn);
     }
 
     /// @notice Execute arbitrary logics through the current user's agent using a signer's signature. Creates an agent
     ///         for users if not created. The fees in logicBatch are off-chain encoded, instead of being calculated by
-    ///         the FeeVerifier contract.
+    ///         the FeeGenerator contract.
     /// @param logicBatch A struct containing logics, fees and deadline, signed by a signer using EIP-712
     /// @param signer The signer address
     /// @param signature The signer's signature bytes

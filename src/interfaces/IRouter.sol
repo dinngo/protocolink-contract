@@ -31,8 +31,6 @@ interface IRouter {
 
     error InvalidNewPauser();
 
-    error FeeVerificationFailed();
-
     error SignatureExpired(uint256 deadline);
 
     error InvalidSigner(address signer);
@@ -81,7 +79,6 @@ interface IRouter {
 
     function execute(
         IParam.Logic[] calldata logics,
-        IParam.Fee[] calldata fees,
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable;

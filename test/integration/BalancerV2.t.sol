@@ -61,7 +61,7 @@ contract BalancerV2IntegrationTest is Test {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         address agent = router.getAgent(user);
         assertEq(token.balanceOf(address(router)), 0);

@@ -67,7 +67,6 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
     IAgent public agent;
 
     // Empty arrays
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -109,7 +108,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute{value: amountIn}(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
+        router.execute{value: amountIn}(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(address(router).balance, 0);
         assertEq(address(agent).balance, 0);
@@ -136,7 +135,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = NATIVE;
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(address(router).balance, 0);
         assertEq(address(agent).balance, 0);
@@ -162,7 +161,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenIn.balanceOf(address(agent)), 0);
@@ -198,7 +197,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         tokensReturn[1] = address(tokenIn1); // Push intermediate token to ensure clean up Agent
         tokensReturn[2] = address(tokenOut); // Push intermediate token to ensure clean up Agent
         vm.prank(user);
-        router.execute(logics, feesEmpty, tokensReturn, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(tokenIn0.balanceOf(address(router)), 0);
         assertEq(tokenIn0.balanceOf(address(agent)), 0);
