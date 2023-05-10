@@ -18,7 +18,7 @@ contract DeployAaveV3FlashLoanCallback is DeployBase {
         returns (address deployedAddress)
     {
         ICREATE3Factory factory = ICREATE3Factory(params.create3Factory);
-        bytes32 salt = keccak256('furucombo.composable.callback.aavev3flashloan');
+        bytes32 salt = keccak256('aave.v3.flash.loan.callback');
         bytes memory creationCode = abi.encodePacked(
             type(AaveV3FlashLoanCallback).creationCode,
             abi.encode(params.router, params.aaveV3Provider)

@@ -11,7 +11,7 @@ contract DeployCREATE3Factory is DeployBase {
             deployedAddress = address(new CREATE3Factory());
             console2.log('CREATE3Factory Deployed:', deployedAddress);
         } else {
-            console2.log('CREATE3Factory Existed, Skip deploy CREATE3 Factory:', params.create3Factory);
+            console2.log('CREATE3Factory Exists. Skip deployment of CREATE3Factory:', params.create3Factory);
             deployedAddress = params.create3Factory;
         }
     }

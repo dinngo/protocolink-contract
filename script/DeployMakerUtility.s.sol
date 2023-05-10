@@ -18,7 +18,7 @@ contract DeployMakerUtility is DeployBase {
         returns (address deployedAddress)
     {
         ICREATE3Factory factory = ICREATE3Factory(params.create3Factory);
-        bytes32 salt = keccak256('furucombo.composable.utility.maker');
+        bytes32 salt = keccak256('maker.utility');
         bytes memory creationCode = abi.encodePacked(
             type(MakerUtility).creationCode,
             abi.encode(

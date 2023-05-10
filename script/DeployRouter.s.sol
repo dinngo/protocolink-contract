@@ -11,7 +11,7 @@ contract DeployRouter is DeployBase {
         DeployParameters memory params
     ) internal virtual override isCREATE3FactoryAddressZero(params.create3Factory) returns (address deployedAddress) {
         ICREATE3Factory factory = ICREATE3Factory(params.create3Factory);
-        bytes32 salt = keccak256('furuombo.composable.router');
+        bytes32 salt = keccak256('router');
         bytes memory creationCode = abi.encodePacked(
             type(Router).creationCode,
             abi.encode(params.wrappedNative, msg.sender, params.pauser, params.feeCollector)

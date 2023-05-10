@@ -18,7 +18,7 @@ contract DeployTransferFromFeeCalculator is DeployBase {
         returns (address deployedAddress)
     {
         ICREATE3Factory factory = ICREATE3Factory(params.create3Factory);
-        bytes32 salt = keccak256('furucombo.composable.fee.transferfrom');
+        bytes32 salt = keccak256('transfer.from.draw.fee.calculator');
         bytes memory creationCode = abi.encodePacked(
             type(TransferFromFeeCalculator).creationCode,
             abi.encode(params.router, params.transferFromFeeCalculatorFeeRate)
