@@ -43,7 +43,7 @@ contract RouterTest is Test, LogicSignature {
         pauser = makeAddr('Pauser');
         (signer, signerPrivateKey) = makeAddrAndKey('Signer');
         address feeCollector = makeAddr('FeeCollector');
-        router = new Router(makeAddr('WrappedNative'), pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), address(this), pauser, feeCollector);
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockTo = address(new MockFallback());
 

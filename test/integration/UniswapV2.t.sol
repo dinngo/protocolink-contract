@@ -71,7 +71,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(address(WRAPPED_NATIVE), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(address(WRAPPED_NATIVE), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
         vm.prank(user);
         agent = IAgent(router.newAgent());
 

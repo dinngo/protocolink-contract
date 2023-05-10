@@ -31,7 +31,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('WrappedNative'), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
         makerUtility = new MakerUtility(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
         makerUtilityDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(makerUtility));
 

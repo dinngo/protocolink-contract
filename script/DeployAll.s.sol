@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {DeployCREATE3Factory} from './DeployCREATE3Factory.s.sol';
 import {DeployRouter} from './DeployRouter.s.sol';
 import {DeployAaveV2FlashLoanCallback} from './DeployAaveV2FlashLoanCallback.s.sol';
 import {DeployAaveV3FlashLoanCallback} from './DeployAaveV3FlashLoanCallback.s.sol';
@@ -15,6 +16,7 @@ import {DeployPermit2FeeCalculator} from './DeployPermit2FeeCalculator.s.sol';
 import {DeployTransferFromFeeCalculator} from './DeployTransferFromFeeCalculator.s.sol';
 
 contract DeployAll is
+    DeployCREATE3Factory,
     DeployRouter,
     DeployAaveV2FlashLoanCallback,
     DeployAaveV3FlashLoanCallback,
@@ -33,6 +35,7 @@ contract DeployAll is
     )
         internal
         override(
+            DeployCREATE3Factory,
             DeployRouter,
             DeployAaveV2FlashLoanCallback,
             DeployAaveV3FlashLoanCallback,
@@ -48,6 +51,9 @@ contract DeployAll is
         )
         returns (address deployedAddress)
     {
+        // create3 factory
+        params.create3Factory = DeployCREATE3Factory._run(params);
+
         // router
         deployedAddress = params.router = DeployRouter._run(params);
 

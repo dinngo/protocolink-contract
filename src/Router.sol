@@ -68,9 +68,15 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @dev Create the router with EIP-712 and the agent implementation contracts
-    constructor(address wrappedNative, address pauser_, address feeCollector_) EIP712('Composable Router', '1') {
+    constructor(
+        address wrappedNative,
+        address owner_,
+        address pauser_,
+        address feeCollector_
+    ) EIP712('Composable Router', '1') {
         currentUser = _INIT_USER;
         agentImplementation = address(new AgentImplementation(wrappedNative));
+        transferOwnership(owner_);
         _setPauser(pauser_);
         _setFeeCollector(feeCollector_);
     }
