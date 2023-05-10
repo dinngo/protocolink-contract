@@ -31,7 +31,7 @@ jobs:
 
       - name: Run Forge anvil
         run: |
-          anvil --fork-url https://rpc.ankr.com/eth &
+          anvil --fork-url https://cloudflare-eth.com &
           sleep 10
 
       - name: Run Forge scripts
