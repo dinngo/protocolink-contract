@@ -182,9 +182,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for users if not created.
-    ///         Charge fees based on the scenarios defined in the FeeVerifier contract, which calculates fees on-chain.
+    ///         Charge fees based on the scenarios defined in the FeeGenerator contract, which calculates fees on-chain.
     /// @param logics Array of logics to be executed
-    /// @param fees Array of fees
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     /// @param referralCode Referral code
     function execute(
@@ -207,7 +206,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
 
     /// @notice Execute arbitrary logics through the current user's agent using a signer's signature. Creates an agent
     ///         for users if not created. The fees in logicBatch are off-chain encoded, instead of being calculated by
-    ///         the FeeVerifier contract.
+    ///         the FeeGenerator contract.
     /// @param logicBatch A struct containing logics, fees and deadline, signed by a signer using EIP-712
     /// @param signer The signer address
     /// @param signature The signer's signature bytes
