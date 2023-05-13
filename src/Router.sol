@@ -10,6 +10,7 @@ import {FeeGenerator} from './fees/FeeGenerator.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
+import 'forge-std/console.sol';
 
 /// @title Entry point for Composable Router
 contract Router is IRouter, EIP712, FeeGenerator {
@@ -197,6 +198,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable isPaused checkCaller {
+        console.logBytes(msg.data);
         address user = currentUser;
         IAgent agent = agents[user];
 

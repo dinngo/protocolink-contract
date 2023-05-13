@@ -9,11 +9,11 @@ library LogicHelper {
     bytes32 internal constant UNWRAP_MASK_ = 0x0000000000000000000000000000000000000000000000000000000000000002;
 
     function isWrapMode(IParam2.Logic calldata logic) internal pure returns (bool) {
-        return ((WRAP_MASK_ & logic.metadata) > 0);
+        return ((WRAP_MASK_ & logic.metadata) > 0) && !((UNWRAP_MASK_ & logic.metadata) > 0);
     }
 
     function isUnWrapMode(IParam2.Logic calldata logic) internal pure returns (bool) {
-        return ((UNWRAP_MASK_ & logic.metadata) > 0);
+        return ((UNWRAP_MASK_ & logic.metadata) > 0) && !((WRAP_MASK_ & logic.metadata) > 0);
     }
 
     function getApproveTo(IParam2.Logic calldata logic) internal pure returns (address) {
@@ -22,6 +22,7 @@ library LogicHelper {
 }
 
 library InputHelper {
+    uint256 internal constant _BPS_SKIP = 0;
     bytes32 internal constant REPLACE_MASK_ = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 internal constant BPS_VALUE_MASK_ = 0x0000000000000000000000000000000000000000ffff00000000000000000000;
 
@@ -37,8 +38,11 @@ library InputHelper {
         return uint256((BPS_VALUE_MASK_ & input.tokenMetadata) >> 80);
     }
 
-    function getTokenAndBps(IParam2.Input calldata input) internal pure returns (address token, uint256 bps) {
+    function getTokenAndBps(
+        IParam2.Input calldata input
+    ) internal pure returns (address token, uint256 bps, bool bpsEnable) {
         token = address(bytes20(input.tokenMetadata));
         bps = uint256((BPS_VALUE_MASK_ & input.tokenMetadata) >> 80);
+        bpsEnable = (bps != _BPS_SKIP);
     }
 }
