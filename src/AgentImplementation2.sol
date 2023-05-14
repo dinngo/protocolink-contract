@@ -26,9 +26,6 @@ contract AgentImplementation2 is IAgent2, ERC721Holder, ERC1155Holder {
     /// @dev Denominator for calculating basis points
     uint256 internal constant _BPS_BASE = 10_000;
 
-    /// @dev Flag for indicating a skipped value by setting the most significant bit to 1 (1<<255)
-    // uint256 internal constant _BPS_SKIP = 0;
-
     /// @notice Immutable address for recording the router address
     address public immutable router;
 
@@ -110,22 +107,6 @@ contract AgentImplementation2 is IAgent2, ERC721Holder, ERC1155Holder {
 
         // Push tokensReturn if any balance
         _refundTokens(tokensReturn);
-        // uint256 tokensReturnLength = tokensReturn.length;
-        // if (tokensReturnLength > 0) {
-        //     address user = IRouter2(router).currentUser();
-        //     for (uint256 i; i < tokensReturnLength; ) {
-        //         address token = tokensReturn[i];
-        //         if (token == _NATIVE) {
-        //             payable(user).sendValue(address(this).balance);
-        //         } else {
-        //             IERC20(token).safeTransfer(user, IERC20(token).balanceOf(address(this)));
-        //         }
-
-        //         unchecked {
-        //             ++i;
-        //         }
-        //     }
-        // }
     }
 
     function _getBalance(address token) internal view returns (uint256 balance) {
@@ -181,8 +162,7 @@ contract AgentImplementation2 is IAgent2, ERC721Holder, ERC1155Holder {
                     amount = (_getBalance(token) * amountBps) / _BPS_BASE;
                 }
 
-                // Q: 判斷是不是 Native Token?
-                if (inputs[j].isReplaceCallData()) {
+                if (token != _NATIVE) {
                     // Skip if don't need to replace, e.g., most protocols set native amount in call value
                     uint256 offset = inputs[j].amountOrOffset;
                     // Replace the amount at offset in data with the calculated amount
@@ -237,106 +217,6 @@ contract AgentImplementation2 is IAgent2, ERC721Holder, ERC1155Holder {
             }
         }
     }
-
-    // function _executeLogics(IParam2.Logic[] calldata logics) internal {
-    //     // Execute each logic
-    //     uint256 logicsLength = logics.length;
-    //     for (uint256 i = 0; i < logicsLength; ) {
-    //         address to = logics[i].to;
-    //         bytes memory data = logics[i].data;
-    //         IParam2.Input[] calldata inputs = logics[i].inputs;
-    //         bool isWrapMode = logics[i].isWrapMode();
-    //         bool isUnWrapMode = logics[i].isUnWrapMode();
-    //         address approveTo = logics[i].getApproveTo();
-
-    //         // Default `approveTo` is same as `to` unless `approveTo` is set
-    //         if (approveTo == address(0)) {
-    //             approveTo = to;
-    //         }
-
-    //         // Execute each input if need to modify the amount or do approve
-    //         uint256 value;
-    //         uint256 wrappedAmount;
-    //         uint256 inputsLength = inputs.length;
-    //         for (uint256 j = 0; j < inputsLength; ) {
-    //             // address token = inputs[j].token;
-    //             (address token, uint256 amountBps) = inputs[j].getTokenAndBps();
-    //             // Calculate native or token amount
-    //             // 1. if amountBps is skip: read amountOrOffset as amount
-    //             // 2. if amountBps isn't skip: balance multiplied by amountBps as amount
-    //             uint256 amount;
-    //             if (amountBps == _BPS_SKIP) {
-    //                 amount = inputs[j].amountOrOffset;
-    //             } else {
-    //                 if (amountBps > _BPS_BASE) revert InvalidBps();
-
-    //                 if (token == wrappedNative && isWrapMode) {
-    //                     // Use the native balance for amount calculation as wrap will be executed later
-    //                     amount = (address(this).balance * amountBps) / _BPS_BASE;
-    //                 } else {
-    //                     amount = (_getBalance(token) * amountBps) / _BPS_BASE;
-    //                 }
-
-    //                 // Q: 判斷是不是 Native Token?
-    //                 if (inputs[j].isReplaceCallData()) {
-    //                     // Skip if don't need to replace, e.g., most protocols set native amount in call value
-    //                     uint256 offset = inputs[j].amountOrOffset;
-    //                     // Replace the amount at offset in data with the calculated amount
-    //                     assembly {
-    //                         let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
-    //                         mstore(loc, amount)
-    //                     }
-    //                 }
-    //                 emit AmountReplaced(i, j, amount);
-    //             }
-
-    //             if (token == wrappedNative && isWrapMode) {
-    //                 // Use += to accumulate amounts with multiple WRAP_BEFORE, although such cases are rare
-    //                 wrappedAmount += amount;
-    //             }
-
-    //             if (token == _NATIVE) {
-    //                 value += amount;
-    //             } else if (token != approveTo) {
-    //                 ApproveHelper._approveMax(token, approveTo, amount);
-    //             }
-
-    //             unchecked {
-    //                 ++j;
-    //             }
-    //         }
-
-    //         if (isWrapMode) {
-    //             // Wrap native before the call
-    //             IWrappedNative(wrappedNative).deposit{value: wrappedAmount}();
-    //         } else if (isUnWrapMode) {
-    //             // Or store the before wrapped native amount for calculation after the call
-    //             wrappedAmount = _getBalance(wrappedNative);
-    //         }
-
-    //         // Set _callback who should enter one-time execute
-    //         if (logics[i].callback != address(0)) _caller = logics[i].callback;
-
-    //         // Execute and send native
-    //         if (data.length == 0) {
-    //             payable(to).sendValue(value);
-    //         } else {
-    //             to.functionCallWithValue(data, value, 'ERROR_ROUTER_EXECUTE');
-    //         }
-
-    //         // Revert if the previous call didn't enter execute
-    //         if (_caller != router) revert UnresetCallback();
-
-    //         // Unwrap to native after the call
-    //         if (isUnWrapMode) {
-    //             IWrappedNative(wrappedNative).withdraw(_getBalance(wrappedNative) - wrappedAmount);
-    //         }
-
-    //         unchecked {
-    //             ++i;
-    //         }
-    //     }
-    // }
 
     function _chargeFee(IParam2.Fee[] calldata fees) internal {
         uint256 length = fees.length;

@@ -23,26 +23,21 @@ library LogicHelper {
 
 library InputHelper {
     uint256 internal constant _BPS_SKIP = 0;
-    bytes32 internal constant REPLACE_MASK_ = 0x0000000000000000000000000000000000000000000000000000000000000001;
-    bytes32 internal constant BPS_VALUE_MASK_ = 0x0000000000000000000000000000000000000000ffff00000000000000000000;
-
-    function isReplaceCallData(IParam2.Input calldata input) internal pure returns (bool) {
-        return ((REPLACE_MASK_ & input.tokenMetadata) > 0);
-    }
+    bytes32 internal constant BPS_VALUE_MASK_ = 0x000000000000000000000000000000000000000000000000000000000000ffff;
 
     function getToken(IParam2.Input calldata input) internal pure returns (address) {
         return address(bytes20(input.tokenMetadata));
     }
 
     function getBps(IParam2.Input calldata input) internal pure returns (uint256) {
-        return uint256((BPS_VALUE_MASK_ & input.tokenMetadata) >> 80);
+        return uint256((BPS_VALUE_MASK_ & input.tokenMetadata));
     }
 
     function getTokenAndBps(
         IParam2.Input calldata input
     ) internal pure returns (address token, uint256 bps, bool bpsEnable) {
         token = address(bytes20(input.tokenMetadata));
-        bps = uint256((BPS_VALUE_MASK_ & input.tokenMetadata) >> 80);
+        bps = uint256((BPS_VALUE_MASK_ & input.tokenMetadata));
         bpsEnable = (bps != _BPS_SKIP);
     }
 }

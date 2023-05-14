@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
-import {IAgent2} from 'src/interfaces/IAgent2.sol';
-import {Router2, IRouter2} from 'src/Router2.sol';
-import {IParam2} from 'src/interfaces/IParam2.sol';
+import {IAgent} from 'src/interfaces/IAgent.sol';
+import {Router, IRouter} from 'src/Router.sol';
+import {IParam} from 'src/interfaces/IParam.sol';
 import {ERC20Permit2Utils} from '../utils/ERC20Permit2Utils.sol';
 import {IAaveV3Provider} from 'src/interfaces/aaveV3/IAaveV3Provider.sol';
 import {AaveV3FlashLoanCallback, IAaveV3FlashLoanCallback} from 'src/callbacks/AaveV3FlashLoanCallback.sol';
@@ -89,8 +89,8 @@ interface IYVault {
     function balanceOf(address) external returns (uint256);
 }
 
-// Test Uniswap whose Router2 is not ERC20-compliant token
-contract MultiAction2Test is Test, ERC20Permit2Utils {
+// Test Uniswap whose Router is not ERC20-compliant token
+contract MultiActionTest is Test, ERC20Permit2Utils {
     using SafeERC20 for IERC20;
     using SafeCast160 for uint256;
 
@@ -99,13 +99,8 @@ contract MultiAction2Test is Test, ERC20Permit2Utils {
     IERC20 public constant USDT = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     IUniswapV2Router02 public constant uniswapRouter02 = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-    uint16 public constant BPS_BASE = 10_000;
-    uint16 internal constant _BPS_SKIP = 0;
-    // uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
-    bytes32 internal constant REPLACE_MASK_ = 0x0000000000000000000000000000000000000000000000000000000000000001;
-
-    bytes32 internal constant WRAP_MASK_ = 0x0000000000000000000000000000000000000000000000000000000000000001;
-    bytes32 internal constant UNWRAP_MASK_ = 0x0000000000000000000000000000000000000000000000000000000000000002;
+    uint256 public constant BPS_BASE = 10_000;
+    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
 
     // AaveV3 Setup
     enum InterestRateMode {
@@ -128,18 +123,18 @@ contract MultiAction2Test is Test, ERC20Permit2Utils {
     // Global Setup
     address public user;
     uint256 public userPrivateKey;
-    IRouter2 public router;
-    IAgent2 public agent;
+    IRouter public router;
+    IAgent public agent;
 
     // Empty arrays
-    IParam2.Input[] public inputsEmpty;
+    IParam.Input[] public inputsEmpty;
     address[] public tokensReturnEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router2(address(WRAPPED_NATIVE), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(address(WRAPPED_NATIVE), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
         vm.prank(user);
-        agent = IAgent2(router.newAgent());
+        agent = IAgent(router.newAgent());
 
         // User permit token
         erc20Permit2UtilsSetUp(user, userPrivateKey, address(agent));
@@ -158,7 +153,7 @@ contract MultiAction2Test is Test, ERC20Permit2Utils {
         (bool success, ) = payable(address(0)).call{value: address(router).balance}('');
         assertTrue(success);
 
-        vm.label(address(router), 'Router2');
+        vm.label(address(router), 'Router');
         vm.label(address(agent), 'Agent');
         vm.label(NATIVE, 'NATIVE');
         vm.label(address(WRAPPED_NATIVE), 'WrappedNative');
@@ -175,8 +170,7 @@ contract MultiAction2Test is Test, ERC20Permit2Utils {
         // 1. UniswapV2 Swap
         // 2. AAVE Supply
         // 3. AAVE Borrow
-        // 4. WrappedNative
-        // 5. Deposit YearnV2
+        // 4. Deposit YearnV2
 
         IERC20 firstTokenIn = WRAPPED_NATIVE;
         IERC20 firstTokenOut = USDC;
@@ -184,8 +178,8 @@ contract MultiAction2Test is Test, ERC20Permit2Utils {
         deal(user, firstAmountIn);
 
         // Encode logics
-        IParam2.Logic[] memory logics = new IParam2.Logic[](4);
-        logics[0] = _logicUniswapV2Swap(firstTokenIn, firstAmountIn, _BPS_SKIP, firstTokenOut, true); // Fixed amount
+        IParam.Logic[] memory logics = new IParam.Logic[](4);
+        logics[0] = _logicUniswapV2Swap(firstTokenIn, firstAmountIn, SKIP, firstTokenOut, IParam.WrapMode.WRAP_BEFORE); // Fixed amount
         logics[1] = _logicAaveV3Supply(firstTokenOut, BPS_BASE, 32);
         logics[2] = _logicAaveV3Borrow(USDT, 1e10, uint256(InterestRateMode.VARIABLE));
         logics[3] = _logicYearn(USDT, 0, BPS_BASE);
@@ -201,10 +195,10 @@ contract MultiAction2Test is Test, ERC20Permit2Utils {
     function _logicUniswapV2Swap(
         IERC20 tokenIn,
         uint256 amountIn,
-        uint16 amountBps,
+        uint256 amountBps,
         IERC20 tokenOut,
-        bool isWrapMode
-    ) public view returns (IParam2.Logic memory) {
+        IParam.WrapMode wrapMode
+    ) public view returns (IParam.Logic memory) {
         // Encode data
         address[] memory path = new address[](2);
         path[0] = address(tokenIn);
@@ -213,7 +207,7 @@ contract MultiAction2Test is Test, ERC20Permit2Utils {
         uint256 amountMin = (amountsOut[1] * 9_900) / BPS_BASE;
         bytes memory data = abi.encodeWithSelector(
             uniswapRouter02.swapExactTokensForTokens.selector,
-            (amountBps == _BPS_SKIP) ? amountIn : 0, // 0 is the amount which will be repalced
+            (amountBps == SKIP) ? amountIn : 0, // 0 is the amount which will be repalced
             amountMin, // amountOutMin
             path, // path
             address(agent), // to
@@ -221,35 +215,35 @@ contract MultiAction2Test is Test, ERC20Permit2Utils {
         );
 
         // Encode inputs
-        IParam2.Input[] memory inputs = new IParam2.Input[](1);
-        inputs[0] = _buildInput(tokenIn, amountBps, amountIn);
-
-        bytes32 metadata = _buildLogicMetadata(address(0), isWrapMode, false);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
+        inputs[0] = IParam.Input(
+            address(tokenIn),
+            amountBps,
+            (amountBps == SKIP) ? amountIn : 0x0 // 0x0 is the amount offset in data
+        );
 
         return
-            IParam2.Logic(
+            IParam.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
-                address(0), // callback
-                metadata
+                wrapMode,
+                address(0), // approveTo
+                address(0) // callback
             );
     }
 
     function _logicAaveV3Supply(
         IERC20 tokenIn,
-        uint16 amountBps,
+        uint256 amountBps,
         uint256 amountIn
-    ) public view returns (IParam2.Logic memory) {
+    ) public view returns (IParam.Logic memory) {
         // Encode inputs
-        IParam2.Input[] memory inputs = new IParam2.Input[](1);
-        // inputs[0] = IParam2.Input(address(tokenIn), amountBps, amountIn);
-
-        inputs[0] = _buildInput(tokenIn, amountBps, amountIn);
-        bytes32 metadata = _buildLogicMetadata(address(0), false, false);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
+        inputs[0] = IParam.Input(address(tokenIn), amountBps, amountIn);
 
         return
-            IParam2.Logic(
+            IParam.Logic(
                 address(aaveV3pool), // to
                 abi.encodeWithSelector(
                     IAaveV3Pool.supply.selector,
@@ -259,8 +253,9 @@ contract MultiAction2Test is Test, ERC20Permit2Utils {
                     _REFERRAL_CODE
                 ),
                 inputs,
-                address(0), // callback
-                metadata
+                IParam.WrapMode.NONE,
+                address(0), // approveTo
+                address(0) // callback
             );
     }
 
@@ -268,10 +263,9 @@ contract MultiAction2Test is Test, ERC20Permit2Utils {
         IERC20 token,
         uint256 amount,
         uint256 interestRateMode
-    ) public view returns (IParam2.Logic memory) {
-        bytes32 metadata = _buildLogicMetadata(address(0), false, false);
+    ) public view returns (IParam.Logic memory) {
         return
-            IParam2.Logic(
+            IParam.Logic(
                 address(aaveV3pool), // to
                 abi.encodeWithSelector(
                     IAaveV3Pool.borrow.selector,
@@ -282,52 +276,32 @@ contract MultiAction2Test is Test, ERC20Permit2Utils {
                     address(agent)
                 ),
                 inputsEmpty,
-                address(0), // callback
-                metadata
+                IParam.WrapMode.NONE,
+                address(0), // approveTo
+                address(0) // callback
             );
     }
 
     function _logicYearn(
         IERC20 tokenIn,
         uint256 amountIn,
-        uint16 amountBps
-    ) public pure returns (IParam2.Logic memory) {
+        uint256 amountBps
+    ) public pure returns (IParam.Logic memory) {
         // Encode inputs
-        IParam2.Input[] memory inputs = new IParam2.Input[](1);
-        inputs[0] = _buildInput(tokenIn, amountBps, amountIn);
-        bytes32 metadata = _buildLogicMetadata(address(0), false, false);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
+        inputs[0].token = address(tokenIn);
+        inputs[0].amountBps = amountBps;
+        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        else inputs[0].amountOrOffset = 0;
 
         return
-            IParam2.Logic(
+            IParam.Logic(
                 address(yVault), // to
                 abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
                 inputs,
-                address(0), // callback
-                metadata
+                IParam.WrapMode.NONE,
+                address(0), // approveTo
+                address(0) // callback
             );
-    }
-
-    function _buildInput(
-        IERC20 tokenIn,
-        uint16 amountBps,
-        uint256 amountIn
-    ) public pure returns (IParam2.Input memory) {
-        // Encode inputs
-        bytes32 tokenMetadata = bytes32(bytes20(address(tokenIn))) | (bytes32(uint256(amountBps)));
-        return IParam2.Input(tokenMetadata, amountIn);
-    }
-
-    function _buildLogicMetadata(address approveTo, bool wrap, bool unWrap) public pure returns (bytes32 metadata) {
-        if (approveTo != address(0)) {
-            metadata = metadata | bytes32(bytes20(address(approveTo)));
-        }
-
-        if (wrap) {
-            metadata = metadata | WRAP_MASK_;
-        }
-
-        if (unWrap) {
-            metadata = metadata | UNWRAP_MASK_;
-        }
     }
 }
