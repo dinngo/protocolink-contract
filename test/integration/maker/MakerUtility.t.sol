@@ -91,27 +91,10 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         assertEq(IMakerManager(CDP_MANAGER).count(userDSProxy) - userCdpCountBefore, 1); // cdp count should increase by 1
     }
 
-    function testCannotOpenLockETHAndDrawByInvalidSender(uint256 ethLockAmount, uint256 daiDrawAmount) external {
-        // Calculate minimum collateral amount of ETH and drawing random amount of DAI between minimum and maximum
-        IMakerVat vat = IMakerVat(VAT);
-        bytes32 ilkETH = bytes32(bytes(ETH_JOIN_NAME));
-        (, uint256 rate, uint256 spot, , uint256 dust) = vat.ilks(ilkETH);
-        (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust);
-
-        ethLockAmount = bound(ethLockAmount, minCollateral, 1e22);
-        deal(user, ethLockAmount);
-        uint256 daiDrawMax = _getDAIDrawMaxAmount(ethLockAmount, daiDrawMin, spot, rate);
-        daiDrawAmount = bound(daiDrawAmount, daiDrawMin, daiDrawMax);
-
+    function testCannotOpenLockETHAndDrawByInvalidSender() external {
         vm.prank(user);
         vm.expectRevert(IMakerUtility.InvalidAgent.selector);
-        makerUtility.openLockETHAndDraw(
-            ethLockAmount,
-            ETH_JOIN_A,
-            DAI_JOIN,
-            bytes32(bytes(ETH_JOIN_NAME)),
-            daiDrawAmount
-        );
+        makerUtility.openLockETHAndDraw(0, address(0), address(0), bytes32(''), 0);
     }
 
     function testOpenLockGemAndDraw(uint256 tokenLockAmount, uint256 daiDrawAmount) external {
@@ -152,29 +135,17 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         assertEq(IMakerManager(CDP_MANAGER).count(userDSProxy) - userCdpCountBefore, 1); // cdp count should increase by 1
     }
 
-    function testCannotOpenLockGemAndDrawByInvalidSender(uint256 tokenLockAmount, uint256 daiDrawAmount) external {
-        // Calculate minimum collateral amount of token and drawing random amount of DAI between minimum and maximum
-        IMakerVat vat = IMakerVat(VAT);
-        bytes32 ilkToken = bytes32(bytes(TOKEN_JOIN_NAME));
-        (, uint256 rate, uint256 spot, , uint256 dust) = vat.ilks(ilkToken);
-        (uint256 daiDrawMin, uint256 minCollateral) = _getDAIDrawMinAndMinCollateral(spot, dust);
-
-        tokenLockAmount = bound(tokenLockAmount, minCollateral, 1e23);
-        deal(GEM, user, tokenLockAmount);
-        uint256 daiDrawMax = _getDAIDrawMaxAmount(tokenLockAmount, daiDrawMin, spot, rate);
-        daiDrawAmount = bound(daiDrawAmount, daiDrawMin, daiDrawMax);
+    function testCannotOpenLockGemAndDrawByInvalidSender() external {
         vm.prank(user);
         vm.expectRevert(IMakerUtility.InvalidAgent.selector);
-        makerUtility.openLockGemAndDraw(
-            GEM_JOIN_LINK_A,
-            DAI_JOIN,
-            bytes32(bytes(TOKEN_JOIN_NAME)),
-            tokenLockAmount,
-            daiDrawAmount
-        );
+        makerUtility.openLockGemAndDraw(address(0), address(0), bytes32(''), 0, 0);
     }
 
-    function _getDAIDrawMinAndMinCollateral(uint256 spot, uint256 dust) internal pure returns (uint256, uint256) {
+    function _getDAIDrawMinAndMinCollateral(
+        uint256 spot,
+        uint256 dust,
+        uint256 collateralDecimal
+    ) internal pure returns (uint256, uint256) {
         uint256 daiDrawMin = dust / 1000000000 ether; // at least draw this much DAI
         uint256 minCollateral = dust / spot / (10 ** (18 - collateralDecimal));
         minCollateral = (minCollateral * 105) / 100; // 5% Buffer
