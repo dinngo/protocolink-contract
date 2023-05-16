@@ -91,6 +91,12 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         assertEq(IMakerManager(CDP_MANAGER).count(userDSProxy) - userCdpCountBefore, 1); // cdp count should increase by 1
     }
 
+    function testCannotOpenLockETHAndDrawByInvalidSender() external {
+        vm.prank(user);
+        vm.expectRevert(IMakerUtility.InvalidAgent.selector);
+        makerUtility.openLockETHAndDraw(0, address(0), address(0), bytes32(''), 0);
+    }
+
     function testOpenLockGemAndDraw(uint256 tokenLockAmount, uint256 daiDrawAmount) external {
         // Calculate minimum collateral amount of token and drawing random amount of DAI between minimum and maximum
         IMakerVat vat = IMakerVat(VAT);
@@ -127,6 +133,12 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         assertEq(IERC20(GEM).balanceOf(address(makerUtilityDSProxy)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(user) - userDAIBalanceBefore, daiDrawAmount);
         assertEq(IMakerManager(CDP_MANAGER).count(userDSProxy) - userCdpCountBefore, 1); // cdp count should increase by 1
+    }
+
+    function testCannotOpenLockGemAndDrawByInvalidSender() external {
+        vm.prank(user);
+        vm.expectRevert(IMakerUtility.InvalidAgent.selector);
+        makerUtility.openLockGemAndDraw(address(0), address(0), bytes32(''), 0, 0);
     }
 
     function _getDAIDrawMinAndMinCollateral(

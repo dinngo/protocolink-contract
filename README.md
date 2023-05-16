@@ -34,6 +34,10 @@ Composable Router contracts consist of the following components:
 
 `forge test --fork-url https://cloudflare-eth.com -vvv`
 
+### Coverage
+
+`forge coverage --rpc-url https://rpc.ankr.com/eth --report summary`
+
 ### Deploy All
 
 Fill out parameters in `script/deployParameters/<network>.json`
