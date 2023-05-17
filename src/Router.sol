@@ -171,7 +171,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
-            agent = IAgent(newAgent(user));
+            agent = IAgent(_newAgent(user));
         }
 
         IParam.Fee[] memory fees = getFeesByLogics(logics, msg.value);
@@ -205,7 +205,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
-            agent = IAgent(newAgent(user));
+            agent = IAgent(_newAgent(user));
         }
 
         emit Execute(user, address(agent), referralCode);
@@ -225,11 +225,15 @@ contract Router is IRouter, EIP712, FeeGenerator {
         if (address(agents[user]) != address(0)) {
             revert AgentAlreadyCreated();
         } else {
-            IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20(user))}(agentImplementation)));
-            agents[user] = agent;
-            emit AgentCreated(address(agent), user);
-            return payable(address(agent));
+            return _newAgent(user);
         }
+    }
+
+    function _newAgent(address user) internal returns (address payable) {
+        IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20(user))}(agentImplementation)));
+        agents[user] = agent;
+        emit AgentCreated(address(agent), user);
+        return payable(address(agent));
     }
 
     /// @notice Set the fee collector address that collects fees from each user's agent by owner
