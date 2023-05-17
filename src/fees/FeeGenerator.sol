@@ -13,7 +13,8 @@ abstract contract FeeGenerator is IFeeGenerator, Ownable {
 
     event FeeCalculatorSet(bytes4 indexed selector, address indexed to, address indexed feeCalculator);
 
-    address internal constant _DUMMY_TO_ADDRESS = address(0);
+    /// @dev Flag for identifying any `to` address in `feeCalculators`
+    address internal constant _ANY_TO_ADDRESS = address(0);
 
     /// @dev Flag for identifying the native fee calculator
     bytes4 internal constant _NATIVE_FEE_SELECTOR = 0xeeeeeeee;
@@ -93,11 +94,11 @@ abstract contract FeeGenerator is IFeeGenerator, Ownable {
     function getFeeCalculator(bytes4 selector, address to) public view returns (address feeCalculator) {
         feeCalculator = feeCalculators[selector][to];
         if (feeCalculator == address(0)) {
-            feeCalculator = feeCalculators[selector][_DUMMY_TO_ADDRESS];
+            feeCalculator = feeCalculators[selector][_ANY_TO_ADDRESS];
         }
     }
 
     function getNativeFeeCalculator() public view returns (address nativeFeeCalculator) {
-        nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
+        nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_ANY_TO_ADDRESS];
     }
 }

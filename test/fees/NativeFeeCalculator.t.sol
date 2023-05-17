@@ -12,7 +12,7 @@ contract NativeFeeCalculatorTest is Test {
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     bytes public constant EMPTY_LOGIC_DATA = new bytes(0);
     uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
@@ -47,7 +47,7 @@ contract NativeFeeCalculatorTest is Test {
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = NATIVE_FEE_SELECTOR;
         address[] memory tos = new address[](1);
-        tos[0] = address(DUMMY_TO_ADDRESS);
+        tos[0] = address(ANY_TO_ADDRESS);
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = nativeFeeCalculator;
         router.setFeeCalculators(selectors, tos, feeCalculators);

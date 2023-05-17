@@ -15,7 +15,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant DSPROXY_EXECUTE_SELECTOR = bytes4(keccak256(bytes('execute(address,bytes)')));
     uint256 public constant ETH_LOCK_AMOUNT = 2000 ether;
     uint256 public constant DRAW_DAI_AMOUNT = 20000 ether;
@@ -81,7 +81,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = DSPROXY_EXECUTE_SELECTOR;
         address[] memory tos = new address[](1);
-        tos[0] = address(DUMMY_TO_ADDRESS);
+        tos[0] = address(ANY_TO_ADDRESS);
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = makerDrawFeeCalculator;
         router.setFeeCalculators(selectors, tos, feeCalculators);

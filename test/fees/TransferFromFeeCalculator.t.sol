@@ -13,7 +13,7 @@ contract TransferFromFeeCalculatorTest is Test {
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
     bytes4 public constant TRANSFER_FROM_SELECTOR = bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     uint256 public constant SIGNER_REFERRAL = 1;
     uint256 public constant BPS_BASE = 10_000;
@@ -44,7 +44,7 @@ contract TransferFromFeeCalculatorTest is Test {
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = TRANSFER_FROM_SELECTOR;
         address[] memory tos = new address[](1);
-        tos[0] = address(DUMMY_TO_ADDRESS);
+        tos[0] = address(ANY_TO_ADDRESS);
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = transferFromFeeCalculator;
         router.setFeeCalculators(selectors, tos, feeCalculators);

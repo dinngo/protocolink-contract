@@ -40,7 +40,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     address public constant AUSDC_V2 = 0xBcca60bB61934080951369a648Fb03DF4F96263C;
     address public constant AUSDC_V3 = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
     address public constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant AAVE_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)')));
     bytes4 public constant PERMIT2_TRANSFER_FROM_SELECTOR =
@@ -97,7 +97,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         address[] memory tos = new address[](4);
         tos[0] = v2Pool;
         tos[1] = v3Pool;
-        tos[2] = DUMMY_TO_ADDRESS;
+        tos[2] = ANY_TO_ADDRESS;
         tos[3] = PERMIT2_ADDRESS;
         address[] memory feeCalculators = new address[](4);
         feeCalculators[0] = address(flashLoanFeeCalculator);

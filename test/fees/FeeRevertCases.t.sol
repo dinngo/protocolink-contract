@@ -23,7 +23,7 @@ contract FeeRevertCasesTest is Test {
     address public constant AAVE_V2_PROVIDER = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
     address public constant AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant AAVE_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)')));
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
@@ -66,7 +66,7 @@ contract FeeRevertCasesTest is Test {
         selectors[1] = NATIVE_FEE_SELECTOR;
         address[] memory tos = new address[](2);
         tos[0] = v2Pool;
-        tos[1] = DUMMY_TO_ADDRESS;
+        tos[1] = ANY_TO_ADDRESS;
         address[] memory feeCalculators = new address[](2);
         feeCalculators[0] = address(flashLoanFeeCalculator);
         feeCalculators[1] = address(nativeFeeCalculator);

@@ -24,7 +24,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address public constant BALANCER_V2_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
     address public constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant BALANCER_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],bytes)')));
     bytes4 public constant PERMIT2_TRANSFER_FROM_SELECTOR =
@@ -74,7 +74,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         selectors[2] = PERMIT2_TRANSFER_FROM_SELECTOR;
         address[] memory tos = new address[](3);
         tos[0] = BALANCER_V2_VAULT;
-        tos[1] = DUMMY_TO_ADDRESS;
+        tos[1] = ANY_TO_ADDRESS;
         tos[2] = PERMIT2_ADDRESS;
         address[] memory feeCalculators = new address[](3);
         feeCalculators[0] = address(flashLoanFeeCalculator);
