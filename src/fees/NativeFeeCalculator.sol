@@ -12,9 +12,7 @@ contract NativeFeeCalculator is IFeeCalculator, FeeCalculatorBase {
 
     constructor(address router_, uint256 feeRate_) FeeCalculatorBase(router_, feeRate_) {}
 
-    function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
-        to;
-
+    function getFees(address, bytes calldata data) external view returns (IParam.Fee[] memory) {
         IParam.Fee[] memory fees = new IParam.Fee[](1);
         fees[0] = IParam.Fee({token: _NATIVE, amount: calculateFee(uint256(bytes32(data))), metadata: _META_DATA});
         return fees;

@@ -21,9 +21,7 @@ contract MakerDrawFeeCalculator is IFeeCalculator, FeeCalculatorBase {
         daiToken = daiToken_;
     }
 
-    function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
-        to;
-
+    function getFees(address, bytes calldata data) external view returns (IParam.Fee[] memory) {
         // DSProxy execute signature:'execute(address,bytes)', selector:0x1cff79cd
         // Maker draw signature:'draw(address,address,address,uint256,uint256)', selector:0x9f6f3d5b
 
