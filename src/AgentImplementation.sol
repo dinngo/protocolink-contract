@@ -76,7 +76,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         uint256 tokensReturnLength = tokensReturn.length;
         if (tokensReturnLength > 0) {
             address user = IRouter(router).currentUser();
-            for (uint256 i = 0; i < tokensReturnLength; ) {
+            for (uint256 i; i < tokensReturnLength; ) {
                 address token = tokensReturn[i];
                 if (token == _NATIVE) {
                     payable(user).sendValue(address(this).balance);
@@ -103,7 +103,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     function _executeLogics(IParam.Logic[] calldata logics) internal {
         // Execute each logic
         uint256 logicsLength = logics.length;
-        for (uint256 i = 0; i < logicsLength; ) {
+        for (uint256 i; i < logicsLength; ) {
             address to = logics[i].to;
             bytes memory data = logics[i].data;
             IParam.Input[] calldata inputs = logics[i].inputs;
@@ -119,7 +119,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             uint256 value;
             uint256 wrappedAmount;
             uint256 inputsLength = inputs.length;
-            for (uint256 j = 0; j < inputsLength; ) {
+            for (uint256 j; j < inputsLength; ) {
                 address token = inputs[j].token;
                 uint256 balanceBps = inputs[j].balanceBps;
 
@@ -204,7 +204,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         if (length == 0) return;
 
         address feeCollector = IRouter(router).feeCollector();
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i; i < length; ) {
             address token = fees[i].token;
             uint256 amount = fees[i].amount;
             if (token == _NATIVE) {

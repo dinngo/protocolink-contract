@@ -32,7 +32,7 @@ contract BalancerV2FlashLoanCallback is IBalancerV2FlashLoanCallback {
         // Transfer assets to the agent and record initial balances
         uint256 tokensLength = tokens.length;
         uint256[] memory initBalances = new uint256[](tokensLength);
-        for (uint256 i = 0; i < tokensLength; ) {
+        for (uint256 i; i < tokensLength; ) {
             address token = tokens[i];
 
             IERC20(token).safeTransfer(agent, amounts[i]);
@@ -49,7 +49,7 @@ contract BalancerV2FlashLoanCallback is IBalancerV2FlashLoanCallback {
         );
 
         // Repay tokens to Vault
-        for (uint256 i = 0; i < tokensLength; ) {
+        for (uint256 i; i < tokensLength; ) {
             address token = tokens[i];
             IERC20(token).safeTransfer(balancerV2Vault, amounts[i] + feeAmounts[i]);
 

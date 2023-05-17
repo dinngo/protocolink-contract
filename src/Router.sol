@@ -51,7 +51,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         currentUser = _INIT_USER;
     }
 
-    modifier isPaused() {
+    modifier whenNotPaused() {
         if (paused) revert RouterIsPaused();
         _;
     }
@@ -166,7 +166,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
-    ) external payable isPaused checkCaller {
+    ) external payable whenNotPaused checkCaller {
         address user = currentUser;
         IAgent agent = agents[user];
 
@@ -194,7 +194,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         bytes calldata signature,
         address[] calldata tokensReturn,
         uint256 referralCode
-    ) external payable isPaused checkCaller {
+    ) external payable whenNotPaused checkCaller {
         // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);

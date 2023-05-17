@@ -33,7 +33,7 @@ library LogicHash {
         uint256 inputsLength = inputs.length;
         bytes32[] memory inputHashes = new bytes32[](inputsLength);
 
-        for (uint256 i = 0; i < inputsLength; ) {
+        for (uint256 i; i < inputsLength; ) {
             inputHashes[i] = _hash(inputs[i]);
             unchecked {
                 ++i;
@@ -62,14 +62,14 @@ library LogicHash {
         bytes32[] memory logicHashes = new bytes32[](logicsLength);
         bytes32[] memory feeHashes = new bytes32[](feesLength);
 
-        for (uint256 i = 0; i < logicsLength; ) {
+        for (uint256 i; i < logicsLength; ) {
             logicHashes[i] = _hash(logics[i]);
             unchecked {
                 ++i;
             }
         }
 
-        for (uint256 i = 0; i < feesLength; ) {
+        for (uint256 i; i < feesLength; ) {
             feeHashes[i] = _hash(fees[i]);
             unchecked {
                 ++i;

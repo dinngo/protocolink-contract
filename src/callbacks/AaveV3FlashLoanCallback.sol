@@ -42,7 +42,7 @@ contract AaveV3FlashLoanCallback is IAaveV3FlashLoanCallback {
         // Transfer assets to the agent and record initial balances
         uint256 assetsLength = assets.length;
         uint256[] memory initBalances = new uint256[](assetsLength);
-        for (uint256 i = 0; i < assetsLength; ) {
+        for (uint256 i; i < assetsLength; ) {
             address asset = assets[i];
 
             IERC20(asset).safeTransfer(agent, amounts[i]);
@@ -56,7 +56,7 @@ contract AaveV3FlashLoanCallback is IAaveV3FlashLoanCallback {
         agent.functionCall(abi.encodePacked(IAgent.execute.selector, params), 'ERROR_AAVE_V3_FLASH_LOAN_CALLBACK');
 
         // Approve assets for pulling from Aave Pool
-        for (uint256 i = 0; i < assetsLength; ) {
+        for (uint256 i; i < assetsLength; ) {
             address asset = assets[i];
             uint256 amountOwing = amounts[i] + premiums[i];
 
