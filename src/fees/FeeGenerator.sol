@@ -3,11 +3,12 @@ pragma solidity ^0.8.0;
 
 import {Ownable} from 'openzeppelin-contracts/contracts/access/Ownable.sol';
 import {IParam} from '../interfaces/IParam.sol';
-import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
+import {IFeeCalculator} from '../interfaces/fees/IFeeCalculator.sol';
+import {IFeeGenerator} from '../interfaces/fees/IFeeGenerator.sol';
 
 /// @title Fee generator
 /// @notice An abstract contract that generates and calculates fees on-chain
-abstract contract FeeGenerator is Ownable {
+abstract contract FeeGenerator is IFeeGenerator, Ownable {
     error LengthMismatch();
 
     event FeeCalculatorSet(bytes4 indexed selector, address indexed to, address indexed feeCalculator);
@@ -82,9 +83,9 @@ abstract contract FeeGenerator is Ownable {
     }
 
     function getMsgValueWithFee(uint256 msgValue) public view returns (uint256) {
-        IFeeCalculator nativeFeeCalculator = getNativeFeeCalculator();
-        if (msgValue > 0 && address(nativeFeeCalculator) != address(0)) {
-            msgValue = uint256(bytes32(nativeFeeCalculator.getDataWithFee(abi.encodePacked(msgValue))));
+        address nativeFeeCalculator = getNativeFeeCalculator();
+        if (msgValue > 0 && nativeFeeCalculator != address(0)) {
+            msgValue = uint256(bytes32(IFeeCalculator(nativeFeeCalculator).getDataWithFee(abi.encodePacked(msgValue))));
         }
         return msgValue;
     }
@@ -115,9 +116,12 @@ abstract contract FeeGenerator is Ownable {
         }
 
         // For native fee
-        IFeeCalculator nativeFeeCalculator = getNativeFeeCalculator();
-        if (msgValue > 0 && address(nativeFeeCalculator) != address(0)) {
-            tempFees[realFeeLength++] = nativeFeeCalculator.getFees(_DUMMY_TO_ADDRESS, abi.encodePacked(msgValue))[0];
+        address nativeFeeCalculator = getNativeFeeCalculator();
+        if (msgValue > 0 && nativeFeeCalculator != address(0)) {
+            tempFees[realFeeLength++] = IFeeCalculator(nativeFeeCalculator).getFees(
+                _DUMMY_TO_ADDRESS,
+                abi.encodePacked(msgValue)
+            )[0];
         }
 
         // Copy tempFees to fees
@@ -136,8 +140,7 @@ abstract contract FeeGenerator is Ownable {
         }
     }
 
-    function getNativeFeeCalculator() internal view returns (IFeeCalculator) {
-        address nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
-        return IFeeCalculator(nativeFeeCalculator);
+    function getNativeFeeCalculator() public view returns (address nativeFeeCalculator) {
+        nativeFeeCalculator = feeCalculators[_NATIVE_FEE_SELECTOR][_DUMMY_TO_ADDRESS];
     }
 }

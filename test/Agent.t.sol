@@ -32,6 +32,7 @@ contract AgentTest is Test {
     address[] public tokensReturnEmpty;
     IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
+    IParam.Logic[] public logicsEmpty;
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
@@ -47,7 +48,8 @@ contract AgentTest is Test {
         mockCallback = new MockCallback();
         mockFallback = address(new MockFallback());
 
-        vm.mockCall(router, 0, abi.encodeWithSignature('user()'), abi.encode(user));
+        vm.mockCall(router, 0, abi.encodeWithSignature('getNativeFeeCalculator()'), abi.encode(address(0)));
+        vm.mockCall(router, 0, abi.encodeWithSignature('getFeeCalculator(bytes4,address)'), abi.encode(address(0)));
         vm.label(address(agent), 'Agent');
         vm.label(address(mockWrappedNative), 'mWrappedNative');
         vm.label(address(mockERC20), 'mERC20');
@@ -63,17 +65,22 @@ contract AgentTest is Test {
         assertEq(agent.wrappedNative(), mockWrappedNative);
     }
 
-    function testCannotExecuteByInvalidCallback() external {
-        IParam.Logic[] memory callbacks = new IParam.Logic[](1);
-        callbacks[0] = IParam.Logic(
-            address(mockFallback), // to
-            '',
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        bytes memory data = abi.encodeWithSelector(IAgent.execute.selector, callbacks, feesEmpty, tokensReturnEmpty);
+    function testCannotInitializeAgain() external {
+        vm.expectRevert(IAgent.Initialized.selector);
+        agent.initialize();
+    }
+
+    function testCannotExecuteByNotRouter() external {
+        vm.startPrank(user);
+        vm.expectRevert(IAgent.NotRouter.selector);
+        agent.execute(logicsEmpty, tokensReturnEmpty);
+        vm.expectRevert(IAgent.NotRouter.selector);
+        agent.executeWithSignature(logicsEmpty, feesEmpty, tokensReturnEmpty);
+        vm.stopPrank();
+    }
+
+    function testCannotExecuteByNotCallback() external {
+        bytes memory data = abi.encodeWithSelector(IAgent.executeByCallback.selector, logicsEmpty);
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
             address(mockCallback),
@@ -81,11 +88,11 @@ contract AgentTest is Test {
             inputsEmpty,
             IParam.WrapMode.NONE,
             address(0), // approveTo
-            address(router) // callback
+            address(router) // callback, should be mockCallback
         );
-        vm.expectRevert(IAgent.InvalidCaller.selector);
+        vm.expectRevert(IAgent.NotCallback.selector);
         vm.prank(router);
-        agent.execute(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute(logics, tokensReturnEmpty);
     }
 
     function testCannotBeInvalidBps() external {
@@ -108,7 +115,7 @@ contract AgentTest is Test {
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
         vm.prank(router);
-        agent.execute(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute(logics, tokensReturnEmpty);
 
         // Revert if balanceBps = BPS_BASE + 1
         inputs[0] = IParam.Input(
@@ -126,10 +133,10 @@ contract AgentTest is Test {
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
         vm.prank(router);
-        agent.execute(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute(logics, tokensReturnEmpty);
     }
 
-    function testCannotUnresetCallback() external {
+    function testCannotUnresetCallbackWithCharge() external {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
             address(mockFallback), // to
@@ -139,9 +146,9 @@ contract AgentTest is Test {
             address(0), // approveTo
             address(mockCallback) // callback
         );
-        vm.expectRevert(IAgent.UnresetCallback.selector);
+        vm.expectRevert(IAgent.UnresetCallbackWithCharge.selector);
         vm.prank(router);
-        agent.execute(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute(logics, tokensReturnEmpty);
     }
 
     function testWrapBeforeFixedAmounts(uint128 amount1, uint128 amount2) external {
@@ -174,7 +181,7 @@ contract AgentTest is Test {
             emit Approval(address(agent), address(mockFallback), type(uint256).max);
         }
         vm.prank(router);
-        agent.execute{value: amount}(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute{value: amount}(logics, tokensReturnEmpty);
         assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amount);
     }
 
@@ -211,7 +218,7 @@ contract AgentTest is Test {
             emit Approval(address(agent), address(mockFallback), type(uint256).max);
         }
         vm.prank(router);
-        agent.execute{value: amount}(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute{value: amount}(logics, tokensReturnEmpty);
         assertApproxEqAbs(IERC20(mockWrappedNative).balanceOf(address(agent)), amount, 1); // 1 unit due to BPS_BASE / 2
     }
 
@@ -268,7 +275,7 @@ contract AgentTest is Test {
         );
 
         vm.prank(router);
-        agent.execute{value: amount}(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute{value: amount}(logics, tokensReturnEmpty);
         assertEq((address(agent).balance), amount);
         assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amountBefore);
     }
@@ -285,7 +292,7 @@ contract AgentTest is Test {
 
         // Execute
         vm.prank(router);
-        agent.execute{value: amountIn}(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute{value: amountIn}(logics, tokensReturnEmpty);
 
         uint256 recipientAmount = amountIn;
         if (balanceBps != SKIP) recipientAmount = (amountIn * balanceBps) / BPS_BASE;
@@ -337,7 +344,7 @@ contract AgentTest is Test {
         vm.expectEmit(true, true, true, true, address(mockERC20));
         emit Approval(address(agent), address(mockFallback), type(uint256).max);
         vm.prank(router);
-        agent.execute(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute(logics, tokensReturnEmpty);
 
         // Execute again, mock approve to guarantee that approval is not called
         vm.mockCall(
@@ -347,7 +354,7 @@ contract AgentTest is Test {
             abi.encode(false)
         );
         vm.prank(router);
-        agent.execute(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute(logics, tokensReturnEmpty);
     }
 
     function testApproveToIsSet(uint256 amountIn, address approveTo) external {
@@ -375,7 +382,7 @@ contract AgentTest is Test {
         vm.expectEmit(true, true, true, true, address(mockERC20));
         emit Approval(address(agent), approveTo, type(uint256).max);
         vm.prank(router);
-        agent.execute(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute(logics, tokensReturnEmpty);
 
         // Execute again, mock approve to guarantee that approval is not called
         vm.mockCall(
@@ -385,6 +392,6 @@ contract AgentTest is Test {
             abi.encode(false)
         );
         vm.prank(router);
-        agent.execute(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute(logics, tokensReturnEmpty);
     }
 }

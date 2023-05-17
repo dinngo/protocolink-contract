@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
 import {IAaveV3Provider} from '../interfaces/aaveV3/IAaveV3Provider.sol';
-import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
+import {IFeeCalculator} from '../interfaces/fees/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 /// @title Aave borrow fee calculator

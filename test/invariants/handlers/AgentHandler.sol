@@ -31,7 +31,7 @@ contract AgentHandler is Test {
     function executeWithoutCallback() external {
         numCalls['executeWithoutCallback']++;
         vm.prank(router);
-        IMockAgent(agent).execute(logicsEmpty, feesEmpty, tokensReturnEmpty);
+        IMockAgent(agent).execute(logicsEmpty, tokensReturnEmpty);
     }
 
     function executeWithCallback() external {
@@ -46,7 +46,12 @@ contract AgentHandler is Test {
             address(0), // approveTo
             address(0) // callback
         );
-        bytes memory data = abi.encodeWithSelector(IAgent.execute.selector, callbacks, feesEmpty, tokensReturnEmpty);
+        bytes memory data = abi.encodeWithSelector(
+            IAgent.executeByCallback.selector,
+            callbacks,
+            feesEmpty,
+            tokensReturnEmpty
+        );
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
             mCallback,
@@ -59,6 +64,6 @@ contract AgentHandler is Test {
 
         // Execute
         vm.prank(router);
-        IMockAgent(agent).execute(logics, feesEmpty, tokensReturnEmpty);
+        IMockAgent(agent).execute(logics, tokensReturnEmpty);
     }
 }

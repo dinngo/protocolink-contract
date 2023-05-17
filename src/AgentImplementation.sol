@@ -5,8 +5,10 @@ import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token
 import {ERC721Holder} from 'openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol';
 import {ERC1155Holder} from 'openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Holder.sol';
 import {IAgent} from './interfaces/IAgent.sol';
+import {IFeeCalculator} from './interfaces/fees/IFeeCalculator.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
+import {IFeeGenerator} from './interfaces/fees/IFeeGenerator.sol';
 import {IWrappedNative} from './interfaces/IWrappedNative.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
@@ -17,8 +19,17 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     using Address for address;
     using Address for address payable;
 
+    /// @dev Flag for reducing gas cost when reset `_callbackWithCharge`
+    bytes32 internal constant _INIT_CALLBACK_WITH_CHARGE = bytes32(bytes20(address(1)));
+
+    /// @dev Flag for identifying whether to charge fee determined by the least significant bit of `_callbackWithCharge`
+    bytes32 internal constant _CHARGE_MASK = bytes32(uint256(1));
+
     /// @dev Flag for identifying the native address such as ETH on Ethereum
     address internal constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    /// @dev Flag for identifying any address in router's fee calculators mapping
+    address internal constant _ANY_TO_ADDRESS = address(0);
 
     /// @dev Denominator for calculating basis points
     uint256 internal constant _BPS_BASE = 10_000;
@@ -32,20 +43,8 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     /// @notice Immutable address for recording wrapped native address such as WETH on Ethereum
     address public immutable wrappedNative;
 
-    /// @notice Transient address for recording a valid caller which should be the router address after each execution
-    address internal _caller;
-
-    modifier checkCaller() {
-        address caller = _caller;
-        if (caller != msg.sender) {
-            // Only predefined caller can call agent
-            revert InvalidCaller();
-        } else if (caller != router) {
-            // When the caller is not router, should be reset right away to guarantee one-time usage from callback contracts
-            _caller = router;
-        }
-        _;
-    }
+    /// @dev Transient address and flag for recording a valid callback and a charge fee flag
+    bytes32 internal _callbackWithCharge;
 
     /// @dev Create the agent implementation contract
     constructor(address wrappedNative_) {
@@ -55,40 +54,57 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
     /// @notice Initialize user's agent and can only be called once.
     function initialize() external {
-        if (_caller != address(0)) revert Initialized();
-        _caller = router;
+        if (_callbackWithCharge != bytes32(0)) revert Initialized();
+        _callbackWithCharge = _INIT_CALLBACK_WITH_CHARGE;
+    }
+
+    /// @notice Execute arbitrary logics
+    /// @param logics Array of logics to be executed
+    /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
+    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable {
+        if (msg.sender != router) revert NotRouter();
+
+        _chargeFeeByMsgValue();
+
+        _executeLogics(logics, true);
+
+        _returnTokens(tokensReturn);
     }
 
     /// @notice Execute arbitrary logics
     /// @param logics Array of logics to be executed
     /// @param fees Array of fees
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
-    function execute(
+    function executeWithSignature(
         IParam.Logic[] calldata logics,
         IParam.Fee[] calldata fees,
         address[] calldata tokensReturn
-    ) external payable checkCaller {
-        _executeLogics(logics);
+    ) external payable {
+        if (msg.sender != router) revert NotRouter();
 
         _chargeFee(fees);
 
-        // Push tokensReturn if any balance
-        uint256 tokensReturnLength = tokensReturn.length;
-        if (tokensReturnLength > 0) {
-            address user = IRouter(router).currentUser();
-            for (uint256 i; i < tokensReturnLength; ) {
-                address token = tokensReturn[i];
-                if (token == _NATIVE) {
-                    payable(user).sendValue(address(this).balance);
-                } else {
-                    uint256 balance = IERC20(token).balanceOf(address(this));
-                    IERC20(token).safeTransfer(user, balance);
-                }
+        _executeLogics(logics, false);
 
-                unchecked {
-                    ++i;
-                }
-            }
+        _returnTokens(tokensReturn);
+    }
+
+    /// @notice Execute arbitrary logics
+    /// @param logics Array of logics to be executed
+    function executeByCallback(IParam.Logic[] calldata logics) external {
+        if (msg.sender != address(bytes20(_callbackWithCharge))) revert NotCallback();
+
+        // Check the least significant bit
+        bool shouldChargeFeeByLogic = _callbackWithCharge & _CHARGE_MASK != bytes32(0);
+
+        // Reset right away to guarantee one-time usage from callback contracts
+        _callbackWithCharge = _INIT_CALLBACK_WITH_CHARGE;
+
+        // Check if charge fee
+        if (shouldChargeFeeByLogic) {
+            _executeLogics(logics, true);
+        } else {
+            _executeLogics(logics, false);
         }
     }
 
@@ -100,7 +116,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         }
     }
 
-    function _executeLogics(IParam.Logic[] calldata logics) internal {
+    function _executeLogics(IParam.Logic[] calldata logics, bool shouldChargeFeeByLogic) internal {
         // Execute each logic
         uint256 logicsLength = logics.length;
         for (uint256 i; i < logicsLength; ) {
@@ -175,8 +191,16 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 wrappedAmount = _getBalance(wrappedNative);
             }
 
-            // Set _callback who should enter one-time execute
-            if (logics[i].callback != address(0)) _caller = logics[i].callback;
+            // Set callback who should enter one-time `executeByCallback`
+            if (logics[i].callback != address(0)) {
+                bytes32 callback = bytes32(bytes20(logics[i].callback));
+                if (shouldChargeFeeByLogic) {
+                    // Set the least significant bit
+                    _callbackWithCharge = callback |= _CHARGE_MASK;
+                } else {
+                    _callbackWithCharge = callback;
+                }
+            }
 
             // Execute and send native
             if (data.length == 0) {
@@ -185,12 +209,16 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 to.functionCallWithValue(data, value, 'ERROR_ROUTER_EXECUTE');
             }
 
-            // Revert if the previous call didn't enter execute
-            if (_caller != router) revert UnresetCallback();
+            // Revert if the previous call didn't enter `executeByCallback`
+            if (_callbackWithCharge != _INIT_CALLBACK_WITH_CHARGE) revert UnresetCallbackWithCharge();
 
             // Unwrap to native after the call
             if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
                 IWrappedNative(wrappedNative).withdraw(_getBalance(wrappedNative) - wrappedAmount);
+            }
+
+            if (shouldChargeFeeByLogic) {
+                _chargeFeeByLogic(logics[i]);
             }
 
             unchecked {
@@ -199,7 +227,28 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         }
     }
 
-    function _chargeFee(IParam.Fee[] calldata fees) internal {
+    function _chargeFeeByMsgValue() internal {
+        if (msg.value == 0) return;
+
+        address nativeFeeCalculator = IFeeGenerator(router).getNativeFeeCalculator();
+        if (nativeFeeCalculator != address(0)) {
+            _chargeFee(IFeeCalculator(nativeFeeCalculator).getFees(_ANY_TO_ADDRESS, abi.encodePacked(msg.value)));
+        }
+    }
+
+    function _chargeFeeByLogic(IParam.Logic calldata logic) internal {
+        bytes memory data = logic.data;
+        bytes4 selector = bytes4(data);
+        address to = logic.to;
+
+        // Get feeCalculator
+        address feeCalculator = IFeeGenerator(router).getFeeCalculator(selector, to);
+        if (feeCalculator != address(0)) {
+            _chargeFee(IFeeCalculator(feeCalculator).getFees(to, data));
+        }
+    }
+
+    function _chargeFee(IParam.Fee[] memory fees) internal {
         uint256 length = fees.length;
         if (length == 0) return;
 
@@ -216,6 +265,27 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             emit FeeCharged(token, amount, fees[i].metadata);
             unchecked {
                 ++i;
+            }
+        }
+    }
+
+    function _returnTokens(address[] calldata tokensReturn) internal {
+        // Push tokensReturn if any balance
+        uint256 tokensReturnLength = tokensReturn.length;
+        if (tokensReturnLength > 0) {
+            address user = IRouter(router).currentUser();
+            for (uint256 i; i < tokensReturnLength; ) {
+                address token = tokensReturn[i];
+                if (token == _NATIVE) {
+                    payable(user).sendValue(address(this).balance);
+                } else {
+                    uint256 balance = IERC20(token).balanceOf(address(this));
+                    IERC20(token).safeTransfer(user, balance);
+                }
+
+                unchecked {
+                    ++i;
+                }
             }
         }
     }

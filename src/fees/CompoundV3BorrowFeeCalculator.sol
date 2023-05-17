@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {FeeCalculatorBase} from './FeeCalculatorBase.sol';
-import {IFeeCalculator} from '../interfaces/IFeeCalculator.sol';
+import {IFeeCalculator} from '../interfaces/fees/IFeeCalculator.sol';
 import {IParam} from '../interfaces/IParam.sol';
 
 /// @title Compound V3 borrow fee calculator

@@ -174,10 +174,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
             agent = IAgent(_newAgent(user));
         }
 
-        IParam.Fee[] memory fees = getFeesByLogics(logics, msg.value);
-
         emit Execute(user, address(agent), referralCode);
-        agent.execute{value: msg.value}(logics, fees, tokensReturn);
+        agent.execute{value: msg.value}(logics, tokensReturn);
     }
 
     /// @notice Execute arbitrary logics through the current user's agent using a signer's signature. Creates an agent
@@ -209,7 +207,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         }
 
         emit Execute(user, address(agent), referralCode);
-        agent.execute{value: msg.value}(logicBatch.logics, logicBatch.fees, tokensReturn);
+        agent.executeWithSignature{value: msg.value}(logicBatch.logics, logicBatch.fees, tokensReturn);
     }
 
     /// @notice Create an agent for `msg.sender`

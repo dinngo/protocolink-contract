@@ -28,6 +28,8 @@ contract AgentInvariants is Test {
         mockFallback = address(new MockFallback());
         agentHandler = new AgentHandler(router, address(agent), mockCallback, mockFallback);
 
+        vm.mockCall(router, 0, abi.encodeWithSignature('getNativeFeeCalculator()'), abi.encode(address(0)));
+        vm.mockCall(router, 0, abi.encodeWithSignature('getFeeCalculator(bytes4,address)'), abi.encode(address(0)));
         vm.label(address(agent), 'Agent');
         vm.label(address(agentHandler), 'Agent Handler');
         vm.label(mockCallback, 'mCallback');
@@ -36,8 +38,8 @@ contract AgentInvariants is Test {
         targetContract(address(agentHandler));
     }
 
-    function invariant_callerIsAlwaysRouter() external {
-        assertEq(agent.caller(), router);
+    function invariant_initializedCallbackWithCharge() external {
+        assertEq(agent.callbackWithCharge(), agent.INIT_CALLBACK_WITH_CHARGE());
     }
 
     function invariant_callSummary() external view {
