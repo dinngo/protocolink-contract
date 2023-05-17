@@ -8,6 +8,7 @@ import {Agent} from 'src/Agent.sol';
 import {AgentImplementation, IAgent} from 'src/AgentImplementation.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
+import {IFeeGenerator} from 'src/interfaces/fees/IFeeGenerator.sol';
 import {ICallback, MockCallback} from './mocks/MockCallback.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
 import {MockWrappedNative, IWrappedNative} from './mocks/MockWrappedNative.sol';
@@ -149,6 +150,23 @@ contract AgentTest is Test {
         vm.expectRevert(IAgent.UnresetCallbackWithCharge.selector);
         vm.prank(router);
         agent.execute(logics, tokensReturnEmpty);
+    }
+
+    function testShouldNotChargeWhenExecuteWithSignature() external {
+        bytes memory data = abi.encodeWithSelector(IAgent.executeByCallback.selector, logicsEmpty);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(
+            address(mockCallback),
+            abi.encodeWithSelector(ICallback.callback.selector, data),
+            inputsEmpty,
+            IParam.WrapMode.NONE,
+            address(0), // approveTo
+            address(mockCallback) // callback
+        );
+        // Expected call to router::getFeeCalculator is 0 time
+        vm.expectCall(router, abi.encode(IFeeGenerator.getFeeCalculator.selector), 0);
+        vm.prank(router);
+        agent.executeWithSignature(logics, feesEmpty, tokensReturnEmpty);
     }
 
     function testWrapBeforeFixedAmounts(uint128 amount1, uint128 amount2) external {
