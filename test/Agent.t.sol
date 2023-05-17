@@ -81,19 +81,9 @@ contract AgentTest is Test {
     }
 
     function testCannotExecuteByNotCallback() external {
-        bytes memory data = abi.encodeWithSelector(IAgent.executeByCallback.selector, logicsEmpty);
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockCallback),
-            abi.encodeWithSelector(ICallback.callback.selector, data),
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(router) // callback, should be mockCallback
-        );
         vm.expectRevert(IAgent.NotCallback.selector);
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty);
+        agent.executeByCallback(logicsEmpty);
     }
 
     function testCannotBeInvalidBps() external {
