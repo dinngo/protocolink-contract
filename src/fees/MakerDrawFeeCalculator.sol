@@ -15,7 +15,7 @@ contract MakerDrawFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     uint256 internal constant _DRAW_DATA_START_INDEX = 104;
     uint256 internal constant _DRAW_DATA_END_INDEX = 264;
 
-    address public daiToken;
+    address public immutable daiToken;
 
     constructor(address router_, uint256 feeRate_, address daiToken_) FeeCalculatorBase(router_, feeRate_) {
         daiToken = daiToken_;
