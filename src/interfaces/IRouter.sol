@@ -59,7 +59,7 @@ interface IRouter {
 
     function getAgent(address user) external view returns (address);
 
-    function getUserAgent() external view returns (address, address);
+    function getCurrentUserAgent() external view returns (address, address);
 
     function calcAgent(address user) external view returns (address);
 

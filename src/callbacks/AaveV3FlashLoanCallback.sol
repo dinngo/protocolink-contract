@@ -37,7 +37,7 @@ contract AaveV3FlashLoanCallback is IAaveV3FlashLoanCallback {
         address pool = IAaveV3Provider(aaveV3Provider).getPool();
 
         if (msg.sender != pool) revert InvalidCaller();
-        (, address agent) = IRouter(router).getUserAgent();
+        (, address agent) = IRouter(router).getCurrentUserAgent();
 
         // Transfer assets to the agent and record initial balances
         uint256 assetsLength = assets.length;

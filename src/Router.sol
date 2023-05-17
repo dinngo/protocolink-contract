@@ -97,7 +97,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @notice Get user and agent addresses of the current user
     /// @return The user address
     /// @return The agent address
-    function getUserAgent() external view returns (address, address) {
+    function getCurrentUserAgent() external view returns (address, address) {
         address user = currentUser;
         return (user, address(agents[user]));
     }
