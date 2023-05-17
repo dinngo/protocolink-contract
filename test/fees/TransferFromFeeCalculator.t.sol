@@ -58,7 +58,7 @@ contract TransferFromFeeCalculatorTest is Test {
 
     function testChargeTransferFromFee(uint256 amount, uint256 feeRate) external {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
-        amount = bound(amount, 1, (IERC20(USDC).totalSupply() * (BPS_BASE - feeRate)) / BPS_BASE);
+        amount = bound(amount, 0, (IERC20(USDC).totalSupply() * (BPS_BASE - feeRate)) / BPS_BASE);
 
         // Set fee rate
         FeeCalculatorBase(transferFromFeeCalculator).setFeeRate(feeRate);
@@ -84,8 +84,10 @@ contract TransferFromFeeCalculatorTest is Test {
         // Execute
         address[] memory tokensReturns = new address[](1);
         tokensReturns[0] = USDC;
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(USDC, expectedFee, META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(USDC, expectedFee, META_DATA);
+        }
         vm.prank(user);
         router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 

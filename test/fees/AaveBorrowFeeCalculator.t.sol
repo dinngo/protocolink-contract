@@ -143,8 +143,10 @@ contract AaveBorrowFeeCalculatorTest is Test {
         // Execute
         address[] memory tokensReturns = new address[](1);
         tokensReturns[0] = collateral;
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(collateral, expectedFee, V2_BORROW_META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(collateral, expectedFee, V2_BORROW_META_DATA);
+        }
         vm.prank(user);
         router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 
@@ -183,8 +185,10 @@ contract AaveBorrowFeeCalculatorTest is Test {
         // Execute
         address[] memory tokensReturns = new address[](1);
         tokensReturns[0] = collateral;
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(collateral, expectedFee, V3_BORROW_META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(collateral, expectedFee, V3_BORROW_META_DATA);
+        }
         vm.prank(user);
         router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 

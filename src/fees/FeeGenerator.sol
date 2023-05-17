@@ -90,49 +90,6 @@ abstract contract FeeGenerator is IFeeGenerator, Ownable {
         return msgValue;
     }
 
-    function getFeesByLogics(IParam.Logic[] memory logics, uint256 msgValue) public view returns (IParam.Fee[] memory) {
-        IParam.Fee[] memory tempFees = new IParam.Fee[](32); // Create a temporary `tempFees` with size 32 to store fee
-        uint256 realFeeLength;
-        uint256 logicsLength = logics.length;
-        for (uint256 i; i < logicsLength; ++i) {
-            bytes memory data = logics[i].data;
-            bytes4 selector = bytes4(data);
-            address to = logics[i].to;
-
-            // Get feeCalculator
-            address feeCalculator = getFeeCalculator(selector, to);
-            if (feeCalculator == address(0)) continue; // No need to charge fee
-
-            // Get charge tokens and amounts
-            IParam.Fee[] memory feesByLogic = IFeeCalculator(feeCalculator).getFees(to, data);
-            uint256 feesByLogicLength = feesByLogic.length;
-            if (feesByLogicLength == 0) {
-                continue; // No need to charge fee
-            }
-
-            for (uint256 feeIndex = 0; feeIndex < feesByLogicLength; ++feeIndex) {
-                tempFees[realFeeLength++] = feesByLogic[feeIndex];
-            }
-        }
-
-        // For native fee
-        address nativeFeeCalculator = getNativeFeeCalculator();
-        if (msgValue > 0 && nativeFeeCalculator != address(0)) {
-            tempFees[realFeeLength++] = IFeeCalculator(nativeFeeCalculator).getFees(
-                _DUMMY_TO_ADDRESS,
-                abi.encodePacked(msgValue)
-            )[0];
-        }
-
-        // Copy tempFees to fees
-        IParam.Fee[] memory fees = new IParam.Fee[](realFeeLength);
-        for (uint256 i; i < realFeeLength; ++i) {
-            fees[i] = tempFees[i];
-        }
-
-        return fees;
-    }
-
     function getFeeCalculator(bytes4 selector, address to) public view returns (address feeCalculator) {
         feeCalculator = feeCalculators[selector][to];
         if (feeCalculator == address(0)) {

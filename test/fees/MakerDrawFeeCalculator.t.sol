@@ -99,7 +99,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
     function testChargeDrawFee(uint256 amount, uint256 feeRate) external {
         // ETH_LOCK_AMOUNT * price(assume ETH price is 1000) * 60%(LTV)
         uint256 estimateDaiDrawMaxAmount = (ETH_LOCK_AMOUNT * 1000 * 60) / 100;
-        amount = bound(amount, 1, estimateDaiDrawMaxAmount);
+        amount = bound(amount, 0, estimateDaiDrawMaxAmount);
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
 
         // Set fee rate
@@ -122,8 +122,10 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = DAI_TOKEN;
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(DAI_TOKEN, expectedFee, META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(DAI_TOKEN, expectedFee, META_DATA);
+        }
         vm.prank(user);
         router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 

@@ -125,8 +125,10 @@ contract CompoundV3BorrowFeeCalculatorTest is Test {
         // Execute
         address[] memory tokensReturns = new address[](1);
         tokensReturns[0] = baseToken;
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(baseToken, expectedFee, META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(baseToken, expectedFee, META_DATA);
+        }
         vm.prank(user);
         router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 

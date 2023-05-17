@@ -20,7 +20,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
 
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
         // Aave flash loan signature:'flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)', selector: 0xab9c4b5d
-        (, address[] memory tokens, uint256[] memory amounts, , , bytes memory params, ) = abi.decode(
+        (, address[] memory tokens, uint256[] memory amounts, , , , ) = abi.decode(
             data[4:],
             (address, address[], uint256[], uint256[], address, bytes, uint16)
         );
@@ -30,21 +30,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
             ? _V3_FLASHLOAN_META_DATA
             : _V2_FLASHLOAN_META_DATA;
 
-        IParam.Fee[] memory feesWithFlashLoan = _createFees(tokens, amounts, metadata);
-
-        if (params.length > 0) {
-            // Decode data in the flash loan
-            (IParam.Logic[] memory logics, , ) = abi.decode(params, (IParam.Logic[], IParam.Fee[], address[]));
-
-            // Get fees
-            IParam.Fee[] memory feesInFlashLoanData = Router(router).getFeesByLogics(logics, 0);
-
-            if (feesInFlashLoanData.length > 0) {
-                feesWithFlashLoan = _concatenateFees(feesWithFlashLoan, feesInFlashLoanData);
-            }
-        }
-
-        return feesWithFlashLoan;
+        return _createFees(tokens, amounts, metadata);
     }
 
     function getDataWithFee(bytes calldata data) external view returns (bytes memory) {
@@ -95,30 +81,5 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
             }
         }
         return fees;
-    }
-
-    function _concatenateFees(
-        IParam.Fee[] memory fees1,
-        IParam.Fee[] memory fees2
-    ) internal pure returns (IParam.Fee[] memory) {
-        uint256 length1 = fees1.length;
-        uint256 length2 = fees2.length;
-        IParam.Fee[] memory totalFees = new IParam.Fee[](length1 + length2);
-
-        for (uint256 i; i < length1; ) {
-            totalFees[i] = fees1[i];
-            unchecked {
-                ++i;
-            }
-        }
-
-        for (uint256 i; i < length2; ) {
-            totalFees[length1 + i] = fees2[i];
-            unchecked {
-                ++i;
-            }
-        }
-
-        return totalFees;
     }
 }

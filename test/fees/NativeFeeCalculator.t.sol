@@ -59,7 +59,7 @@ contract NativeFeeCalculatorTest is Test {
     }
 
     function testChargeNativeFee(uint256 value, uint256 feeRate) external {
-        value = bound(value, 1e10, 1e8 ether);
+        value = bound(value, 0, 1e8 ether);
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
 
         // Set fee rate
@@ -80,8 +80,10 @@ contract NativeFeeCalculatorTest is Test {
         uint256 expectedFee = FeeCalculatorBase(nativeFeeCalculator).calculateFee(newValue);
 
         // Execute
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(NATIVE, expectedFee, META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(NATIVE, expectedFee, META_DATA);
+        }
         vm.prank(user);
         router.execute{value: newValue}(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 

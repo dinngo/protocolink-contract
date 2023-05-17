@@ -254,8 +254,15 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
         address feeCollector = IRouter(router).feeCollector();
         for (uint256 i; i < length; ) {
-            address token = fees[i].token;
             uint256 amount = fees[i].amount;
+            if (amount == 0) {
+                unchecked {
+                    ++i;
+                }
+                continue;
+            }
+
+            address token = fees[i].token;
             if (token == _NATIVE) {
                 payable(feeCollector).sendValue(amount);
             } else {
