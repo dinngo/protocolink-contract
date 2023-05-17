@@ -113,7 +113,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
                         abi.encodePacked(
                             bytes1(0xff),
                             address(this),
-                            bytes32(bytes20((uint160(user)))),
+                            bytes32(bytes20(user)),
                             keccak256(abi.encodePacked(type(Agent).creationCode, abi.encode(agentImplementation)))
                         )
                     )
@@ -225,7 +225,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         if (address(agents[user]) != address(0)) {
             revert AgentAlreadyCreated();
         } else {
-            IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20((uint160(user))))}(agentImplementation)));
+            IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20(user))}(agentImplementation)));
             agents[user] = agent;
             emit AgentCreated(address(agent), user);
             return payable(address(agent));
