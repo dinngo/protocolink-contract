@@ -126,7 +126,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         logics[0] = _logicBalancerV2FlashLoan(tokens, amounts, userData);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         _distributeToken(tokens, amounts);
 
@@ -187,7 +187,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
             logics[0] = _logicBalancerV2FlashLoan(tokens, amounts, userData);
 
-            (logics, nativeNewAmount) = router.getUpdatedLogicsAndMsgValue(logics, nativeAmount);
+            (logics, nativeNewAmount) = router.getLogicsAndMsgValueWithFee(logics, nativeAmount);
             deal(user, nativeNewAmount);
             _distributeToken(tokens, amounts);
         }
@@ -266,7 +266,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
             logics[0] = _logicBalancerV2FlashLoan(tokens, amounts, userData);
 
-            (logics, nativeNewAmount) = router.getUpdatedLogicsAndMsgValue(logics, nativeAmount);
+            (logics, nativeNewAmount) = router.getLogicsAndMsgValueWithFee(logics, nativeAmount);
 
             // Distribute token
             deal(user, nativeNewAmount);

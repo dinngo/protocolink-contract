@@ -9,8 +9,8 @@ import {IParam} from '../interfaces/IParam.sol';
 
 /// @title Aave flash loan fee calculator
 contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
-    bytes32 internal constant _V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flash-loan'));
-    bytes32 internal constant _V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flash-loan'));
+    bytes32 internal constant _V2_FLASH_LOAN_META_DATA = bytes32(bytes('aave-v2:flash-loan'));
+    bytes32 internal constant _V3_FLASH_LOAN_META_DATA = bytes32(bytes('aave-v3:flash-loan'));
 
     address public immutable aaveV3Provider;
 
@@ -27,8 +27,8 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
 
         amounts = calculateFee(amounts);
         bytes32 metadata = to == IAaveV3Provider(aaveV3Provider).getPool()
-            ? _V3_FLASHLOAN_META_DATA
-            : _V2_FLASHLOAN_META_DATA;
+            ? _V3_FLASH_LOAN_META_DATA
+            : _V2_FLASH_LOAN_META_DATA;
 
         return _createFees(tokens, amounts, metadata);
     }
@@ -52,7 +52,7 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
             );
 
             // Update logics
-            logics = Router(router).getLogicsDataWithFee(logics);
+            logics = Router(router).getLogicsWithFee(logics);
 
             // encode
             params = abi.encode(logics, fees, tokensReturn);

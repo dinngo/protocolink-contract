@@ -68,7 +68,7 @@ contract TransferFromFeeCalculatorTest is Test {
         logics[0] = _logicTransferFrom(USDC, user, address(userAgent), amount);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(transferFromFeeCalculator).calculateAmountWithFee(amount);

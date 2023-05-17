@@ -71,7 +71,7 @@ contract NativeFeeCalculatorTest is Test {
 
         // Get new logics and msgValue
         uint256 newValue;
-        (logics, newValue) = router.getUpdatedLogicsAndMsgValue(logics, value);
+        (logics, newValue) = router.getLogicsAndMsgValueWithFee(logics, value);
         deal(user, newValue);
 
         // Prepare assert data

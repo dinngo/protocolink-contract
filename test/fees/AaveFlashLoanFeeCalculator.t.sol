@@ -156,7 +156,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         logics[0] = _logicAaveFlashLoan(v2Pool, address(flashLoanCallbackV2), tokens, amounts, params);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         _distributeToken(tokens, amounts, isAaveV2);
 
@@ -222,7 +222,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             logics[0] = _logicAaveFlashLoan(v2Pool, address(flashLoanCallbackV2), tokens, amounts, params);
 
             // Get new logics and msg.value amount
-            (logics, nativeNewAmount) = router.getUpdatedLogicsAndMsgValue(logics, nativeAmount);
+            (logics, nativeNewAmount) = router.getLogicsAndMsgValueWithFee(logics, nativeAmount);
             deal(user, nativeNewAmount);
             _distributeToken(tokens, amounts, isAaveV2);
         }
@@ -301,7 +301,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             amounts[0] = amount;
 
             logics[0] = _logicAaveFlashLoan(v2Pool, address(flashLoanCallbackV2), tokens, amounts, params);
-            (logics, nativeNewAmount) = router.getUpdatedLogicsAndMsgValue(logics, nativeAmount);
+            (logics, nativeNewAmount) = router.getLogicsAndMsgValueWithFee(logics, nativeAmount);
 
             // Distribute token
             deal(user, nativeNewAmount);
@@ -388,7 +388,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         logics[0] = _logicAaveFlashLoan(v3Pool, address(flashLoanCallbackV3), tokens, amounts, params);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         _distributeToken(tokens, amounts, isAaveV2);
 

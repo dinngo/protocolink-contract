@@ -38,7 +38,7 @@ contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
             );
 
             // Update logics
-            logics = Router(router).getLogicsDataWithFee(logics);
+            logics = Router(router).getLogicsWithFee(logics);
 
             // encode
             userData = abi.encode(logics, fees, tokensReturn);

@@ -158,7 +158,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for users if not created.
-    ///         Charge fees based on the scenarios defined in the FeeGenerator contract, which calculates fees on-chain.
+    ///         Fees are charged in the user's agent based on the scenarios defined in the FeeGenerator contract, which
+    ///         calculates fees by logics and msg.value.
     /// @param logics Array of logics to be executed
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     /// @param referralCode Referral code

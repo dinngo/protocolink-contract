@@ -114,7 +114,7 @@ contract CompoundV3BorrowFeeCalculatorTest is Test {
         logics[0] = _logicCompoundV3Borrow(amount);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(borrowFeeCalculator).calculateAmountWithFee(amount);

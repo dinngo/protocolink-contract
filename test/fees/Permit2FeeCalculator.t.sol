@@ -77,7 +77,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
         logics[0] = logicERC20Permit2PullToken(IERC20(USDC), amount.toUint160());
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(permit2FeeCalculator).calculateAmountWithFee(amount);

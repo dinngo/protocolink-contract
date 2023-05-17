@@ -5,9 +5,9 @@ import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token
 import {ERC721Holder} from 'openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol';
 import {ERC1155Holder} from 'openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Holder.sol';
 import {IAgent} from './interfaces/IAgent.sol';
-import {IFeeCalculator} from './interfaces/fees/IFeeCalculator.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
+import {IFeeCalculator} from './interfaces/fees/IFeeCalculator.sol';
 import {IFeeGenerator} from './interfaces/fees/IFeeGenerator.sol';
 import {IWrappedNative} from './interfaces/IWrappedNative.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
@@ -58,7 +58,9 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _callbackWithCharge = _INIT_CALLBACK_WITH_CHARGE;
     }
 
-    /// @notice Execute arbitrary logics
+    /// @notice Execute arbitrary logics and is only callable by the router. Charge fee based on the scenarios defined
+    ///         in the router.
+    /// @dev The router is designed to prevent reentrancy so additional prevention is not needed here
     /// @param logics Array of logics to be executed
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable {
@@ -71,7 +73,8 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _returnTokens(tokensReturn);
     }
 
-    /// @notice Execute arbitrary logics
+    /// @notice Execute arbitrary logics and is only callable by the router using a signer's signature
+    /// @dev The router is designed to prevent reentrancy so additional prevention is not needed here
     /// @param logics Array of logics to be executed
     /// @param fees Array of fees
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
@@ -89,15 +92,17 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _returnTokens(tokensReturn);
     }
 
-    /// @notice Execute arbitrary logics
+    /// @notice Execute arbitrary logics and is only callable by a valid callback. Charge fee based on the scenarios
+    ///         defined in the router if the charge bit is set.
+    /// @dev A valid callback address is set during `_executeLogics` from the `Logic.callback`
     /// @param logics Array of logics to be executed
     function executeByCallback(IParam.Logic[] calldata logics) external {
         if (msg.sender != address(bytes20(_callbackWithCharge))) revert NotCallback();
 
-        // Check the least significant bit
+        // Check the least significant bit to determine whether to charge fee
         bool shouldChargeFeeByLogic = _callbackWithCharge & _CHARGE_MASK != bytes32(0);
 
-        // Reset right away to guarantee one-time usage from callback contracts
+        // Reset immediately to prevent reentrancy
         _callbackWithCharge = _INIT_CALLBACK_WITH_CHARGE;
 
         // Check if charge fee
@@ -241,7 +246,6 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         bytes4 selector = bytes4(data);
         address to = logic.to;
 
-        // Get feeCalculator
         address feeCalculator = IFeeGenerator(router).getFeeCalculator(selector, to);
         if (feeCalculator != address(0)) {
             _chargeFee(IFeeCalculator(feeCalculator).getFees(to, data));
@@ -277,7 +281,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     }
 
     function _returnTokens(address[] calldata tokensReturn) internal {
-        // Push tokensReturn if any balance
+        // Return tokens to the current user if any balance
         uint256 tokensReturnLength = tokensReturn.length;
         if (tokensReturnLength > 0) {
             address user = IRouter(router).currentUser();

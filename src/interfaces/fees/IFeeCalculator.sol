@@ -7,6 +7,6 @@ interface IFeeCalculator {
     /// @notice Get fee array by `to` and `data`
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory);
 
-    /// @notice Return updated `data` that contains fee
+    /// @notice Return updated `data` with fee included
     function getDataWithFee(bytes calldata data) external view returns (bytes memory);
 }

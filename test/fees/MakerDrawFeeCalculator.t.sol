@@ -110,7 +110,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         logics[0] = _logicDraw(ethCdp, amount);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(makerDrawFeeCalculator).calculateAmountWithFee(amount);
@@ -148,7 +148,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         logics[0] = _logicFreeETH(userAgentDSProxy, ethCdp, freeETHAmount);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Execute
         address[] memory tokensReturns = new address[](1);

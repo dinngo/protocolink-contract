@@ -13,7 +13,7 @@ contract TransferFromFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     constructor(address router_, uint256 feeRate_) FeeCalculatorBase(router_, feeRate_) {}
 
     function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
-        // Token transfrom signature:'transferFrom(address,address,uint256)', selector:0x23b872dd
+        // Token transferFrom signature:'transferFrom(address,address,uint256)', selector:0x23b872dd
         (, , uint256 amount) = abi.decode(data[4:], (address, address, uint256));
 
         IParam.Fee[] memory fees = new IParam.Fee[](1);

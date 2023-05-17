@@ -132,7 +132,7 @@ contract AaveBorrowFeeCalculatorTest is Test {
         logics[0] = _logicAaveBorrow(v2Pool, collateral, amount, uint256(InterestRateMode.VARIABLE));
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(borrowFeeCalculator).calculateAmountWithFee(amount);
@@ -174,7 +174,7 @@ contract AaveBorrowFeeCalculatorTest is Test {
         logics[0] = _logicAaveBorrow(v3Pool, collateral, amount, uint256(InterestRateMode.VARIABLE));
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(borrowFeeCalculator).calculateAmountWithFee(amount);
