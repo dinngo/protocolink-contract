@@ -8,16 +8,16 @@ import {IParam} from '../interfaces/IParam.sol';
 library LogicHash {
     bytes32 internal constant _FEE_TYPEHASH = keccak256('Fee(address token,uint256 amount,bytes32 metadata)');
     bytes32 internal constant _INPUT_TYPEHASH =
-        keccak256('Input(address token,uint256 amountBps,uint256 amountOrOffset)');
+        keccak256('Input(address token,uint256 balanceBps,uint256 amountOrOffset)');
 
     bytes32 internal constant _LOGIC_TYPEHASH =
         keccak256(
-            'Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)Input(address token,uint256 amountBps,uint256 amountOrOffset)'
+            'Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)Input(address token,uint256 balanceBps,uint256 amountOrOffset)'
         );
 
     bytes32 internal constant _LOGIC_BATCH_TYPEHASH =
         keccak256(
-            'LogicBatch(Logic[] logics,Fee[] fees,uint256 deadline)Fee(address token,uint256 amount,bytes32 metadata)Input(address token,uint256 amountBps,uint256 amountOrOffset)Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)'
+            'LogicBatch(Logic[] logics,Fee[] fees,uint256 deadline)Fee(address token,uint256 amount,bytes32 metadata)Input(address token,uint256 balanceBps,uint256 amountOrOffset)Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)'
         );
 
     function _hash(IParam.Fee calldata fee) internal pure returns (bytes32) {

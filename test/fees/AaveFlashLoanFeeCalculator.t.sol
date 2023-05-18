@@ -438,7 +438,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
-        inputs[0].amountBps = SKIP;
+        inputs[0].balanceBps = SKIP;
         inputs[0].amountOrOffset = amount;
 
         return

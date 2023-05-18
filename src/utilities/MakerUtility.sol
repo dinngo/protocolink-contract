@@ -103,8 +103,6 @@ contract MakerUtility is IMakerUtility {
         );
         cdp = uint256(ret);
 
-        ApproveHelper._approveZero(token, address(dsProxy));
-
         IERC20(daiToken).safeTransfer(agent, wadD);
         _transferCdp(user, cdp);
     }

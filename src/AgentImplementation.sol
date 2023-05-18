@@ -121,22 +121,22 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             uint256 inputsLength = inputs.length;
             for (uint256 j = 0; j < inputsLength; ) {
                 address token = inputs[j].token;
-                uint256 amountBps = inputs[j].amountBps;
+                uint256 balanceBps = inputs[j].balanceBps;
 
                 // Calculate native or token amount
-                // 1. if amountBps is skip: read amountOrOffset as amount
-                // 2. if amountBps isn't skip: balance multiplied by amountBps as amount
+                // 1. if balanceBps is skip: read amountOrOffset as amount
+                // 2. if balanceBps isn't skip: balance multiplied by balanceBps as amount
                 uint256 amount;
-                if (amountBps == _SKIP) {
+                if (balanceBps == _SKIP) {
                     amount = inputs[j].amountOrOffset;
                 } else {
-                    if (amountBps == 0 || amountBps > _BPS_BASE) revert InvalidBps();
+                    if (balanceBps == 0 || balanceBps > _BPS_BASE) revert InvalidBps();
 
                     if (token == address(wrappedNative) && wrapMode == IParam.WrapMode.WRAP_BEFORE) {
                         // Use the native balance for amount calculation as wrap will be executed later
-                        amount = (address(this).balance * amountBps) / _BPS_BASE;
+                        amount = (address(this).balance * balanceBps) / _BPS_BASE;
                     } else {
-                        amount = (_getBalance(token) * amountBps) / _BPS_BASE;
+                        amount = (_getBalance(token) * balanceBps) / _BPS_BASE;
                     }
 
                     // Skip if don't need to replace, e.g., most protocols set native amount in call value

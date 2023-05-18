@@ -192,7 +192,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
-        inputs[0].amountBps = SKIP;
+        inputs[0].balanceBps = SKIP;
         inputs[0].amountOrOffset = amountIn;
 
         return
@@ -223,7 +223,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
-        inputs[0].amountBps = SKIP;
+        inputs[0].balanceBps = SKIP;
         inputs[0].amountOrOffset = amountIn;
 
         return

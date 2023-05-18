@@ -404,8 +404,8 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         IParam.Input[] memory inputs = new IParam.Input[](2);
         inputs[0].token = address(token0);
         inputs[1].token = address(token1);
-        inputs[0].amountBps = SKIP;
-        inputs[1].amountBps = SKIP;
+        inputs[0].balanceBps = SKIP;
+        inputs[1].balanceBps = SKIP;
         inputs[0].amountOrOffset = amountIn0;
         inputs[1].amountOrOffset = amountIn1;
 
@@ -434,8 +434,8 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         IParam.Input[] memory inputs = new IParam.Input[](2);
         inputs[0].token = address(token0);
         inputs[1].token = address(token1);
-        inputs[0].amountBps = SKIP;
-        inputs[1].amountBps = SKIP;
+        inputs[0].balanceBps = SKIP;
+        inputs[1].balanceBps = SKIP;
         inputs[0].amountOrOffset = amountIn0;
         inputs[1].amountOrOffset = amountIn1;
 

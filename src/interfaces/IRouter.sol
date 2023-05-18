@@ -91,7 +91,7 @@ interface IRouter {
         uint256 referralCode
     ) external payable;
 
-    function newAgent() external returns (address payable);
+    function newAgent() external returns (address);
 
-    function newAgent(address user) external returns (address payable);
+    function newAgent(address user) external returns (address);
 }

@@ -31,8 +31,9 @@ contract LogicTypehash is Test, LogicSignature {
 
     function testLogicBatchTypehash() external {
         // Signed a logicBatch using metamask to obtain an external sig
-        bytes32 r = 0xb2155e489c35b747610457550a11899e775bc4a1681260baaffc92b30c8bc892;
-        bytes32 s = 0x492c85b3613440c640debdc2cbf6ff960de6a363e238f42e0b7612229f2cc57b;
+        // https://github.com/dinngo/test-dapp/tree/for-composable-router-contract
+        bytes32 r = 0x303e7dc340515bad0190aa46a9a8091b0bec1c179bc74020eb84cc3f3f0a5db9;
+        bytes32 s = 0x5e1edd2e87dbe37a242f58d05de72018fb968dbe83f6dad1a3aac3ebafa93ab2;
         uint8 v = 0x1c;
         bytes memory sig = bytes.concat(r, s, bytes1(v));
 
@@ -40,12 +41,12 @@ contract LogicTypehash is Test, LogicSignature {
         IParam.Input[] memory inputs = new IParam.Input[](2);
         inputs[0] = IParam.Input(
             address(1), // token
-            type(uint256).max, // amountBps
+            type(uint256).max, // balanceBps
             1 // amountOrOffset
         );
         inputs[1] = IParam.Input(
             address(2), // token
-            10000, // amountBps
+            10000, // balanceBps
             0x20 // amountOrOffset
         );
         IParam.Logic[] memory logics = new IParam.Logic[](2);
