@@ -43,13 +43,17 @@ contract AgentInvariants is Test {
     }
 
     function invariant_callSummary() external view {
-        uint256 numExecuteWithCallback = agentHandler.numCalls('executeWithCallback');
+        uint256 numExecute = agentHandler.numCalls('execute');
         uint256 numExecuteWithoutCallback = agentHandler.numCalls('executeWithoutCallback');
+        uint256 numExecuteWithSignature = agentHandler.numCalls('executeWithSignature');
+        uint256 numExecuteByCallback = agentHandler.numCalls('executeByCallback');
 
         console2.log('\nCall Summary\n');
-        console2.log('executeWithCallback       ', numExecuteWithCallback);
-        console2.log('executeWithoutCallback    ', numExecuteWithoutCallback);
+        console2.log('execute', numExecute);
+        console2.log('executeWithoutCallback', numExecuteWithoutCallback);
+        console2.log('executeWithSignature', numExecuteWithSignature);
+        console2.log('executeByCallback', numExecuteByCallback);
         console2.log('------------------');
-        console2.log('Sum', numExecuteWithCallback + numExecuteWithoutCallback);
+        console2.log('Sum', numExecute + numExecuteWithoutCallback + numExecuteWithSignature + numExecuteByCallback);
     }
 }

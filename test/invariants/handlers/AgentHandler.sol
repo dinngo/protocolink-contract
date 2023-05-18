@@ -28,19 +28,35 @@ contract AgentHandler is Test {
         mFallback = mFallback_;
     }
 
+    function execute() external {
+        numCalls['execute']++;
+        vm.prank(router);
+        IMockAgent(agent).execute(_logicsWithCallback(), tokensReturnEmpty);
+    }
+
     function executeWithoutCallback() external {
         numCalls['executeWithoutCallback']++;
         vm.prank(router);
         IMockAgent(agent).execute(logicsEmpty, tokensReturnEmpty);
     }
 
-    function executeWithCallback() external {
-        numCalls['executeWithCallback']++;
-        // Prep
+    function executeWithSignature() external {
+        numCalls['executeWithSignature']++;
+        vm.prank(router);
+        IMockAgent(agent).executeWithSignature(_logicsWithCallback(), feesEmpty, tokensReturnEmpty);
+    }
+
+    function executeByCallback() external {
+        numCalls['executeByCallback']++;
+        vm.prank(address(bytes20(IMockAgent(agent).INIT_CALLBACK_WITH_CHARGE())));
+        IMockAgent(agent).executeByCallback(_logicsWithCallback());
+    }
+
+    function _logicsWithCallback() internal view returns (IParam.Logic[] memory) {
         IParam.Logic[] memory callbacks = new IParam.Logic[](1);
         callbacks[0] = IParam.Logic(
             mFallback, // to
-            '',
+            new bytes(0),
             inputsEmpty,
             IParam.WrapMode.NONE,
             address(0), // approveTo
@@ -62,8 +78,6 @@ contract AgentHandler is Test {
             mCallback // callback
         );
 
-        // Execute
-        vm.prank(router);
-        IMockAgent(agent).execute(logics, tokensReturnEmpty);
+        return logics;
     }
 }
