@@ -49,8 +49,8 @@ contract AgentTest is Test {
         mockCallback = new MockCallback();
         mockFallback = address(new MockFallback());
 
-        vm.mockCall(router, 0, abi.encodeWithSignature('getNativeFeeCalculator()'), abi.encode(address(0)));
-        vm.mockCall(router, 0, abi.encodeWithSignature('getFeeCalculator(bytes4,address)'), abi.encode(address(0)));
+        vm.mockCall(router, abi.encodePacked(IFeeGenerator.getNativeFeeCalculator.selector), abi.encode(address(0)));
+        vm.mockCall(router, abi.encodePacked(IFeeGenerator.getFeeCalculator.selector), abi.encode(address(0)));
         vm.label(address(agent), 'Agent');
         vm.label(address(mockWrappedNative), 'mWrappedNative');
         vm.label(address(mockERC20), 'mERC20');
