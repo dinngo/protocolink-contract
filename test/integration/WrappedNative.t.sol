@@ -59,12 +59,15 @@ contract WrappedNativeTest is Test {
         assertGt(tokenOut.balanceOf(user), 0);
     }
 
-    function _logicWrappedNativeDeposit(uint256 amountIn, uint256 amountBps) public pure returns (IParam.Logic memory) {
+    function _logicWrappedNativeDeposit(
+        uint256 amountIn,
+        uint256 balanceBps
+    ) public pure returns (IParam.Logic memory) {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
-        inputs[0].amountBps = amountBps;
-        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        inputs[0].balanceBps = balanceBps;
+        if (inputs[0].balanceBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = SKIP; // data don't have amount parameter
 
         return

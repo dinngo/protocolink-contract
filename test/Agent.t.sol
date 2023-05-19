@@ -92,10 +92,10 @@ contract AgentTest is Test {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         IParam.Input[] memory inputs = new IParam.Input[](1);
 
-        // Revert if amountBps = 0
+        // Revert if balanceBps = 0
         inputs[0] = IParam.Input(
             address(0),
-            0, // amountBps
+            0, // balanceBps
             0 // amountOrOffset
         );
         logics[0] = IParam.Logic(
@@ -110,10 +110,10 @@ contract AgentTest is Test {
         vm.prank(router);
         agent.execute(logics, feesEmpty, tokensReturnEmpty);
 
-        // Revert if amountBps = BPS_BASE + 1
+        // Revert if balanceBps = BPS_BASE + 1
         inputs[0] = IParam.Input(
             address(0),
-            BPS_BASE + 1, // amountBps
+            BPS_BASE + 1, // balanceBps
             0 // amountOrOffset
         );
         logics[0] = IParam.Logic(
@@ -153,12 +153,12 @@ contract AgentTest is Test {
         // Fixed amounts
         inputs[0] = IParam.Input(
             mockWrappedNative, // token
-            SKIP, // amountBps
+            SKIP, // balanceBps
             amount1 // amountOrOffset
         );
         inputs[1] = IParam.Input(
             mockWrappedNative, // token
-            SKIP, // amountBps
+            SKIP, // balanceBps
             amount2 // amountOrOffset
         );
         logics[0] = IParam.Logic(
@@ -188,12 +188,12 @@ contract AgentTest is Test {
         // Replaced amounts
         inputs[0] = IParam.Input(
             mockWrappedNative, // token
-            bps, // amountBps
+            bps, // balanceBps
             SKIP // amountOrOffset
         );
         inputs[1] = IParam.Input(
             mockWrappedNative, // token
-            BPS_BASE - bps, // amountBps
+            BPS_BASE - bps, // balanceBps
             SKIP // amountOrOffset
         );
         logics[0] = IParam.Logic(
@@ -224,7 +224,7 @@ contract AgentTest is Test {
         // Wrap native and immediately unwrap after
         inputs[0] = IParam.Input(
             NATIVE, // token
-            SKIP, // amountBps
+            SKIP, // balanceBps
             amount // amountOrOffset
         );
         logics[0] = IParam.Logic(
@@ -242,33 +242,33 @@ contract AgentTest is Test {
         assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amountBefore);
     }
 
-    function testSendNative(uint256 amountIn, uint256 amountBps) external {
+    function testSendNative(uint256 amountIn, uint256 balanceBps) external {
         amountIn = bound(amountIn, 0, type(uint128).max);
-        amountBps = bound(amountBps, 0, BPS_BASE);
-        if (amountBps == 0) amountBps = SKIP;
+        balanceBps = bound(balanceBps, 0, BPS_BASE);
+        if (balanceBps == 0) balanceBps = SKIP;
         deal(router, amountIn);
 
         // Encode logics
         IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicSendNative(amountIn, amountBps);
+        logics[0] = _logicSendNative(amountIn, balanceBps);
 
         // Execute
         vm.prank(router);
         agent.execute{value: amountIn}(logics, feesEmpty, tokensReturnEmpty);
 
         uint256 recipientAmount = amountIn;
-        if (amountBps != SKIP) recipientAmount = (amountIn * amountBps) / BPS_BASE;
+        if (balanceBps != SKIP) recipientAmount = (amountIn * balanceBps) / BPS_BASE;
         assertEq(address(router).balance, 0);
         assertEq(recipient.balance, recipientAmount);
         assertEq(address(agent).balance, amountIn - recipientAmount);
     }
 
-    function _logicSendNative(uint256 amountIn, uint256 amountBps) internal view returns (IParam.Logic memory) {
+    function _logicSendNative(uint256 amountIn, uint256 balanceBps) internal view returns (IParam.Logic memory) {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
-        inputs[0].amountBps = amountBps;
-        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        inputs[0].balanceBps = balanceBps;
+        if (inputs[0].balanceBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = SKIP; // data is not provided
 
         return
@@ -290,7 +290,7 @@ contract AgentTest is Test {
 
         inputs[0] = IParam.Input(
             address(mockERC20),
-            SKIP, // amountBps
+            SKIP, // balanceBps
             amountIn // amountOrOffset
         );
         logics[0] = IParam.Logic(
@@ -328,7 +328,7 @@ contract AgentTest is Test {
 
         inputs[0] = IParam.Input(
             address(mockERC20),
-            SKIP, // amountBps
+            SKIP, // balanceBps
             amountIn // amountOrOffset
         );
         logics[0] = IParam.Logic(

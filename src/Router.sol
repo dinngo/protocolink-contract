@@ -20,12 +20,6 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @dev Flag for reducing gas cost when reset `currentUser`
     address internal constant _INIT_USER = address(1);
 
-    /// @dev Flag for identifying an invalid pauser address
-    address internal constant _INVALID_PAUSER = address(0);
-
-    /// @dev Flag for identifying an invalid fee collector address
-    address internal constant _INVALID_FEE_COLLECTOR = address(0);
-
     /// @notice Immutable implementation contract for all users' agents
     address public immutable agentImplementation;
 
@@ -76,9 +70,9 @@ contract Router is IRouter, EIP712, FeeGenerator {
     ) EIP712('Composable Router', '1') {
         currentUser = _INIT_USER;
         agentImplementation = address(new AgentImplementation(wrappedNative));
+        setPauser(pauser_);
+        setFeeCollector(feeCollector_);
         transferOwnership(owner_);
-        _setPauser(pauser_);
-        _setFeeCollector(feeCollector_);
     }
 
     /// @notice Get owner address
@@ -141,30 +135,6 @@ contract Router is IRouter, EIP712, FeeGenerator {
     function removeSigner(address signer) external onlyOwner {
         delete signers[signer];
         emit SignerRemoved(signer);
-    }
-
-    /// @notice Set the fee collector address that collects fees from each user's agent by owner
-    /// @param feeCollector_ The fee collector address
-    function setFeeCollector(address feeCollector_) external onlyOwner {
-        _setFeeCollector(feeCollector_);
-    }
-
-    function _setFeeCollector(address feeCollector_) internal {
-        if (feeCollector_ == _INVALID_FEE_COLLECTOR) revert InvalidFeeCollector();
-        feeCollector = feeCollector_;
-        emit FeeCollectorSet(feeCollector_);
-    }
-
-    /// @notice Set the pauser address that can pause `execute` and `executeWithSignature` by owner
-    /// @param pauser_ The pauser address
-    function setPauser(address pauser_) external onlyOwner {
-        _setPauser(pauser_);
-    }
-
-    function _setPauser(address pauser_) internal {
-        if (pauser_ == _INVALID_PAUSER) revert InvalidNewPauser();
-        pauser = pauser_;
-        emit PauserSet(pauser_);
     }
 
     /// @notice Rescue ERC-20 tokens in case of stuck tokens by owner
@@ -244,14 +214,14 @@ contract Router is IRouter, EIP712, FeeGenerator {
 
     /// @notice Create an agent for `msg.sender`
     /// @return The newly created agent address
-    function newAgent() external returns (address payable) {
+    function newAgent() external returns (address) {
         return newAgent(msg.sender);
     }
 
     /// @notice Create an agent for the user
     /// @param user The user address
     /// @return The newly created agent address
-    function newAgent(address user) public returns (address payable) {
+    function newAgent(address user) public returns (address) {
         if (address(agents[user]) != address(0)) {
             revert AgentAlreadyCreated();
         } else {
@@ -260,5 +230,21 @@ contract Router is IRouter, EIP712, FeeGenerator {
             emit AgentCreated(address(agent), user);
             return payable(address(agent));
         }
+    }
+
+    /// @notice Set the fee collector address that collects fees from each user's agent by owner
+    /// @param feeCollector_ The fee collector address
+    function setFeeCollector(address feeCollector_) public onlyOwner {
+        if (feeCollector_ == address(0)) revert InvalidFeeCollector();
+        feeCollector = feeCollector_;
+        emit FeeCollectorSet(feeCollector_);
+    }
+
+    /// @notice Set the pauser address that can pause `execute` and `executeWithSignature` by owner
+    /// @param pauser_ The pauser address
+    function setPauser(address pauser_) public onlyOwner {
+        if (pauser_ == address(0)) revert InvalidNewPauser();
+        pauser = pauser_;
+        emit PauserSet(pauser_);
     }
 }

@@ -191,7 +191,7 @@ contract RouterTest is Test, LogicSignature {
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0] = IParam.Input(
             address(mockERC20),
-            SKIP, // amountBps
+            SKIP, // balanceBps
             0 // amountOrOffset
         );
         IParam.Logic[] memory logics = new IParam.Logic[](1);

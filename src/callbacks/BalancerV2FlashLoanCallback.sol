@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IAgent} from '../interfaces/IAgent.sol';
 import {IRouter} from '../interfaces/IRouter.sol';
-import {IBalancerV2FlashLoanCallback} from '../interfaces/IBalancerV2FlashLoanCallback.sol';
+import {IBalancerV2FlashLoanCallback} from '../interfaces/callbacks/IBalancerV2FlashLoanCallback.sol';
 
 /// @title Balancer V2 flash loan callback
 /// @notice Invoked by Balancer V2 vault to call the current user's agent

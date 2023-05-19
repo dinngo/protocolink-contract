@@ -211,7 +211,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
     function _logicUniswapV2Swap(
         IERC20 tokenIn,
         uint256 amountIn,
-        uint256 amountBps,
+        uint256 balanceBps,
         IERC20 tokenOut,
         IParam.WrapMode wrapMode
     ) public view returns (IParam.Logic memory) {
@@ -223,7 +223,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         uint256 amountMin = (amountsOut[1] * 9_900) / BPS_BASE;
         bytes memory data = abi.encodeWithSelector(
             uniswapRouter02.swapExactTokensForTokens.selector,
-            (amountBps == SKIP) ? amountIn : 0, // 0 is the amount which will be repalced
+            (balanceBps == SKIP) ? amountIn : 0, // 0 is the amount which will be repalced
             amountMin, // amountOutMin
             path, // path
             address(agent), // to
@@ -234,8 +234,8 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0] = IParam.Input(
             address(tokenIn),
-            amountBps,
-            (amountBps == SKIP) ? amountIn : 0x0 // 0x0 is the amount offset in data
+            balanceBps,
+            (balanceBps == SKIP) ? amountIn : 0x0 // 0x0 is the amount offset in data
         );
 
         return
@@ -275,11 +275,11 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         IParam.Input[] memory inputs = new IParam.Input[](2);
         inputs[0].token = address(tokenIn0);
         inputs[1].token = address(tokenIn1);
-        inputs[0].amountBps = BPS_BASE;
-        inputs[1].amountBps = BPS_BASE;
-        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn0;
+        inputs[0].balanceBps = BPS_BASE;
+        inputs[1].balanceBps = BPS_BASE;
+        if (inputs[0].balanceBps == SKIP) inputs[0].amountOrOffset = amountIn0;
         else inputs[0].amountOrOffset = 0x40;
-        if (inputs[1].amountBps == SKIP) inputs[1].amountOrOffset = amountIn1;
+        if (inputs[1].balanceBps == SKIP) inputs[1].amountOrOffset = amountIn1;
         else inputs[1].amountOrOffset = 0x60;
 
         return
@@ -318,8 +318,8 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
-        inputs[0].amountBps = BPS_BASE;
-        if (inputs[0].amountBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        inputs[0].balanceBps = BPS_BASE;
+        if (inputs[0].balanceBps == SKIP) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0x40;
 
         return
