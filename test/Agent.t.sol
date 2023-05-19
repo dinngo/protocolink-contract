@@ -487,4 +487,9 @@ contract AgentTest is Test {
         assertEq(mockERC20.balanceOf(user), amount - fee);
         assertEq(mockERC20.balanceOf(feeCollector), fee);
     }
+
+    function testCannotInitializeTwice() external {
+        vm.expectRevert(IAgent.Initialized.selector);
+        agent.initialize();
+    }
 }

@@ -32,6 +32,7 @@ contract RouterTest is Test, LogicSignature {
 
     event SignerAdded(address indexed signer);
     event SignerRemoved(address indexed signer);
+    event FeeCollectorSet(address indexed feeCollector_);
     event PauserSet(address indexed pauser);
     event Paused();
     event Unpaused();
@@ -359,5 +360,24 @@ contract RouterTest is Test, LogicSignature {
         vm.expectRevert();
         (bool succ, ) = address(router).call{value: value}('');
         assertTrue(succ);
+    }
+
+    function testSetFeeCollector(address feeCollector_) external {
+        vm.assume(feeCollector_ != address(0));
+        vm.expectEmit(true, true, true, true, address(router));
+        emit FeeCollectorSet(feeCollector_);
+        router.setFeeCollector(feeCollector_);
+        assertEq(router.feeCollector(), feeCollector_);
+    }
+
+    function testCannotSetFeeCollectorByNonOwner() external {
+        vm.expectRevert('Ownable: caller is not the owner');
+        vm.prank(user);
+        router.setFeeCollector(address(user));
+    }
+
+    function testCannotSetFeeCollectorInvalidFeeCollector() external {
+        vm.expectRevert(IRouter.InvalidFeeCollector.selector);
+        router.setFeeCollector(address(0));
     }
 }
