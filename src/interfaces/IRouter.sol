@@ -15,7 +15,7 @@ interface IRouter {
 
     event Paused();
 
-    event Resumed();
+    event Unpaused();
 
     event Execute(address indexed user, address indexed agent, uint256 indexed referralCode);
 

@@ -151,10 +151,10 @@ contract Router is IRouter, EIP712, FeeGenerator {
         emit Paused();
     }
 
-    /// @notice Resume `execute` and `executeWithSignature` by pauser
-    function resume() external onlyPauser {
+    /// @notice Unpause `execute` and `executeWithSignature` by pauser
+    function unpause() external onlyPauser {
         paused = false;
-        emit Resumed();
+        emit Unpaused();
     }
 
     /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for users if not created.

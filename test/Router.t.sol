@@ -34,7 +34,7 @@ contract RouterTest is Test, LogicSignature {
     event SignerRemoved(address indexed signer);
     event PauserSet(address indexed pauser);
     event Paused();
-    event Resumed();
+    event Unpaused();
     event AgentCreated(address indexed agent, address indexed user);
     event Execute(address indexed user, address indexed agent, uint256 indexed referralCode);
 
@@ -227,7 +227,7 @@ contract RouterTest is Test, LogicSignature {
         vm.prank(user);
         router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
 
-        // Execution success when router resumed
+        // Execution success when router unpaused
         vm.prank(pauser);
         router.resume();
         assertFalse(router.paused());
@@ -312,19 +312,19 @@ contract RouterTest is Test, LogicSignature {
         router.pause();
     }
 
-    function testResume() external {
+    function testUnpause() external {
         vm.prank(pauser);
         router.pause();
         assertTrue(router.paused());
 
         vm.expectEmit(true, true, true, true, address(router));
-        emit Resumed();
+        emit Unpaused();
         vm.prank(pauser);
         router.resume();
         assertFalse(router.paused());
     }
 
-    function testCannotResumeByNonPauser() external {
+    function testCannotUnpauseByNonPauser() external {
         vm.prank(pauser);
         router.pause();
         assertTrue(router.paused());
