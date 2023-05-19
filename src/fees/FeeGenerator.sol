@@ -34,27 +34,6 @@ abstract contract FeeGenerator is Ownable {
         return (logics, msgValue);
     }
 
-    function getLogicsDataWithFee(IParam.Logic[] memory logics) public view returns (IParam.Logic[] memory) {
-        uint256 length = logics.length;
-        for (uint256 i; i < length; ) {
-            bytes memory data = logics[i].data;
-            bytes4 selector = bytes4(data);
-            address to = logics[i].to;
-            address feeCalculator = getFeeCalculator(selector, to);
-
-            // Get transaction data with fee
-            if (feeCalculator != address(0)) {
-                logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        return logics;
-    }
-
     /// @notice Set fee calculator contracts
     function setFeeCalculators(
         bytes4[] calldata selectors,
@@ -79,6 +58,27 @@ abstract contract FeeGenerator is Ownable {
     function setFeeCalculator(bytes4 selector, address to, address feeCalculator) public onlyOwner {
         feeCalculators[selector][to] = feeCalculator;
         emit FeeCalculatorSet(selector, to, feeCalculator);
+    }
+
+    function getLogicsDataWithFee(IParam.Logic[] memory logics) public view returns (IParam.Logic[] memory) {
+        uint256 length = logics.length;
+        for (uint256 i; i < length; ) {
+            bytes memory data = logics[i].data;
+            bytes4 selector = bytes4(data);
+            address to = logics[i].to;
+            address feeCalculator = getFeeCalculator(selector, to);
+
+            // Get transaction data with fee
+            if (feeCalculator != address(0)) {
+                logics[i].data = IFeeCalculator(feeCalculator).getDataWithFee(data);
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        return logics;
     }
 
     function getMsgValueWithFee(uint256 msgValue) public view returns (uint256) {
