@@ -55,6 +55,11 @@ abstract contract FeeGenerator is Ownable {
         }
     }
 
+    function setFeeCalculator(bytes4 selector, address to, address feeCalculator) public onlyOwner {
+        feeCalculators[selector][to] = feeCalculator;
+        emit FeeCalculatorSet(selector, to, feeCalculator);
+    }
+
     function getLogicsDataWithFee(IParam.Logic[] memory logics) public view returns (IParam.Logic[] memory) {
         uint256 length = logics.length;
         for (uint256 i = 0; i < length; ) {
@@ -122,11 +127,6 @@ abstract contract FeeGenerator is Ownable {
         }
 
         return fees;
-    }
-
-    function setFeeCalculator(bytes4 selector, address to, address feeCalculator) public onlyOwner {
-        feeCalculators[selector][to] = feeCalculator;
-        emit FeeCalculatorSet(selector, to, feeCalculator);
     }
 
     function getFeeCalculator(bytes4 selector, address to) public view returns (address feeCalculator) {

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IAgent} from '../interfaces/IAgent.sol';
 import {IRouter} from '../interfaces/IRouter.sol';
-import {IAaveV2FlashLoanCallback} from '../interfaces/fees/IAaveV2FlashLoanCallback.sol';
+import {IAaveV2FlashLoanCallback} from '../interfaces/callbacks/IAaveV2FlashLoanCallback.sol';
 import {IAaveV2Provider} from '../interfaces/aaveV2/IAaveV2Provider.sol';
 import {ApproveHelper} from '../libraries/ApproveHelper.sol';
 
