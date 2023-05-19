@@ -96,7 +96,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     ///         defined in the router if the charge bit is set.
     /// @dev A valid callback address is set during `_executeLogics` and reset here
     /// @param logics Array of logics to be executed
-    function executeByCallback(IParam.Logic[] calldata logics) external {
+    function executeByCallback(IParam.Logic[] calldata logics) external payable {
         if (msg.sender != address(bytes20(_callbackWithCharge))) revert NotCallback();
 
         // Check the least significant bit to determine whether to charge fee

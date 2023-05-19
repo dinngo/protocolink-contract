@@ -32,5 +32,5 @@ interface IAgent {
         address[] calldata tokensReturn
     ) external payable;
 
-    function executeByCallback(IParam.Logic[] calldata logics) external;
+    function executeByCallback(IParam.Logic[] calldata logics) external payable;
 }
