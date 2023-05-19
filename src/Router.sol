@@ -17,7 +17,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;
 
-    /// @dev Flag for reducing gas cost when reset `currentUser`
+    /// @dev Flag for the initialized state and reducing gas cost when resetting `currentUser`
     address internal constant _INIT_USER = address(1);
 
     /// @notice Immutable implementation contract for all users' agents

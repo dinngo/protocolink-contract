@@ -144,6 +144,7 @@ contract AgentTest is Test {
     }
 
     function testShouldNotChargeWhenExecuteWithSignature() external {
+        // Invoke callback
         bytes memory data = abi.encodeWithSelector(IAgent.executeByCallback.selector, logicsEmpty);
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(

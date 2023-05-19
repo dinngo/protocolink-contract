@@ -19,7 +19,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     using Address for address;
     using Address for address payable;
 
-    /// @dev Flag for reducing gas cost when reset `_callbackWithCharge`
+    /// @dev Flag for identifying the initialized state and reducing gas cost when resetting `_callbackWithCharge`
     bytes32 internal constant _INIT_CALLBACK_WITH_CHARGE = bytes32(bytes20(address(1)));
 
     /// @dev Flag for identifying whether to charge fee determined by the least significant bit of `_callbackWithCharge`
@@ -43,7 +43,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     /// @notice Immutable address for recording wrapped native address such as WETH on Ethereum
     address public immutable wrappedNative;
 
-    /// @dev Transient address and flag for recording a valid callback and a charge fee flag
+    /// @dev Transient packed address and flag for recording a valid callback and a charge fee flag
     bytes32 internal _callbackWithCharge;
 
     /// @dev Create the agent implementation contract
@@ -94,7 +94,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
     /// @notice Execute arbitrary logics and is only callable by a valid callback. Charge fee based on the scenarios
     ///         defined in the router if the charge bit is set.
-    /// @dev A valid callback address is set during `_executeLogics` from the `Logic.callback`
+    /// @dev A valid callback address is set during `_executeLogics` and reset here
     /// @param logics Array of logics to be executed
     function executeByCallback(IParam.Logic[] calldata logics) external {
         if (msg.sender != address(bytes20(_callbackWithCharge))) revert NotCallback();
