@@ -15,15 +15,13 @@ contract MakerDrawFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     uint256 internal constant _DRAW_DATA_START_INDEX = 104;
     uint256 internal constant _DRAW_DATA_END_INDEX = 264;
 
-    address public daiToken;
+    address public immutable daiToken;
 
     constructor(address router_, uint256 feeRate_, address daiToken_) FeeCalculatorBase(router_, feeRate_) {
         daiToken = daiToken_;
     }
 
-    function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
-        to;
-
+    function getFees(address, bytes calldata data) external view returns (IParam.Fee[] memory) {
         // DSProxy execute signature:'execute(address,bytes)', selector:0x1cff79cd
         // Maker draw signature:'draw(address,address,address,uint256,uint256)', selector:0x9f6f3d5b
 

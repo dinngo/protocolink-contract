@@ -50,7 +50,7 @@ contract MakerUtility is IMakerUtility {
         bytes32 ilk,
         uint256 wadD
     ) external payable returns (uint256 cdp) {
-        (address user, address agent) = IRouter(router).getUserAgent();
+        (address user, address agent) = IRouter(router).getCurrentUserAgent();
         if (msg.sender != agent) revert InvalidAgent();
 
         bytes32 ret = dsProxy.execute{value: value}(
@@ -80,7 +80,7 @@ contract MakerUtility is IMakerUtility {
         uint256 wadC,
         uint256 wadD
     ) external returns (uint256 cdp) {
-        (address user, address agent) = IRouter(router).getUserAgent();
+        (address user, address agent) = IRouter(router).getCurrentUserAgent();
         if (msg.sender != agent) revert InvalidAgent();
 
         // Get collateral token

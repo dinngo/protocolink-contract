@@ -44,7 +44,7 @@ abstract contract FeeGenerator is Ownable {
         if (length != tos.length) revert LengthMismatch();
         if (length != feeCalculators_.length) revert LengthMismatch();
 
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i; i < length; ) {
             bytes4 selector = selectors[i];
             address to = tos[i];
             address feeCalculator = feeCalculators_[i];
@@ -62,7 +62,7 @@ abstract contract FeeGenerator is Ownable {
 
     function getLogicsDataWithFee(IParam.Logic[] memory logics) public view returns (IParam.Logic[] memory) {
         uint256 length = logics.length;
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i; i < length; ) {
             bytes memory data = logics[i].data;
             bytes4 selector = bytes4(data);
             address to = logics[i].to;
@@ -93,7 +93,7 @@ abstract contract FeeGenerator is Ownable {
         IParam.Fee[] memory tempFees = new IParam.Fee[](32); // Create a temporary `tempFees` with size 32 to store fee
         uint256 realFeeLength;
         uint256 logicsLength = logics.length;
-        for (uint256 i = 0; i < logicsLength; ++i) {
+        for (uint256 i; i < logicsLength; ++i) {
             bytes memory data = logics[i].data;
             bytes4 selector = bytes4(data);
             address to = logics[i].to;
@@ -122,7 +122,7 @@ abstract contract FeeGenerator is Ownable {
 
         // Copy tempFees to fees
         IParam.Fee[] memory fees = new IParam.Fee[](realFeeLength);
-        for (uint256 i = 0; i < realFeeLength; ++i) {
+        for (uint256 i; i < realFeeLength; ++i) {
             fees[i] = tempFees[i];
         }
 

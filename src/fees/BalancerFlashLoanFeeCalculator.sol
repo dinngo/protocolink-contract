@@ -12,9 +12,7 @@ contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
 
     constructor(address router_, uint256 feeRate_) FeeCalculatorBase(router_, feeRate_) {}
 
-    function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
-        to;
-
+    function getFees(address, bytes calldata data) external view returns (IParam.Fee[] memory) {
         // Balancer flash loan signature:'flashLoan(address,address[],uint256[],bytes)', selector: 0x5c38449e
         (, address[] memory tokens, uint256[] memory amounts, bytes memory userData) = abi.decode(
             data[4:],
@@ -71,7 +69,7 @@ contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
     ) internal pure returns (IParam.Fee[] memory) {
         uint256 length = tokens.length;
         IParam.Fee[] memory fees = new IParam.Fee[](length);
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i; i < length; ) {
             fees[i] = IParam.Fee({token: tokens[i], amount: amounts[i], metadata: metadata});
 
             unchecked {
@@ -89,14 +87,14 @@ contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
         uint256 length2 = fees2.length;
         IParam.Fee[] memory totalFees = new IParam.Fee[](length1 + length2);
 
-        for (uint256 i = 0; i < length1; ) {
+        for (uint256 i; i < length1; ) {
             totalFees[i] = fees1[i];
             unchecked {
                 ++i;
             }
         }
 
-        for (uint256 i = 0; i < length2; ) {
+        for (uint256 i; i < length2; ) {
             totalFees[length1 + i] = fees2[i];
             unchecked {
                 ++i;

@@ -11,9 +11,7 @@ contract Permit2FeeCalculator is IFeeCalculator, FeeCalculatorBase {
 
     constructor(address router_, uint256 feeRate_) FeeCalculatorBase(router_, feeRate_) {}
 
-    function getFees(address to, bytes calldata data) external view returns (IParam.Fee[] memory) {
-        to;
-
+    function getFees(address, bytes calldata data) external view returns (IParam.Fee[] memory) {
         // Permit2 transfrom signature:'transferFrom(address,address,uint160,address)', selector:0x36c78516
         (, , uint160 amount, address token) = abi.decode(data[4:], (address, address, uint160, address));
 

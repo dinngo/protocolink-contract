@@ -15,7 +15,7 @@ interface IRouter {
 
     event Paused();
 
-    event Resumed();
+    event Unpaused();
 
     event Execute(address indexed user, address indexed agent, uint256 indexed referralCode);
 
@@ -59,7 +59,7 @@ interface IRouter {
 
     function getAgent(address user) external view returns (address);
 
-    function getUserAgent() external view returns (address, address);
+    function getCurrentUserAgent() external view returns (address, address);
 
     function calcAgent(address user) external view returns (address);
 
@@ -75,7 +75,7 @@ interface IRouter {
 
     function pause() external;
 
-    function resume() external;
+    function unpause() external;
 
     function execute(
         IParam.Logic[] calldata logics,

@@ -51,7 +51,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         currentUser = _INIT_USER;
     }
 
-    modifier isPaused() {
+    modifier whenNotPaused() {
         if (paused) revert RouterIsPaused();
         _;
     }
@@ -97,7 +97,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @notice Get user and agent addresses of the current user
     /// @return The user address
     /// @return The agent address
-    function getUserAgent() external view returns (address, address) {
+    function getCurrentUserAgent() external view returns (address, address) {
         address user = currentUser;
         return (user, address(agents[user]));
     }
@@ -113,7 +113,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
                         abi.encodePacked(
                             bytes1(0xff),
                             address(this),
-                            bytes32(bytes20((uint160(user)))),
+                            bytes32(bytes20(user)),
                             keccak256(abi.encodePacked(type(Agent).creationCode, abi.encode(agentImplementation)))
                         )
                     )
@@ -151,10 +151,10 @@ contract Router is IRouter, EIP712, FeeGenerator {
         emit Paused();
     }
 
-    /// @notice Resume `execute` and `executeWithSignature` by pauser
-    function resume() external onlyPauser {
+    /// @notice Unpause `execute` and `executeWithSignature` by pauser
+    function unpause() external onlyPauser {
         paused = false;
-        emit Resumed();
+        emit Unpaused();
     }
 
     /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for users if not created.
@@ -166,12 +166,12 @@ contract Router is IRouter, EIP712, FeeGenerator {
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
-    ) external payable isPaused checkCaller {
+    ) external payable whenNotPaused checkCaller {
         address user = currentUser;
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
-            agent = IAgent(newAgent(user));
+            agent = IAgent(_newAgent(user));
         }
 
         IParam.Fee[] memory fees = getFeesByLogics(logics, msg.value);
@@ -194,7 +194,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         bytes calldata signature,
         address[] calldata tokensReturn,
         uint256 referralCode
-    ) external payable isPaused checkCaller {
+    ) external payable whenNotPaused checkCaller {
         // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
@@ -205,7 +205,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
-            agent = IAgent(newAgent(user));
+            agent = IAgent(_newAgent(user));
         }
 
         emit Execute(user, address(agent), referralCode);
@@ -225,11 +225,15 @@ contract Router is IRouter, EIP712, FeeGenerator {
         if (address(agents[user]) != address(0)) {
             revert AgentAlreadyCreated();
         } else {
-            IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20((uint160(user))))}(agentImplementation)));
-            agents[user] = agent;
-            emit AgentCreated(address(agent), user);
-            return payable(address(agent));
+            return _newAgent(user);
         }
+    }
+
+    function _newAgent(address user) internal returns (address) {
+        IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20(user))}(agentImplementation)));
+        agents[user] = agent;
+        emit AgentCreated(address(agent), user);
+        return address(agent);
     }
 
     /// @notice Set the fee collector address that collects fees from each user's agent by owner
