@@ -55,6 +55,32 @@ abstract contract FeeGenerator is Ownable {
         return logics;
     }
 
+    /// @notice Set fee calculator contracts
+    function setFeeCalculators(
+        bytes4[] calldata selectors,
+        address[] calldata tos,
+        address[] calldata feeCalculators_
+    ) external onlyOwner {
+        uint256 length = selectors.length;
+        if (length != tos.length) revert LengthMismatch();
+        if (length != feeCalculators_.length) revert LengthMismatch();
+
+        for (uint256 i; i < length; ) {
+            bytes4 selector = selectors[i];
+            address to = tos[i];
+            address feeCalculator = feeCalculators_[i];
+            setFeeCalculator(selector, to, feeCalculator);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function setFeeCalculator(bytes4 selector, address to, address feeCalculator) public onlyOwner {
+        feeCalculators[selector][to] = feeCalculator;
+        emit FeeCalculatorSet(selector, to, feeCalculator);
+    }
+
     function getMsgValueWithFee(uint256 msgValue) public view returns (uint256) {
         IFeeCalculator nativeFeeCalculator = getNativeFeeCalculator();
         if (msgValue > 0 && address(nativeFeeCalculator) != address(0)) {
@@ -101,32 +127,6 @@ abstract contract FeeGenerator is Ownable {
         }
 
         return fees;
-    }
-
-    /// @notice Set fee calculator contracts
-    function setFeeCalculators(
-        bytes4[] calldata selectors,
-        address[] calldata tos,
-        address[] calldata feeCalculators_
-    ) external onlyOwner {
-        uint256 length = selectors.length;
-        if (length != tos.length) revert LengthMismatch();
-        if (length != feeCalculators_.length) revert LengthMismatch();
-
-        for (uint256 i; i < length; ) {
-            bytes4 selector = selectors[i];
-            address to = tos[i];
-            address feeCalculator = feeCalculators_[i];
-            setFeeCalculator(selector, to, feeCalculator);
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    function setFeeCalculator(bytes4 selector, address to, address feeCalculator) public onlyOwner {
-        feeCalculators[selector][to] = feeCalculator;
-        emit FeeCalculatorSet(selector, to, feeCalculator);
     }
 
     function getFeeCalculator(bytes4 selector, address to) public view returns (address feeCalculator) {

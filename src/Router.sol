@@ -229,11 +229,11 @@ contract Router is IRouter, EIP712, FeeGenerator {
         }
     }
 
-    function _newAgent(address user) internal returns (address payable) {
+    function _newAgent(address user) internal returns (address) {
         IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20(user))}(agentImplementation)));
         agents[user] = agent;
         emit AgentCreated(address(agent), user);
-        return payable(address(agent));
+        return address(agent);
     }
 
     /// @notice Set the fee collector address that collects fees from each user's agent by owner
