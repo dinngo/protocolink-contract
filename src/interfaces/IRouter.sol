@@ -75,7 +75,7 @@ interface IRouter {
 
     function pause() external;
 
-    function resume() external;
+    function unpause() external;
 
     function execute(
         IParam.Logic[] calldata logics,

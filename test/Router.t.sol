@@ -229,7 +229,7 @@ contract RouterTest is Test, LogicSignature {
 
         // Execution success when router unpaused
         vm.prank(pauser);
-        router.resume();
+        router.unpause();
         assertFalse(router.paused());
         router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
     }
@@ -320,7 +320,7 @@ contract RouterTest is Test, LogicSignature {
         vm.expectEmit(true, true, true, true, address(router));
         emit Unpaused();
         vm.prank(pauser);
-        router.resume();
+        router.unpause();
         assertFalse(router.paused());
     }
 
@@ -331,7 +331,7 @@ contract RouterTest is Test, LogicSignature {
 
         vm.expectRevert(IRouter.InvalidPauser.selector);
         vm.prank(user);
-        router.resume();
+        router.unpause();
     }
 
     function testRescue(uint256 amount) external {
