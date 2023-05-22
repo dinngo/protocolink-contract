@@ -200,7 +200,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 bytes32 callback = bytes32(bytes20(logics[i].callback));
                 if (shouldChargeFeeByLogic) {
                     // Set the least significant bit
-                    _callbackWithCharge = callback |= _CHARGE_MASK;
+                    _callbackWithCharge = callback | _CHARGE_MASK;
                 } else {
                     _callbackWithCharge = callback;
                 }
