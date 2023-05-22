@@ -151,7 +151,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                     emit AmountReplaced(i, j, amount);
                 }
 
-                if (wrapMode == IParam.WrapMode.WRAP_BEFORE) {
+                if (token == wrappedNative && wrapMode == IParam.WrapMode.WRAP_BEFORE) {
                     // Use += to accumulate amounts with multiple WRAP_BEFORE, although such cases are rare
                     wrappedAmount += amount;
                 }
