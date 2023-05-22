@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {console2} from 'forge-std/Test.sol';
-import {Router} from '../../../src/Router.sol';
-import {IParam} from '../../../src/interfaces/IRouter.sol';
+import {Router} from 'src/Router.sol';
+import {IParam} from 'src/interfaces/IRouter.sol';
 import {LogicSignature} from '../../utils/LogicSignature.sol';
 
 contract RouterHandler is Test, LogicSignature {

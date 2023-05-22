@@ -17,7 +17,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;
 
-    /// @dev Flag for reducing gas cost when reset `currentUser`
+    /// @dev Flag for identifying the initialized state and reducing gas cost when resetting `currentUser`
     address internal constant _INIT_USER = address(1);
 
     /// @notice Immutable implementation contract for all users' agents
@@ -158,7 +158,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for users if not created.
-    ///         Charge fees based on the scenarios defined in the FeeGenerator contract, which calculates fees on-chain.
+    ///         Fees are charged in the user's agent based on the scenarios defined in the FeeGenerator contract, which
+    ///         calculates fees by logics and msg.value.
     /// @param logics Array of logics to be executed
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     /// @param referralCode Referral code
@@ -174,10 +175,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
             agent = IAgent(_newAgent(user));
         }
 
-        IParam.Fee[] memory fees = getFeesByLogics(logics, msg.value);
-
         emit Execute(user, address(agent), referralCode);
-        agent.execute{value: msg.value}(logics, fees, tokensReturn);
+        agent.execute{value: msg.value}(logics, tokensReturn);
     }
 
     /// @notice Execute arbitrary logics through the current user's agent using a signer's signature. Creates an agent
@@ -209,7 +208,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         }
 
         emit Execute(user, address(agent), referralCode);
-        agent.execute{value: msg.value}(logicBatch.logics, logicBatch.fees, tokensReturn);
+        agent.executeWithSignature{value: msg.value}(logicBatch.logics, logicBatch.fees, tokensReturn);
     }
 
     /// @notice Create an agent for `msg.sender`

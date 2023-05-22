@@ -44,7 +44,7 @@ contract BalancerV2FlashLoanCallback is IBalancerV2FlashLoanCallback {
         }
 
         agent.functionCall(
-            abi.encodePacked(IAgent.execute.selector, userData),
+            abi.encodePacked(IAgent.executeByCallback.selector, userData),
             'ERROR_BALANCER_V2_FLASH_LOAN_CALLBACK'
         );
 

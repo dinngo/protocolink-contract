@@ -15,7 +15,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant DSPROXY_EXECUTE_SELECTOR = bytes4(keccak256(bytes('execute(address,bytes)')));
     uint256 public constant ETH_LOCK_AMOUNT = 2000 ether;
     uint256 public constant DRAW_DAI_AMOUNT = 20000 ether;
@@ -81,7 +81,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = DSPROXY_EXECUTE_SELECTOR;
         address[] memory tos = new address[](1);
-        tos[0] = address(DUMMY_TO_ADDRESS);
+        tos[0] = address(ANY_TO_ADDRESS);
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = makerDrawFeeCalculator;
         router.setFeeCalculators(selectors, tos, feeCalculators);
@@ -99,7 +99,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
     function testChargeDrawFee(uint256 amount, uint256 feeRate) external {
         // ETH_LOCK_AMOUNT * price(assume ETH price is 1000) * 60%(LTV)
         uint256 estimateDaiDrawMaxAmount = (ETH_LOCK_AMOUNT * 1000 * 60) / 100;
-        amount = bound(amount, 1, estimateDaiDrawMaxAmount);
+        amount = bound(amount, 0, estimateDaiDrawMaxAmount);
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
 
         // Set fee rate
@@ -110,7 +110,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         logics[0] = _logicDraw(ethCdp, amount);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(makerDrawFeeCalculator).calculateAmountWithFee(amount);
@@ -122,8 +122,10 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = DAI_TOKEN;
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(DAI_TOKEN, expectedFee, META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(DAI_TOKEN, expectedFee, META_DATA);
+        }
         vm.prank(user);
         router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
@@ -146,7 +148,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         logics[0] = _logicFreeETH(userAgentDSProxy, ethCdp, freeETHAmount);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Execute
         address[] memory tokensReturns = new address[](1);

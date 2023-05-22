@@ -13,7 +13,7 @@ contract TransferFromFeeCalculatorTest is Test {
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
     bytes4 public constant TRANSFER_FROM_SELECTOR = bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     uint256 public constant SIGNER_REFERRAL = 1;
     uint256 public constant BPS_BASE = 10_000;
@@ -44,7 +44,7 @@ contract TransferFromFeeCalculatorTest is Test {
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = TRANSFER_FROM_SELECTOR;
         address[] memory tos = new address[](1);
-        tos[0] = address(DUMMY_TO_ADDRESS);
+        tos[0] = address(ANY_TO_ADDRESS);
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = transferFromFeeCalculator;
         router.setFeeCalculators(selectors, tos, feeCalculators);
@@ -58,7 +58,7 @@ contract TransferFromFeeCalculatorTest is Test {
 
     function testChargeTransferFromFee(uint256 amount, uint256 feeRate) external {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
-        amount = bound(amount, 1, (IERC20(USDC).totalSupply() * (BPS_BASE - feeRate)) / BPS_BASE);
+        amount = bound(amount, 0, (IERC20(USDC).totalSupply() * (BPS_BASE - feeRate)) / BPS_BASE);
 
         // Set fee rate
         FeeCalculatorBase(transferFromFeeCalculator).setFeeRate(feeRate);
@@ -68,7 +68,7 @@ contract TransferFromFeeCalculatorTest is Test {
         logics[0] = _logicTransferFrom(USDC, user, address(userAgent), amount);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(transferFromFeeCalculator).calculateAmountWithFee(amount);
@@ -84,8 +84,10 @@ contract TransferFromFeeCalculatorTest is Test {
         // Execute
         address[] memory tokensReturns = new address[](1);
         tokensReturns[0] = USDC;
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(USDC, expectedFee, META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(USDC, expectedFee, META_DATA);
+        }
         vm.prank(user);
         router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 

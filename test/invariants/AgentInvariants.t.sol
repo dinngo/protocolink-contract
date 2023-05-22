@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {console2} from 'forge-std/console2.sol';
 import {Agent} from 'src/Agent.sol';
+import {IFeeGenerator} from 'src/interfaces/fees/IFeeGenerator.sol';
 import {AgentHandler} from './handlers/AgentHandler.sol';
 import {MockFallback} from '../mocks/MockFallback.sol';
 import {MockCallback} from '../mocks/MockCallback.sol';
@@ -28,6 +29,8 @@ contract AgentInvariants is Test {
         mockFallback = address(new MockFallback());
         agentHandler = new AgentHandler(router, address(agent), mockCallback, mockFallback);
 
+        vm.mockCall(router, abi.encodePacked(IFeeGenerator.getNativeFeeCalculator.selector), abi.encode(address(0)));
+        vm.mockCall(router, abi.encodePacked(IFeeGenerator.getFeeCalculator.selector), abi.encode(address(0)));
         vm.label(address(agent), 'Agent');
         vm.label(address(agentHandler), 'Agent Handler');
         vm.label(mockCallback, 'mCallback');
@@ -36,18 +39,22 @@ contract AgentInvariants is Test {
         targetContract(address(agentHandler));
     }
 
-    function invariant_callerIsAlwaysRouter() external {
-        assertEq(agent.caller(), router);
+    function invariant_initializedCallbackWithCharge() external {
+        assertEq(agent.callbackWithCharge(), agent.INIT_CALLBACK_WITH_CHARGE());
     }
 
     function invariant_callSummary() external view {
-        uint256 numExecuteWithCallback = agentHandler.numCalls('executeWithCallback');
+        uint256 numExecute = agentHandler.numCalls('execute');
         uint256 numExecuteWithoutCallback = agentHandler.numCalls('executeWithoutCallback');
+        uint256 numExecuteWithSignature = agentHandler.numCalls('executeWithSignature');
+        uint256 numExecuteByCallback = agentHandler.numCalls('executeByCallback');
 
         console2.log('\nCall Summary\n');
-        console2.log('executeWithCallback       ', numExecuteWithCallback);
-        console2.log('executeWithoutCallback    ', numExecuteWithoutCallback);
+        console2.log('execute', numExecute);
+        console2.log('executeWithoutCallback', numExecuteWithoutCallback);
+        console2.log('executeWithSignature', numExecuteWithSignature);
+        console2.log('executeByCallback', numExecuteByCallback);
         console2.log('------------------');
-        console2.log('Sum', numExecuteWithCallback + numExecuteWithoutCallback);
+        console2.log('Sum', numExecute + numExecuteWithoutCallback + numExecuteWithSignature + numExecuteByCallback);
     }
 }

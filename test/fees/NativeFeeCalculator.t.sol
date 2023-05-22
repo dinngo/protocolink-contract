@@ -12,7 +12,7 @@ contract NativeFeeCalculatorTest is Test {
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     bytes public constant EMPTY_LOGIC_DATA = new bytes(0);
     uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
@@ -47,7 +47,7 @@ contract NativeFeeCalculatorTest is Test {
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = NATIVE_FEE_SELECTOR;
         address[] memory tos = new address[](1);
-        tos[0] = address(DUMMY_TO_ADDRESS);
+        tos[0] = address(ANY_TO_ADDRESS);
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = nativeFeeCalculator;
         router.setFeeCalculators(selectors, tos, feeCalculators);
@@ -59,7 +59,7 @@ contract NativeFeeCalculatorTest is Test {
     }
 
     function testChargeNativeFee(uint256 value, uint256 feeRate) external {
-        value = bound(value, 1e10, 1e8 ether);
+        value = bound(value, 0, 1e8 ether);
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
 
         // Set fee rate
@@ -71,7 +71,7 @@ contract NativeFeeCalculatorTest is Test {
 
         // Get new logics and msgValue
         uint256 newValue;
-        (logics, newValue) = router.getUpdatedLogicsAndMsgValue(logics, value);
+        (logics, newValue) = router.getLogicsAndMsgValueWithFee(logics, value);
         deal(user, newValue);
 
         // Prepare assert data
@@ -80,8 +80,10 @@ contract NativeFeeCalculatorTest is Test {
         uint256 expectedFee = FeeCalculatorBase(nativeFeeCalculator).calculateFee(newValue);
 
         // Execute
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(NATIVE, expectedFee, META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(NATIVE, expectedFee, META_DATA);
+        }
         vm.prank(user);
         router.execute{value: newValue}(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 

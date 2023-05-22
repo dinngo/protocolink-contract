@@ -24,7 +24,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address public constant BALANCER_V2_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
     address public constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant BALANCER_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],bytes)')));
     bytes4 public constant PERMIT2_TRANSFER_FROM_SELECTOR =
@@ -74,7 +74,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         selectors[2] = PERMIT2_TRANSFER_FROM_SELECTOR;
         address[] memory tos = new address[](3);
         tos[0] = BALANCER_V2_VAULT;
-        tos[1] = DUMMY_TO_ADDRESS;
+        tos[1] = ANY_TO_ADDRESS;
         tos[2] = PERMIT2_ADDRESS;
         address[] memory feeCalculators = new address[](3);
         feeCalculators[0] = address(flashLoanFeeCalculator);
@@ -101,7 +101,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
     function testChargeFlashLoanFee(uint256 amount, uint256 feeRate) external {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
-        amount = bound(amount, 1, (IERC20(USDC).balanceOf(BALANCER_V2_VAULT) * (BPS_BASE - feeRate)) / BPS_BASE);
+        amount = bound(amount, 0, (IERC20(USDC).balanceOf(BALANCER_V2_VAULT) * (BPS_BASE - feeRate)) / BPS_BASE);
 
         // Set fee rate
         FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
@@ -126,7 +126,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         logics[0] = _logicBalancerV2FlashLoan(tokens, amounts, userData);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         _distributeToken(tokens, amounts);
 
@@ -137,8 +137,10 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         uint256[] memory newAmounts = this.decodeFlashLoanAmounts(logics[0]);
 
         // Execute
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(USDC, expectedFee, BALANCER_META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(USDC, expectedFee, BALANCER_META_DATA);
+        }
         vm.prank(user);
         router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
@@ -155,7 +157,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         uint256 feeRate
     ) external {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
-        amount = bound(amount, 1, (IERC20(USDC).balanceOf(BALANCER_V2_VAULT) * (BPS_BASE - feeRate)) / BPS_BASE);
+        amount = bound(amount, 0, (IERC20(USDC).balanceOf(BALANCER_V2_VAULT) * (BPS_BASE - feeRate)) / BPS_BASE);
         nativeAmount = bound(nativeAmount, 0, 5000 ether);
 
         // Set fee rate
@@ -185,7 +187,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
             logics[0] = _logicBalancerV2FlashLoan(tokens, amounts, userData);
 
-            (logics, nativeNewAmount) = router.getUpdatedLogicsAndMsgValue(logics, nativeAmount);
+            (logics, nativeNewAmount) = router.getLogicsAndMsgValueWithFee(logics, nativeAmount);
             deal(user, nativeNewAmount);
             _distributeToken(tokens, amounts);
         }
@@ -201,9 +203,14 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
         {
             // Execute
-            vm.expectEmit(true, true, true, true, address(userAgent));
-            emit FeeCharged(USDC, expectedFee, BALANCER_META_DATA);
-            emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
+            if (expectedNativeFee > 0) {
+                vm.expectEmit(true, true, true, true, address(userAgent));
+                emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
+            }
+            if (expectedFee > 0) {
+                vm.expectEmit(true, true, true, true, address(userAgent));
+                emit FeeCharged(USDC, expectedFee, BALANCER_META_DATA);
+            }
             vm.prank(user);
             router.execute{value: nativeNewAmount}(logics, tokensReturnEmpty, SIGNER_REFERRAL);
         }
@@ -224,7 +231,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     ) external {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
         permit2FeeRate = bound(permit2FeeRate, 0, BPS_BASE - 1);
-        amount = bound(amount, 1, (IERC20(USDC).balanceOf(BALANCER_V2_VAULT) * (BPS_BASE - feeRate)) / BPS_BASE);
+        amount = bound(amount, 0, (IERC20(USDC).balanceOf(BALANCER_V2_VAULT) * (BPS_BASE - feeRate)) / BPS_BASE);
         nativeAmount = bound(nativeAmount, 0, 5000 ether);
 
         // Set fee rate
@@ -259,7 +266,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
             logics[0] = _logicBalancerV2FlashLoan(tokens, amounts, userData);
 
-            (logics, nativeNewAmount) = router.getUpdatedLogicsAndMsgValue(logics, nativeAmount);
+            (logics, nativeNewAmount) = router.getLogicsAndMsgValueWithFee(logics, nativeAmount);
 
             // Distribute token
             deal(user, nativeNewAmount);
@@ -291,10 +298,18 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             // Execute
             address[] memory tokensReturns = new address[](1);
             tokensReturns[0] = USDT;
-            vm.expectEmit(true, true, true, true, address(userAgent));
-            emit FeeCharged(USDC, expectedUSDCFee, BALANCER_META_DATA);
-            emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
-            emit FeeCharged(USDT, expectedUSDTFee, PERMIT2_META_DATA);
+            if (expectedNativeFee > 0) {
+                vm.expectEmit(true, true, true, true, address(userAgent));
+                emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
+            }
+            if (expectedUSDTFee > 0) {
+                vm.expectEmit(true, true, true, true, address(userAgent));
+                emit FeeCharged(USDT, expectedUSDTFee, PERMIT2_META_DATA);
+            }
+            if (expectedUSDCFee > 0) {
+                vm.expectEmit(true, true, true, true, address(userAgent));
+                emit FeeCharged(USDC, expectedUSDCFee, BALANCER_META_DATA);
+            }
             vm.prank(user);
             router.execute{value: nativeNewAmount}(logics, tokensReturns, SIGNER_REFERRAL);
         }

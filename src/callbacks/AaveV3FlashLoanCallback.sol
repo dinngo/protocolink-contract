@@ -24,7 +24,7 @@ contract AaveV3FlashLoanCallback is IAaveV3FlashLoanCallback {
 
     /// @dev No need to check if `initiator` is the agent as it's certain when the below conditions are satisfied:
     ///      1. The `to` address used in agent is Aave Pool, i.e, the user signed a correct `to`
-    ///      2. The `_callback` address set in agent is this callback, i.e, the user signed a correct `callback`
+    ///      2. The callback address set in agent is this callback, i.e, the user signed a correct `callback`
     ///      3. The `msg.sender` of this callback is Aave Pool
     ///      4. The Aave pool is benign
     function executeOperation(
@@ -53,7 +53,10 @@ contract AaveV3FlashLoanCallback is IAaveV3FlashLoanCallback {
             }
         }
 
-        agent.functionCall(abi.encodePacked(IAgent.execute.selector, params), 'ERROR_AAVE_V3_FLASH_LOAN_CALLBACK');
+        agent.functionCall(
+            abi.encodePacked(IAgent.executeByCallback.selector, params),
+            'ERROR_AAVE_V3_FLASH_LOAN_CALLBACK'
+        );
 
         // Approve assets for pulling from Aave Pool
         for (uint256 i; i < assetsLength; ) {

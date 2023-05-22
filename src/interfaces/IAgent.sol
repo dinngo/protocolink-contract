@@ -8,13 +8,15 @@ interface IAgent {
 
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
-    error InvalidCaller();
-
     error Initialized();
+
+    error NotRouter();
+
+    error NotCallback();
 
     error InvalidBps();
 
-    error UnresetCallback();
+    error UnresetCallbackWithCharge();
 
     function router() external returns (address);
 
@@ -22,9 +24,13 @@ interface IAgent {
 
     function initialize() external;
 
-    function execute(
+    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
+
+    function executeWithSignature(
         IParam.Logic[] calldata logics,
         IParam.Fee[] calldata fees,
         address[] calldata tokensReturn
     ) external payable;
+
+    function executeByCallback(IParam.Logic[] calldata logics) external payable;
 }

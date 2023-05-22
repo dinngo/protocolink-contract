@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {Router} from '../../src/Router.sol';
+import {Router} from 'src/Router.sol';
 import {RouterHandler} from './handlers/RouterHandler.sol';
 
 contract RouterInvariantsTest is Test {
@@ -27,7 +27,7 @@ contract RouterInvariantsTest is Test {
         vm.label(address(handler), 'RouterHandler');
     }
 
-    function invariant_initializedUser() external {
+    function invariant_initializedCurrentUser() external {
         assertEq(router.currentUser(), _INIT_USER);
     }
 

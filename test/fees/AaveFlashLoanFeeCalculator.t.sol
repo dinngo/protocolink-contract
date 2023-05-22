@@ -40,7 +40,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     address public constant AUSDC_V2 = 0xBcca60bB61934080951369a648Fb03DF4F96263C;
     address public constant AUSDC_V3 = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
     address public constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant AAVE_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)')));
     bytes4 public constant PERMIT2_TRANSFER_FROM_SELECTOR =
@@ -97,7 +97,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         address[] memory tos = new address[](4);
         tos[0] = v2Pool;
         tos[1] = v3Pool;
-        tos[2] = DUMMY_TO_ADDRESS;
+        tos[2] = ANY_TO_ADDRESS;
         tos[3] = PERMIT2_ADDRESS;
         address[] memory feeCalculators = new address[](4);
         feeCalculators[0] = address(flashLoanFeeCalculator);
@@ -130,7 +130,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     function testChargeFlashLoanV2Fee(uint256 amount, uint256 feeRate) external {
         bool isAaveV2 = true;
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
-        amount = bound(amount, 1, (IERC20(USDC).balanceOf(AUSDC_V2) * (BPS_BASE - feeRate)) / BPS_BASE);
+        amount = bound(amount, 0, (IERC20(USDC).balanceOf(AUSDC_V2) * (BPS_BASE - feeRate)) / BPS_BASE);
 
         // Set fee rate
         FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
@@ -156,7 +156,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         logics[0] = _logicAaveFlashLoan(v2Pool, address(flashLoanCallbackV2), tokens, amounts, params);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         _distributeToken(tokens, amounts, isAaveV2);
 
@@ -167,8 +167,10 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         uint256[] memory newAmounts = this.decodeFlashLoanAmounts(logics[0]);
 
         // Execute
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
+        }
         vm.prank(user);
         router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
@@ -186,7 +188,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     ) external {
         bool isAaveV2 = true;
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
-        amount = bound(amount, 1, (IERC20(USDC).balanceOf(AUSDC_V2) * (BPS_BASE - feeRate)) / BPS_BASE);
+        amount = bound(amount, 0, (IERC20(USDC).balanceOf(AUSDC_V2) * (BPS_BASE - feeRate)) / BPS_BASE);
         nativeAmount = bound(nativeAmount, 0, 5000 ether);
 
         // Set fee rate
@@ -220,7 +222,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             logics[0] = _logicAaveFlashLoan(v2Pool, address(flashLoanCallbackV2), tokens, amounts, params);
 
             // Get new logics and msg.value amount
-            (logics, nativeNewAmount) = router.getUpdatedLogicsAndMsgValue(logics, nativeAmount);
+            (logics, nativeNewAmount) = router.getLogicsAndMsgValueWithFee(logics, nativeAmount);
             deal(user, nativeNewAmount);
             _distributeToken(tokens, amounts, isAaveV2);
         }
@@ -236,9 +238,14 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
         {
             // Execute
-            vm.expectEmit(true, true, true, true, address(userAgent));
-            emit FeeCharged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
-            emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
+            if (expectedNativeFee > 0) {
+                vm.expectEmit(true, true, true, true, address(userAgent));
+                emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
+            }
+            if (expectedFee > 0) {
+                vm.expectEmit(true, true, true, true, address(userAgent));
+                emit FeeCharged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
+            }
             vm.prank(user);
             router.execute{value: nativeNewAmount}(logics, tokensReturnEmpty, SIGNER_REFERRAL);
         }
@@ -259,7 +266,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     ) external {
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
         permit2FeeRate = bound(permit2FeeRate, 0, BPS_BASE - 1);
-        amount = bound(amount, 1, (IERC20(USDC).balanceOf(AUSDC_V2) * (BPS_BASE - feeRate)) / BPS_BASE);
+        amount = bound(amount, 0, (IERC20(USDC).balanceOf(AUSDC_V2) * (BPS_BASE - feeRate)) / BPS_BASE);
         nativeAmount = bound(nativeAmount, 0, 5000 ether);
 
         // Set fee rate
@@ -294,7 +301,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             amounts[0] = amount;
 
             logics[0] = _logicAaveFlashLoan(v2Pool, address(flashLoanCallbackV2), tokens, amounts, params);
-            (logics, nativeNewAmount) = router.getUpdatedLogicsAndMsgValue(logics, nativeAmount);
+            (logics, nativeNewAmount) = router.getLogicsAndMsgValueWithFee(logics, nativeAmount);
 
             // Distribute token
             deal(user, nativeNewAmount);
@@ -326,10 +333,18 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             // Execute
             address[] memory tokensReturns = new address[](1);
             tokensReturns[0] = USDT;
-            vm.expectEmit(true, true, true, true, address(userAgent));
-            emit FeeCharged(USDC, expectedUSDCFee, V2_FLASHLOAN_META_DATA);
-            emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
-            emit FeeCharged(USDT, expectedUSDTFee, PERMIT2_META_DATA);
+            if (expectedNativeFee > 0) {
+                vm.expectEmit(true, true, true, true, address(userAgent));
+                emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
+            }
+            if (expectedUSDTFee > 0) {
+                vm.expectEmit(true, true, true, true, address(userAgent));
+                emit FeeCharged(USDT, expectedUSDTFee, PERMIT2_META_DATA);
+            }
+            if (expectedUSDCFee > 0) {
+                vm.expectEmit(true, true, true, true, address(userAgent));
+                emit FeeCharged(USDC, expectedUSDCFee, V2_FLASHLOAN_META_DATA);
+            }
             vm.prank(user);
             router.execute{value: nativeNewAmount}(logics, tokensReturns, SIGNER_REFERRAL);
         }
@@ -347,7 +362,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     function testChargeFlashLoanV3Fee(uint256 amount, uint256 feeRate) external {
         bool isAaveV2 = false;
         feeRate = bound(feeRate, 0, BPS_BASE - 1);
-        amount = bound(amount, 1, (IERC20(USDC).balanceOf(AUSDC_V3) * (BPS_BASE - feeRate)) / BPS_BASE);
+        amount = bound(amount, 0, (IERC20(USDC).balanceOf(AUSDC_V3) * (BPS_BASE - feeRate)) / BPS_BASE);
 
         // Set fee rate
         FeeCalculatorBase(flashLoanFeeCalculator).setFeeRate(feeRate);
@@ -373,7 +388,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         logics[0] = _logicAaveFlashLoan(v3Pool, address(flashLoanCallbackV3), tokens, amounts, params);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         _distributeToken(tokens, amounts, isAaveV2);
 
@@ -384,8 +399,10 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         uint256[] memory newAmounts = this.decodeFlashLoanAmounts(logics[0]);
 
         // Execute
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(USDC, expectedFee, V3_FLASHLOAN_META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(USDC, expectedFee, V3_FLASHLOAN_META_DATA);
+        }
         vm.prank(user);
         router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
 

@@ -38,7 +38,7 @@ contract CompoundV3BorrowFeeCalculatorTest is Test {
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant C_USDCV3 = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
-    address public constant DUMMY_TO_ADDRESS = address(0);
+    address public constant ANY_TO_ADDRESS = address(0);
     bytes32 public constant META_DATA = bytes32(bytes('compound-v3:borrow'));
     bytes4 public constant COMPOUND_BORROW_SELECTOR =
         bytes4(keccak256(bytes('withdrawFrom(address,address,address,uint256)')));
@@ -82,7 +82,7 @@ contract CompoundV3BorrowFeeCalculatorTest is Test {
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = COMPOUND_BORROW_SELECTOR;
         address[] memory tos = new address[](1);
-        tos[0] = DUMMY_TO_ADDRESS;
+        tos[0] = ANY_TO_ADDRESS;
         address[] memory feeCalculators = new address[](1);
         feeCalculators[0] = borrowFeeCalculator;
         router.setFeeCalculators(selectors, tos, feeCalculators);
@@ -114,7 +114,7 @@ contract CompoundV3BorrowFeeCalculatorTest is Test {
         logics[0] = _logicCompoundV3Borrow(amount);
 
         // Get new logics
-        (logics, ) = router.getUpdatedLogicsAndMsgValue(logics, 0);
+        (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Prepare assert data
         uint256 expectedNewAmount = FeeCalculatorBase(borrowFeeCalculator).calculateAmountWithFee(amount);
@@ -125,8 +125,10 @@ contract CompoundV3BorrowFeeCalculatorTest is Test {
         // Execute
         address[] memory tokensReturns = new address[](1);
         tokensReturns[0] = baseToken;
-        vm.expectEmit(true, true, true, true, address(userAgent));
-        emit FeeCharged(baseToken, expectedFee, META_DATA);
+        if (expectedFee > 0) {
+            vm.expectEmit(true, true, true, true, address(userAgent));
+            emit FeeCharged(baseToken, expectedFee, META_DATA);
+        }
         vm.prank(user);
         router.execute(logics, tokensReturns, SIGNER_REFERRAL);
 
