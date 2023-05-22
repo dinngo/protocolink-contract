@@ -9,4 +9,4 @@
 	url = https://github.com/Uniswap/permit2.git
 [submodule "lib/create3-factory"]
 	path = lib/create3-factory
-	url = https://github.com/ZeframLou/create3-factory.git
+	url = https://github.com/dinngo/create3-factory.git
