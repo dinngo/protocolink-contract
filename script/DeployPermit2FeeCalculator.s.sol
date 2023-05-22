@@ -18,7 +18,7 @@ contract DeployPermit2FeeCalculator is DeployBase {
         returns (address deployedAddress)
     {
         ICREATE3Factory factory = ICREATE3Factory(params.create3Factory);
-        bytes32 salt = keccak256('permit2.fee.calculator');
+        bytes32 salt = keccak256('composable.router.permit2.fee.calculator');
         bytes memory creationCode = abi.encodePacked(
             type(Permit2FeeCalculator).creationCode,
             abi.encode(params.router, params.permit2FeeCalculatorFeeRate)
