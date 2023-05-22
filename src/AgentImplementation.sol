@@ -103,17 +103,13 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         if (msg.sender != address(bytes20(callbackWithCharge))) revert NotCallback();
 
         // Check the least significant bit to determine whether to charge fee
-        bool shouldChargeFeeByLogic = callbackWithCharge & _CHARGE_MASK != bytes32(0);
+        bool shouldChargeFeeByLogic = (callbackWithCharge & _CHARGE_MASK) != bytes32(0);
 
         // Reset immediately to prevent reentrancy
         _callbackWithCharge = _INIT_CALLBACK_WITH_CHARGE;
 
-        // Check if charge fee
-        if (shouldChargeFeeByLogic) {
-            _executeLogics(logics, true);
-        } else {
-            _executeLogics(logics, false);
-        }
+        // Execute logics with the charge fee flag
+        _executeLogics(logics, shouldChargeFeeByLogic);
     }
 
     function _getBalance(address token) internal view returns (uint256 balance) {
