@@ -25,12 +25,21 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
             (address, address[], uint256[], uint256[], address, bytes, uint16)
         );
 
-        amounts = calculateFee(amounts);
         bytes32 metadata = to == IAaveV3Provider(aaveV3Provider).getPool()
             ? _V3_FLASH_LOAN_META_DATA
             : _V2_FLASH_LOAN_META_DATA;
 
-        return _createFees(tokens, amounts, metadata);
+        uint256 length = tokens.length;
+        IParam.Fee[] memory fees = new IParam.Fee[](length);
+        for (uint256 i; i < length; ) {
+            fees[i] = IParam.Fee({token: tokens[i], amount: calculateFee(amounts[i]), metadata: metadata});
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        return fees;
     }
 
     function getDataWithFee(bytes calldata data) external view returns (bytes memory) {
@@ -64,22 +73,5 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
                 data[:4],
                 abi.encode(receiverAddress, assets, amounts, modes, onBehalfOf, params, referralCode)
             );
-    }
-
-    function _createFees(
-        address[] memory tokens,
-        uint256[] memory amounts,
-        bytes32 metadata
-    ) internal pure returns (IParam.Fee[] memory) {
-        uint256 length = tokens.length;
-        IParam.Fee[] memory fees = new IParam.Fee[](length);
-        for (uint256 i; i < length; ) {
-            fees[i] = IParam.Fee({token: tokens[i], amount: amounts[i], metadata: metadata});
-
-            unchecked {
-                ++i;
-            }
-        }
-        return fees;
     }
 }
