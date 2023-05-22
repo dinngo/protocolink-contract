@@ -215,6 +215,37 @@ contract AgentTest is Test {
         assertApproxEqAbs(IERC20(mockWrappedNative).balanceOf(address(agent)), amount, 1); // 1 unit due to BPS_BASE / 2
     }
 
+    function testWrapBeforeWithToken(uint256 amount1, uint256 amount2) external {
+        deal(router, amount1);
+        deal(address(mockERC20), address(agent), amount2);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](2);
+
+        // The inputs contain native and ERC-20
+        inputs[0] = IParam.Input(
+            mockWrappedNative, // token
+            SKIP, // balanceBps
+            amount1 // amountOrOffset
+        );
+        inputs[1] = IParam.Input(
+            address(mockERC20), // token
+            SKIP, // balanceBps
+            amount2 // amountOrOffset
+        );
+        logics[0] = IParam.Logic(
+            address(mockFallback), // to
+            '',
+            inputs,
+            IParam.WrapMode.WRAP_BEFORE,
+            address(0), // approveTo
+            address(0) // callback
+        );
+        vm.prank(router);
+        agent.execute{value: amount1}(logics, feesEmpty, tokensReturnEmpty);
+        assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amount1);
+        assertEq(IERC20(mockERC20).balanceOf(address(agent)), amount2);
+    }
+
     function testUnwrapAfter(uint128 amount, uint128 amountBefore) external {
         deal(router, amount);
         deal(mockWrappedNative, address(agent), amountBefore); // Ensure agent handles differences
