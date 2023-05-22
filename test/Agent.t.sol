@@ -258,7 +258,7 @@ contract AgentTest is Test {
             address(0) // callback
         );
         vm.prank(router);
-        agent.execute{value: amount1}(logics, feesEmpty, tokensReturnEmpty);
+        agent.execute{value: amount1}(logics, tokensReturnEmpty);
         assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amount1);
         assertEq(IERC20(mockERC20).balanceOf(address(agent)), amount2);
     }
