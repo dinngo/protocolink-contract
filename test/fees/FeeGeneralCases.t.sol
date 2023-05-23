@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
+import {FeeGenerator} from 'src/fees/FeeGenerator.sol';
 import {FeeCalculatorBase} from 'src/fees/FeeCalculatorBase.sol';
 import {AaveFlashLoanFeeCalculator} from 'src/fees/AaveFlashLoanFeeCalculator.sol';
 import {NativeFeeCalculator} from 'src/fees/NativeFeeCalculator.sol';
@@ -12,12 +13,14 @@ import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IAaveV2Provider} from 'src/interfaces/aaveV2/IAaveV2Provider.sol';
 
-contract FeeRevertCasesTest is Test {
+contract FeeGeneralCasesTest is Test {
     enum InterestRateMode {
         NONE,
         STABLE,
         VARIABLE
     }
+
+    event FeeCalculatorSet(bytes4 indexed selector, address indexed to, address indexed feeCalculator);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant AAVE_V2_PROVIDER = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
@@ -113,6 +116,62 @@ contract FeeRevertCasesTest is Test {
         vm.expectRevert('Address: insufficient balance');
         vm.prank(user);
         router.execute{value: nativeAmount}(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+    }
+
+    function testSetFeeCalculator(bytes4 selector, address to, address feeCalculator) external {
+        vm.expectEmit(true, true, true, true, address(router));
+        emit FeeCalculatorSet(selector, to, feeCalculator);
+        router.setFeeCalculator(selector, to, feeCalculator);
+    }
+
+    function testCannotSetFeeCalculatorByNonOwner() external {
+        vm.expectRevert('Ownable: caller is not the owner');
+        vm.prank(user);
+        router.setFeeCalculator(AAVE_FLASHLOAN_SELECTOR, v2Pool, address(flashLoanFeeCalculator));
+    }
+
+    function testSetFeeCalculators() external {
+        bytes4[] memory selectors = new bytes4[](2);
+        selectors[0] = AAVE_FLASHLOAN_SELECTOR;
+        selectors[1] = NATIVE_FEE_SELECTOR;
+
+        address[] memory tos = new address[](2);
+        tos[0] = v2Pool;
+        tos[1] = ANY_TO_ADDRESS;
+
+        address[] memory feeCalculators = new address[](2);
+        feeCalculators[0] = address(flashLoanFeeCalculator);
+        feeCalculators[1] = address(nativeFeeCalculator);
+
+        vm.expectEmit(true, true, true, true, address(router));
+        emit FeeCalculatorSet(AAVE_FLASHLOAN_SELECTOR, v2Pool, address(flashLoanFeeCalculator));
+        emit FeeCalculatorSet(NATIVE_FEE_SELECTOR, ANY_TO_ADDRESS, address(nativeFeeCalculator));
+        router.setFeeCalculators(selectors, tos, feeCalculators);
+    }
+
+    function testCannotSetFeeCalculatorsByNonOwner() external {
+        bytes4[] memory selectors = new bytes4[](1);
+        address[] memory tos = new address[](1);
+        address[] memory feeCalculators = new address[](1);
+
+        vm.expectRevert('Ownable: caller is not the owner');
+        vm.prank(user);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
+    }
+
+    function testSetFeeCalculatorsLengthMismatch() external {
+        bytes4[] memory selectors = new bytes4[](2);
+        address[] memory tos = new address[](1);
+        address[] memory feeCalculators = new address[](3);
+
+        // selectors.length != tos.length
+        vm.expectRevert(FeeGenerator.LengthMismatch.selector);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
+
+        // selectors.length != feeCalculators.length
+        tos = new address[](2);
+        vm.expectRevert(FeeGenerator.LengthMismatch.selector);
+        router.setFeeCalculators(selectors, tos, feeCalculators);
     }
 
     function _buildFlashLoanLogics() internal view returns (IParam.Logic[] memory) {
