@@ -7,6 +7,3 @@
 [submodule "lib/permit2"]
 	path = lib/permit2
 	url = https://github.com/Uniswap/permit2.git
-[submodule "lib/create3-factory"]
-	path = lib/create3-factory
-	url = https://github.com/dinngo/create3-factory.git
