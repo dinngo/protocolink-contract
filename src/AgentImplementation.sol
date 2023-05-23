@@ -216,13 +216,13 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             // Revert if the previous call didn't enter `executeByCallback`
             if (_callbackWithCharge != _INIT_CALLBACK_WITH_CHARGE) revert UnresetCallbackWithCharge();
 
+            if (shouldChargeFeeByLogic) {
+                _chargeFeeByLogic(logics[i]);
+            }
+
             // Unwrap to native after the call
             if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
                 IWrappedNative(wrappedNative).withdraw(_getBalance(wrappedNative) - wrappedAmount);
-            }
-
-            if (shouldChargeFeeByLogic) {
-                _chargeFeeByLogic(logics[i]);
             }
 
             unchecked {
