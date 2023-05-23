@@ -124,6 +124,12 @@ contract FeeGeneralCasesTest is Test {
         router.setFeeCalculator(selector, to, feeCalculator);
     }
 
+    function testCannotSetFeeCalculatorByNonOwner() external {
+        vm.expectRevert('Ownable: caller is not the owner');
+        vm.prank(user);
+        router.setFeeCalculator(AAVE_FLASHLOAN_SELECTOR, v2Pool, address(flashLoanFeeCalculator));
+    }
+
     function testSetFeeCalculators() external {
         bytes4[] memory selectors = new bytes4[](2);
         selectors[0] = AAVE_FLASHLOAN_SELECTOR;
@@ -140,6 +146,16 @@ contract FeeGeneralCasesTest is Test {
         vm.expectEmit(true, true, true, true, address(router));
         emit FeeCalculatorSet(AAVE_FLASHLOAN_SELECTOR, v2Pool, address(flashLoanFeeCalculator));
         emit FeeCalculatorSet(NATIVE_FEE_SELECTOR, ANY_TO_ADDRESS, address(nativeFeeCalculator));
+        router.setFeeCalculators(selectors, tos, feeCalculators);
+    }
+
+    function testCannotSetFeeCalculatorsByNonOwner() external {
+        bytes4[] memory selectors = new bytes4[](1);
+        address[] memory tos = new address[](1);
+        address[] memory feeCalculators = new address[](1);
+
+        vm.expectRevert('Ownable: caller is not the owner');
+        vm.prank(user);
         router.setFeeCalculators(selectors, tos, feeCalculators);
     }
 
