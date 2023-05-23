@@ -216,6 +216,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             // Revert if the previous call didn't enter `executeByCallback`
             if (_callbackWithCharge != _INIT_CALLBACK_WITH_CHARGE) revert UnresetCallbackWithCharge();
 
+            // Charge fee before unwrap to prevent insufficient wrapped native
             if (shouldChargeFeeByLogic) {
                 _chargeFeeByLogic(logics[i]);
             }
