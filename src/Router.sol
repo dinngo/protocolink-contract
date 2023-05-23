@@ -17,8 +17,11 @@ contract Router is IRouter, EIP712, FeeGenerator {
     using LogicHash for IParam.LogicBatch;
     using SignatureChecker for address;
 
+    /// @dev Flag for identifying the paused state used in `currentUser` for reducing cold read gas cost
+    address internal constant _PAUSED = address(0);
+
     /// @dev Flag for identifying the initialized state and reducing gas cost when resetting `currentUser`
-    address internal constant _INIT_USER = address(1);
+    address internal constant _INIT_CURRENT_USER = address(1);
 
     /// @notice Immutable implementation contract for all users' agents
     address public immutable agentImplementation;
@@ -29,7 +32,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @notice Mapping for recording valid signers
     mapping(address signer => bool valid) public signers;
 
-    /// @notice Transient address for recording `msg.sender` which resets to `_INIT_USER` after each execution
+    /// @notice Transient address for recording `msg.sender` which resets to `_INIT_CURRENT_USER` after each execution
     address public currentUser;
 
     /// @notice Address for receiving collected fees
@@ -38,22 +41,11 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @notice Address for invoking pause
     address public pauser;
 
-    /// @notice Flag for indicating pause
-    bool public paused;
-
-    modifier checkCaller() {
-        if (currentUser == _INIT_USER) {
-            currentUser = msg.sender;
-        } else {
-            revert Reentrancy();
-        }
+    modifier onlyInitCurrentUser() {
+        if (currentUser != _INIT_CURRENT_USER) revert NotInitCurrentUser();
+        currentUser = msg.sender;
         _;
-        currentUser = _INIT_USER;
-    }
-
-    modifier whenNotPaused() {
-        if (paused) revert RouterIsPaused();
-        _;
+        currentUser = _INIT_CURRENT_USER;
     }
 
     modifier onlyPauser() {
@@ -68,7 +60,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         address pauser_,
         address feeCollector_
     ) EIP712('Composable Router', '1') {
-        currentUser = _INIT_USER;
+        currentUser = _INIT_CURRENT_USER;
         agentImplementation = address(new AgentImplementation(wrappedNative));
         setPauser(pauser_);
         setFeeCollector(feeCollector_);
@@ -147,13 +139,15 @@ contract Router is IRouter, EIP712, FeeGenerator {
 
     /// @notice Pause `execute` and `executeWithSignature` by pauser
     function pause() external onlyPauser {
-        paused = true;
+        if (currentUser != _INIT_CURRENT_USER) revert AlreadyPaused();
+        currentUser = _PAUSED;
         emit Paused();
     }
 
     /// @notice Unpause `execute` and `executeWithSignature` by pauser
     function unpause() external onlyPauser {
-        paused = false;
+        if (currentUser != _PAUSED) revert NotPaused();
+        currentUser = _INIT_CURRENT_USER;
         emit Unpaused();
     }
 
@@ -167,7 +161,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
-    ) external payable whenNotPaused checkCaller {
+    ) external payable onlyInitCurrentUser {
         address user = currentUser;
         IAgent agent = agents[user];
 
@@ -193,7 +187,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         bytes calldata signature,
         address[] calldata tokensReturn,
         uint256 referralCode
-    ) external payable whenNotPaused checkCaller {
+    ) external payable onlyInitCurrentUser {
         // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
