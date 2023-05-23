@@ -131,7 +131,7 @@ contract FeeGeneralCasesTest is Test {
 
         address[] memory tos = new address[](2);
         tos[0] = v2Pool;
-        tos[1] = DUMMY_TO_ADDRESS;
+        tos[1] = ANY_TO_ADDRESS;
 
         address[] memory feeCalculators = new address[](2);
         feeCalculators[0] = address(flashLoanFeeCalculator);
@@ -139,34 +139,21 @@ contract FeeGeneralCasesTest is Test {
 
         vm.expectEmit(true, true, true, true, address(router));
         emit FeeCalculatorSet(AAVE_FLASHLOAN_SELECTOR, v2Pool, address(flashLoanFeeCalculator));
-        emit FeeCalculatorSet(NATIVE_FEE_SELECTOR, DUMMY_TO_ADDRESS, address(nativeFeeCalculator));
+        emit FeeCalculatorSet(NATIVE_FEE_SELECTOR, ANY_TO_ADDRESS, address(nativeFeeCalculator));
         router.setFeeCalculators(selectors, tos, feeCalculators);
     }
 
     function testSetFeeCalculatorsLengthMismatch() external {
-        // selectors.length != tos.length
         bytes4[] memory selectors = new bytes4[](2);
-        selectors[0] = AAVE_FLASHLOAN_SELECTOR;
-        selectors[1] = NATIVE_FEE_SELECTOR;
-
         address[] memory tos = new address[](1);
-        tos[0] = v2Pool;
+        address[] memory feeCalculators = new address[](3);
 
-        address[] memory feeCalculators = new address[](2);
-        feeCalculators[0] = address(flashLoanFeeCalculator);
-        feeCalculators[1] = address(nativeFeeCalculator);
-
+        // selectors.length != tos.length
         vm.expectRevert(FeeGenerator.LengthMismatch.selector);
         router.setFeeCalculators(selectors, tos, feeCalculators);
 
         // selectors.length != feeCalculators.length
         tos = new address[](2);
-        tos[0] = v2Pool;
-        tos[1] = DUMMY_TO_ADDRESS;
-
-        feeCalculators = new address[](1);
-        feeCalculators[0] = address(flashLoanFeeCalculator);
-
         vm.expectRevert(FeeGenerator.LengthMismatch.selector);
         router.setFeeCalculators(selectors, tos, feeCalculators);
     }
