@@ -405,6 +405,53 @@ contract AgentTest is Test {
         agent.execute(logics, tokensReturnEmpty);
     }
 
+    function testExecuteWithFeeThenUnwrap(uint256 amount, uint256 fee, bytes32 metadata) external {
+        amount = bound(amount, 0, type(uint256).max / BPS_BASE); // Prevent overflow when calculates the replaced amount
+        fee = bound(fee, 0, amount);
+
+        // Mock router fee collector
+        address feeCollector = makeAddr('FeeCollector');
+        vm.mockCall(router, abi.encodeWithSelector(IRouter.feeCollector.selector), abi.encode(feeCollector));
+
+        // Mock router token fee calculator
+        address feeCalculator = makeAddr('FeeCalculator');
+        vm.mockCall(
+            router,
+            abi.encodeWithSelector(IFeeGenerator.getFeeCalculator.selector, bytes4(0), mockWrappedNative),
+            abi.encode(feeCalculator)
+        );
+        IParam.Fee[] memory fees = new IParam.Fee[](1);
+        fees[0] = IParam.Fee(mockWrappedNative, fee, metadata);
+        vm.mockCall(feeCalculator, abi.encodePacked(IFeeCalculator.getFees.selector), abi.encode(fees));
+
+        // Airdrop native
+        vm.deal(address(router), amount);
+
+        // Encode logics which
+        // - deposit native to get wrapped native
+        // - charge wrapped native due to the mock fee calculator
+        // - unwrap
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        IParam.Input[] memory inputs = new IParam.Input[](1);
+        inputs[0] = IParam.Input(NATIVE, BPS_BASE, SKIP);
+        logics[0] = IParam.Logic(
+            mockWrappedNative, // to
+            new bytes(0),
+            inputs,
+            IParam.WrapMode.UNWRAP_AFTER,
+            address(0), // approveTo
+            address(0) // callback
+        );
+
+        // Execute
+        vm.prank(router);
+        agent.execute{value: amount}(logics, tokensReturnEmpty);
+
+        assertEq(address(agent).balance, amount - fee);
+        assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), 0);
+        assertEq(IERC20(mockWrappedNative).balanceOf(feeCollector), fee);
+    }
+
     function testExecuteWithFeeThenMaxBps(uint256 amount, uint256 fee, bytes32 metadata) external {
         amount = bound(amount, 0, type(uint256).max / BPS_BASE); // Prevent overflow when calculates the replaced amount
         fee = bound(fee, 0, amount);
