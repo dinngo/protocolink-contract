@@ -21,7 +21,7 @@ interface IRouter {
 
     event AgentCreated(address indexed agent, address indexed user);
 
-    error NotInitCurrentUser();
+    error NotReady();
 
     error InvalidPauser();
 

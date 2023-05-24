@@ -219,11 +219,11 @@ contract RouterTest is Test, LogicSignature {
 
         vm.startPrank(user);
         // `execute` should revert when router is paused
-        vm.expectRevert(IRouter.NotInitCurrentUser.selector);
+        vm.expectRevert(IRouter.NotReady.selector);
         router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
 
         // `executeWithSignature` should revert when router is paused
-        vm.expectRevert(IRouter.NotInitCurrentUser.selector);
+        vm.expectRevert(IRouter.NotReady.selector);
         router.executeWithSignature(logicBatchEmpty, signer, new bytes(0), tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }
@@ -238,7 +238,7 @@ contract RouterTest is Test, LogicSignature {
             address(0), // approveTo
             address(0) // callback
         );
-        vm.expectRevert(IRouter.NotInitCurrentUser.selector);
+        vm.expectRevert(IRouter.NotReady.selector);
         vm.prank(user);
         router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
     }

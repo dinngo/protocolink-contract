@@ -41,8 +41,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @notice Address for invoking pause
     address public pauser;
 
-    modifier onlyInitCurrentUser() {
-        if (currentUser != _INIT_CURRENT_USER) revert NotInitCurrentUser();
+    modifier whenReady() {
+        if (currentUser != _INIT_CURRENT_USER) revert NotReady();
         currentUser = msg.sender;
         _;
         currentUser = _INIT_CURRENT_USER;
@@ -161,7 +161,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
-    ) external payable onlyInitCurrentUser {
+    ) external payable whenReady {
         address user = currentUser;
         IAgent agent = agents[user];
 
@@ -187,7 +187,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         bytes calldata signature,
         address[] calldata tokensReturn,
         uint256 referralCode
-    ) external payable onlyInitCurrentUser {
+    ) external payable whenReady {
         // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
