@@ -139,7 +139,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
 
     /// @notice Pause `execute` and `executeWithSignature` by pauser
     function pause() external onlyPauser {
-        if (currentUser != _INIT_CURRENT_USER) revert AlreadyPaused();
+        if (currentUser == _PAUSED) revert AlreadyPaused();
         currentUser = _PAUSED;
         emit Paused();
     }
