@@ -344,7 +344,7 @@ contract RouterTest is Test, LogicSignature {
         router.unpause();
     }
 
-    function testCannotPauseWhenNotPaused() external {
+    function testCannotUnpauseWhenNotPaused() external {
         vm.expectRevert(IRouter.NotPaused.selector);
         vm.prank(pauser);
         router.unpause();
