@@ -58,13 +58,23 @@ contract AaveV2FlashLoanCallback is IAaveV2FlashLoanCallback {
             'ERROR_AAVE_V2_FLASH_LOAN_CALLBACK'
         );
 
+        // agent.functionCall(
+        //     abi.encodePacked(
+        //         IAgent.executeByCallbackTransferFrom.selector,
+        //         abi.encodePacked(params, abi.encode(assets))
+        //     ),
+        //     'ERROR_AAVE_V2_FLASH_LOAN_CALLBACK'
+        // );
+
         // Approve assets for pulling from Aave Pool
         for (uint256 i; i < assetsLength; ) {
             address asset = assets[i];
             uint256 amountOwing = amounts[i] + premiums[i];
 
+            // transferFrom
+            IERC20(asset).safeTransferFrom(agent, address(this), amountOwing);
             // Check balance is valid
-            if (IERC20(asset).balanceOf(address(this)) != initBalances[i] + amountOwing) revert InvalidBalance(asset);
+            // if (IERC20(asset).balanceOf(address(this)) != initBalances[i] + amountOwing) revert InvalidBalance(asset);
 
             // Save gas by only the first user does approve. It's safe since this callback don't hold any asset
             ApproveHelper._approveMax(asset, pool, amountOwing);

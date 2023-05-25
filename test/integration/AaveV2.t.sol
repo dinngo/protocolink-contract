@@ -220,6 +220,6 @@ contract AaveV2IntegrationTest is Test {
         }
 
         // Encode execute data
-        return abi.encode(logics, feesEmpty, tokensReturnEmpty);
+        return abi.encode(logics); //, feesEmpty, tokensReturnEmpty);
     }
 }

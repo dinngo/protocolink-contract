@@ -109,8 +109,41 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _callbackWithCharge = _INIT_CALLBACK_WITH_CHARGE;
 
         // Execute logics with the charge fee flag
-        _executeLogics(logics, shouldChargeFeeByLogic);
+        // _executeLogics(logics, shouldChargeFeeByLogic);
+
+        uint256 logicsLength = logics.length;
+        for (uint256 i; i < logicsLength; ) {
+            ApproveHelper._approveMax(logics[i].to, address(bytes20(callbackWithCharge)), type(uint256).max);
+            unchecked {
+                ++i;
+            }
+        }
     }
+
+    // function executeByCallbackTransferFrom(IParam.Logic[] calldata logics, address[] calldata assets) external payable {
+    //     bytes32 callbackWithCharge = _callbackWithCharge;
+
+    //     // Revert if msg.sender is not equal to the callback address
+    //     if (msg.sender != address(bytes20(callbackWithCharge))) revert NotCallback();
+
+    //     // Check the least significant bit to determine whether to charge fee
+    //     bool shouldChargeFeeByLogic = (callbackWithCharge & _CHARGE_MASK) != bytes32(0);
+
+    //     // Reset immediately to prevent reentrancy
+    //     _callbackWithCharge = _INIT_CALLBACK_WITH_CHARGE;
+
+    //     // Execute logics with the charge fee flag
+    //     _executeLogics(logics, shouldChargeFeeByLogic);
+
+    //     // approve max to callback
+    //     uint256 assetsLength = assets.length;
+    //     for (uint256 i; i < assetsLength; ) {
+    //         ApproveHelper._approveMax(assets[i], address(bytes20(callbackWithCharge)), type(uint256).max);
+    //         unchecked {
+    //             ++i;
+    //         }
+    //     }
+    // }
 
     function _getBalance(address token) internal view returns (uint256 balance) {
         if (token == _NATIVE) {

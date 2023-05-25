@@ -33,4 +33,6 @@ interface IAgent {
     ) external payable;
 
     function executeByCallback(IParam.Logic[] calldata logics) external payable;
+
+    // function executeByCallbackTransferFrom(IParam.Logic[] calldata logics, address[] calldata assets) external payable;
 }
