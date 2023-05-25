@@ -28,8 +28,8 @@ abstract contract FeeCalculatorBase {
     /// @param amount The amount with the fee included
     /// @return The calculated fee
     function calculateFee(uint256 amount) public view returns (uint256) {
-        uint256 feeRate_ = feeRate;
-        return (amount * feeRate_) / (_BPS_BASE + feeRate_);
+        uint256 _feeRate = feeRate;
+        return (amount * _feeRate) / (_BPS_BASE + _feeRate);
     }
 
     /// @notice Calculate the amount with the fee included for the given amount
@@ -43,9 +43,9 @@ abstract contract FeeCalculatorBase {
     /// @param amounts An array of amounts to be calculated
     /// @return An array of the total amounts with the fees included
     function calculateAmountWithFee(uint256[] memory amounts) public view returns (uint256[] memory) {
-        uint256 feeRate_ = feeRate;
+        uint256 _feeRate = feeRate;
         for (uint256 i; i < amounts.length; ) {
-            amounts[i] = (amounts[i] * (_BPS_BASE + feeRate_)) / _BPS_BASE;
+            amounts[i] = (amounts[i] * (_BPS_BASE + _feeRate)) / _BPS_BASE;
             unchecked {
                 ++i;
             }
