@@ -19,7 +19,7 @@ contract DeployCompoundV3BorrowFeeCalculator is DeployBase {
         returns (address deployedAddress)
     {
         ICREATE3Factory factory = ICREATE3Factory(params.create3Factory);
-        bytes32 salt = keccak256('compound.v3.borrow.fee.calculator');
+        bytes32 salt = keccak256('composable.router.compound.v3.borrow.fee.calculator');
         bytes memory creationCode = abi.encodePacked(
             type(CompoundV3BorrowFeeCalculator).creationCode,
             abi.encode(params.router, params.compoundV3BorrowFeeCalculatorFeeRate)

@@ -18,7 +18,7 @@ contract DeployBalancerV2FlashLoanCallback is DeployBase {
         returns (address deployedAddress)
     {
         ICREATE3Factory factory = ICREATE3Factory(params.create3Factory);
-        bytes32 salt = keccak256('balancer.v2.flash.loan.callback');
+        bytes32 salt = keccak256('composable.router.balancer.v2.flash.loan.callback');
         bytes memory creationCode = abi.encodePacked(
             type(BalancerV2FlashLoanCallback).creationCode,
             abi.encode(params.router, params.balancerV2Vault)
