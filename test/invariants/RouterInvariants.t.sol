@@ -6,7 +6,7 @@ import {Router} from 'src/Router.sol';
 import {RouterHandler} from './handlers/RouterHandler.sol';
 
 contract RouterInvariantsTest is Test {
-    address internal constant _INIT_USER = address(1);
+    address internal constant _INIT_CURRENT_USER = address(1);
 
     Router public router;
     RouterHandler public handler;
@@ -28,7 +28,7 @@ contract RouterInvariantsTest is Test {
     }
 
     function invariant_initializedCurrentUser() external {
-        assertEq(router.currentUser(), _INIT_USER);
+        assertEq(router.currentUser(), _INIT_CURRENT_USER);
     }
 
     function invariant_matchedAgentsLength() external {

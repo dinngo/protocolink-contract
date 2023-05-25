@@ -21,11 +21,13 @@ interface IRouter {
 
     event AgentCreated(address indexed agent, address indexed user);
 
-    error Reentrancy();
-
-    error RouterIsPaused();
+    error NotReady();
 
     error InvalidPauser();
+
+    error AlreadyPaused();
+
+    error NotPaused();
 
     error InvalidFeeCollector();
 
@@ -50,8 +52,6 @@ interface IRouter {
     function feeCollector() external view returns (address);
 
     function pauser() external view returns (address);
-
-    function paused() external view returns (bool);
 
     function owner() external view returns (address);
 
