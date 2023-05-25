@@ -34,8 +34,11 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     /// @dev Denominator for calculating basis points
     uint256 internal constant _BPS_BASE = 10_000;
 
-    /// @dev Flag for indicating a skipped value by setting the most significant bit to 1 (1<<255)
-    uint256 internal constant _SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
+    /// @dev Flag for identifying when basis points calculation is not applied
+    uint256 internal constant _BPS_NOT_USED = 0;
+
+    /// @dev Flag for identifying no replacement of the amount by setting the most significant bit to 1 (1<<255)
+    uint256 internal constant _OFFSET_NOT_USED = 0x8000000000000000000000000000000000000000000000000000000000000000;
 
     /// @notice Immutable address for recording the router address
     address public immutable router;
@@ -144,13 +147,13 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                 uint256 balanceBps = inputs[j].balanceBps;
 
                 // Calculate native or token amount
-                // 1. if balanceBps is skip: read amountOrOffset as amount
-                // 2. if balanceBps isn't skip: balance multiplied by balanceBps as amount
+                // 1. if balanceBps is `_BPS_NOT_USED`, then `amountOrOffset` is interpreted directly as the amount.
+                // 2. if balanceBps isn't `_BPS_NOT_USED`, then the amount is calculated by the balance with bps
                 uint256 amount;
-                if (balanceBps == _SKIP) {
+                if (balanceBps == _BPS_NOT_USED) {
                     amount = inputs[j].amountOrOffset;
                 } else {
-                    if (balanceBps == 0 || balanceBps > _BPS_BASE) revert InvalidBps();
+                    if (balanceBps > _BPS_BASE) revert InvalidBps();
 
                     if (token == wrappedNative && wrapMode == IParam.WrapMode.WRAP_BEFORE) {
                         // Use the native balance for amount calculation as wrap will be executed later
@@ -159,10 +162,10 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                         amount = (_getBalance(token) * balanceBps) / _BPS_BASE;
                     }
 
-                    // Skip if don't need to replace, e.g., most protocols set native amount in call value
+                    // Check if the calculated amount should replace the data at the offset. For most protocols that use
+                    // `msg.value` to pass the native amount, use `_OFFSET_NOT_USED` to indicate no replacement.
                     uint256 offset = inputs[j].amountOrOffset;
-                    if (offset != _SKIP) {
-                        // Replace the amount at offset in data with the calculated amount
+                    if (offset != _OFFSET_NOT_USED) {
                         assembly {
                             let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
                             mstore(loc, amount)

@@ -15,7 +15,7 @@ contract NativeFeeCalculatorTest is Test {
     address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     bytes public constant EMPTY_LOGIC_DATA = new bytes(0);
-    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
+    uint256 public constant BPS_NOT_USED = 0;
     uint256 public constant SIGNER_REFERRAL = 1;
     uint256 public constant BPS_BASE = 10_000;
     bytes32 public constant META_DATA = bytes32(bytes('native-token'));
@@ -98,7 +98,7 @@ contract NativeFeeCalculatorTest is Test {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
-        inputs[0].balanceBps = SKIP;
+        inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amount;
 
         return

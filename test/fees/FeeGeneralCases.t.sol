@@ -30,7 +30,7 @@ contract FeeGeneralCasesTest is Test {
     bytes4 public constant AAVE_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)')));
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
-    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
+    uint256 public constant BPS_NOT_USED = 0;
     uint256 public constant BPS_BASE = 10_000;
     uint256 public constant SIGNER_REFERRAL = 1;
     uint256 public constant FEE_RATE = 20;
@@ -250,7 +250,7 @@ contract FeeGeneralCasesTest is Test {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
-        inputs[0].balanceBps = SKIP;
+        inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amount;
 
         return

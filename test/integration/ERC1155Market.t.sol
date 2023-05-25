@@ -18,7 +18,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
 
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     uint256 public constant BPS_BASE = 10_000;
-    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
+    uint256 public constant BPS_NOT_USED = 0;
 
     address public user;
     uint256 public userPrivateKey;
@@ -192,7 +192,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
-        inputs[0].balanceBps = SKIP;
+        inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amountIn;
 
         return
@@ -223,7 +223,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
-        inputs[0].balanceBps = SKIP;
+        inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amountIn;
 
         return
