@@ -65,7 +65,6 @@ contract AaveV3IntegrationTest is Test {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -224,7 +223,7 @@ contract AaveV3IntegrationTest is Test {
         }
 
         // Encode execute data
-        return abi.encode(logics, feesEmpty, tokensReturnEmpty);
+        return abi.encode(logics);
     }
 
     function _percentMul(uint256 value, uint256 percentage) internal pure returns (uint256 result) {

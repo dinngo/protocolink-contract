@@ -63,7 +63,6 @@ contract AaveV2IntegrationTest is Test {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -220,6 +219,6 @@ contract AaveV2IntegrationTest is Test {
         }
 
         // Encode execute data
-        return abi.encode(logics, feesEmpty, tokensReturnEmpty);
+        return abi.encode(logics);
     }
 }
