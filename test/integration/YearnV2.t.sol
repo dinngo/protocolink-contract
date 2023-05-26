@@ -21,7 +21,7 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
     IERC20 public constant USDT = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7); // USDT
     IYVault public constant yVault = IYVault(0x2f08119C6f07c006695E079AAFc638b8789FAf18); // yUSDT
     uint256 public constant BPS_BASE = 10_000;
-    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
+    uint256 public constant BPS_NOT_USED = 0;
 
     address public user;
     uint256 public userPrivateKey;
@@ -79,7 +79,7 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].balanceBps = balanceBps;
-        if (inputs[0].balanceBps == SKIP) inputs[0].amountOrOffset = amountIn;
+        if (inputs[0].balanceBps == BPS_NOT_USED) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
 
         return

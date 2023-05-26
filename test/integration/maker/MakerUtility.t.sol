@@ -14,7 +14,7 @@ import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     using SafeCast160 for uint256;
 
-    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
+    uint256 public constant BPS_NOT_USED = 0;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     address public user;
@@ -176,7 +176,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
-        inputs[0].balanceBps = SKIP;
+        inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = value;
 
         return

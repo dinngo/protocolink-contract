@@ -14,7 +14,7 @@ contract RouterTest is Test, LogicSignature {
 
     address public constant PAUSED = address(0);
     address public constant INIT_CURRENT_USER = address(1);
-    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
+    uint256 public constant BPS_NOT_USED = 0;
     uint256 public constant SIGNER_REFERRAL = 1;
     address public constant INVALID_PAUSER = address(0);
 
@@ -187,7 +187,7 @@ contract RouterTest is Test, LogicSignature {
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0] = IParam.Input(
             address(mockERC20),
-            SKIP, // balanceBps
+            BPS_NOT_USED, // balanceBps
             0 // amountOrOffset
         );
         IParam.Logic[] memory logics = new IParam.Logic[](1);

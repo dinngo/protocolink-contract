@@ -46,7 +46,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
     bytes4 public constant PERMIT2_TRANSFER_FROM_SELECTOR =
         bytes4(keccak256(bytes('transferFrom(address,address,uint160,address)')));
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
-    uint256 public constant SKIP = 0x8000000000000000000000000000000000000000000000000000000000000000;
+    uint256 public constant BPS_NOT_USED = 0;
     uint256 public constant BPS_BASE = 10_000;
     bytes32 public constant V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flash-loan'));
     bytes32 public constant V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flash-loan'));
@@ -455,7 +455,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
         // Encode inputs
         IParam.Input[] memory inputs = new IParam.Input[](1);
         inputs[0].token = NATIVE;
-        inputs[0].balanceBps = SKIP;
+        inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amount;
 
         return

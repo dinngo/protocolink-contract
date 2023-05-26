@@ -22,8 +22,8 @@ interface IParam {
     /// @notice Input represents a single input for token amount calculation and approval
     struct Input {
         address token; // Token address
-        uint256 balanceBps; // Basis points for calculating the amount, set to _SKIP to use amountOrOffset as amount
-        uint256 amountOrOffset; // Read as amount if balanceBps is _SKIP; otherwise, read as byte offset of amount in Logic.data for replacement
+        uint256 balanceBps; // Basis points for calculating the amount, set 0 to use amountOrOffset as amount
+        uint256 amountOrOffset; // Read as amount if balanceBps is 0; otherwise, read as byte offset of amount in `Logic.data` for replacement, or set 1 << 255 for no replacement
     }
 
     /// @notice Fee represents a fee to be charged
