@@ -211,7 +211,8 @@ contract AaveV2IntegrationTest is Test {
             // Encode transfering token + fee to the flash loan callback
             logics[i] = IParam.Logic(
                 address(tokens[i]), // to
-                abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
+                // abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
+                abi.encodeWithSelector(IERC20.approve.selector, address(flashLoanCallback), amounts[i] + fee),
                 inputsEmpty,
                 IParam.WrapMode.NONE,
                 address(0), // approveTo

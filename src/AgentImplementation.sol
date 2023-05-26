@@ -109,15 +109,15 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _callbackWithCharge = _INIT_CALLBACK_WITH_CHARGE;
 
         // Execute logics with the charge fee flag
-        // _executeLogics(logics, shouldChargeFeeByLogic);
+        _executeLogics(logics, shouldChargeFeeByLogic);
 
-        uint256 logicsLength = logics.length;
-        for (uint256 i; i < logicsLength; ) {
-            ApproveHelper._approveMax(logics[i].to, address(bytes20(callbackWithCharge)), type(uint256).max);
-            unchecked {
-                ++i;
-            }
-        }
+        // uint256 logicsLength = logics.length;
+        // for (uint256 i; i < logicsLength; ) {
+        //     ApproveHelper._approveMax(logics[i].to, address(bytes20(callbackWithCharge)), type(uint256).max);
+        //     unchecked {
+        //         ++i;
+        //     }
+        // }
     }
 
     // function executeByCallbackTransferFrom(IParam.Logic[] calldata logics, address[] calldata assets) external payable {
