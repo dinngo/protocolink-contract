@@ -8,7 +8,7 @@ import {DeployBase} from './DeployBase.s.sol';
 contract DeployCREATE3Factory is DeployBase {
     function _run(DeployParameters memory params) internal virtual override returns (address deployedAddress) {
         if (params.create3Factory == address(0)) {
-            deployedAddress = address(new CREATE3Factory());
+            deployedAddress = address(new CREATE3Factory(params.deployer));
             console2.log('CREATE3Factory Deployed:', deployedAddress);
         } else {
             console2.log('CREATE3Factory Exists. Skip deployment of CREATE3Factory:', params.create3Factory);
