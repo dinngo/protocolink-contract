@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
@@ -18,8 +18,6 @@ interface IBalancerV2Vault {
 }
 
 contract BalancerV2IntegrationTest is Test {
-    using SafeERC20 for IERC20;
-
     uint256 public constant SIGNER_REFERRAL = 1;
     IBalancerV2Vault public constant balancerV2Vault = IBalancerV2Vault(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
@@ -30,7 +28,6 @@ contract BalancerV2IntegrationTest is Test {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -105,6 +102,6 @@ contract BalancerV2IntegrationTest is Test {
         }
 
         // Encode execute data
-        return abi.encode(logics, feesEmpty, tokensReturnEmpty);
+        return abi.encode(logics);
     }
 }

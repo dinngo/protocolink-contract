@@ -2,8 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {ERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {AaveV2FlashLoanCallback, IAaveV2FlashLoanCallback, IAaveV2Provider} from 'src/callbacks/AaveV2FlashLoanCallback.sol';
@@ -18,8 +17,6 @@ contract AaveV2FlashLoanCallbackTest is Test {
     IERC20 public mockERC20;
 
     // Empty arrays
-    address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -79,7 +76,7 @@ contract AaveV2FlashLoanCallbackTest is Test {
         );
 
         // Encode execute data
-        bytes memory params = abi.encode(logics, feesEmpty, tokensReturnEmpty);
+        bytes memory params = abi.encode(logics);
 
         // Execute
         vm.startPrank(aaveV2Provider.getLendingPool());

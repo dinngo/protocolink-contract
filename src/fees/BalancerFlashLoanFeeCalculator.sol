@@ -40,16 +40,13 @@ contract BalancerFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
 
         if (userData.length > 0) {
             // Decode data in the flash loan
-            (IParam.Logic[] memory logics, IParam.Fee[] memory fees, address[] memory tokensReturn) = abi.decode(
-                userData,
-                (IParam.Logic[], IParam.Fee[], address[])
-            );
+            IParam.Logic[] memory logics = abi.decode(userData, (IParam.Logic[]));
 
             // Update logics
             logics = Router(router).getLogicsWithFee(logics);
 
             // encode
-            userData = abi.encode(logics, fees, tokensReturn);
+            userData = abi.encode(logics);
         }
 
         amounts = calculateAmountWithFee(amounts);

@@ -30,10 +30,6 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
     IAgent public userAgent;
     address public permit2FeeCalculator;
 
-    // Empty arrays
-    address[] public tokensReturnEmpty;
-    IParam.Input[] public inputsEmpty;
-
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
         feeCollector = makeAddr('FeeCollector');
@@ -88,14 +84,14 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils {
         deal(USDC, user, newAmount);
 
         // Execute
-        address[] memory tokensReturns = new address[](1);
-        tokensReturns[0] = USDC;
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = USDC;
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(userAgent));
             emit FeeCharged(USDC, expectedFee, META_DATA);
         }
         vm.prank(user);
-        router.execute(logics, tokensReturns, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
         assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);

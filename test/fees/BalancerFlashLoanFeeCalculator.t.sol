@@ -49,7 +49,6 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -113,7 +112,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             USDC,
             FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount)
         );
-        bytes memory userData = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+        bytes memory userData = abi.encode(flashLoanLogics);
 
         // Encode logic
         address[] memory tokens = new address[](1);
@@ -172,7 +171,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount)
         );
         flashLoanLogics[1] = _logicSendNativeToken(user2, nativeAmount);
-        bytes memory userData = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+        bytes memory userData = abi.encode(flashLoanLogics);
 
         // Get new logics and msg.value amount
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -250,7 +249,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             );
             flashLoanLogics[1] = _logicSendNativeToken(user2, nativeAmount);
             flashLoanLogics[2] = logicERC20Permit2PullToken(IERC20(USDT), amount.toUint160());
-            userData = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+            userData = abi.encode(flashLoanLogics);
         }
 
         // Get new logics and msg.value amount
@@ -296,8 +295,8 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
         {
             // Execute
-            address[] memory tokensReturns = new address[](1);
-            tokensReturns[0] = USDT;
+            address[] memory tokensReturn = new address[](1);
+            tokensReturn[0] = USDT;
             if (expectedNativeFee > 0) {
                 vm.expectEmit(true, true, true, true, address(userAgent));
                 emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
@@ -311,7 +310,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
                 emit FeeCharged(USDC, expectedUSDCFee, BALANCER_META_DATA);
             }
             vm.prank(user);
-            router.execute{value: nativeNewAmount}(logics, tokensReturns, SIGNER_REFERRAL);
+            router.execute{value: nativeNewAmount}(logics, tokensReturn, SIGNER_REFERRAL);
         }
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);

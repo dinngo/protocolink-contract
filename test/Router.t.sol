@@ -2,16 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {ERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
 import {LogicSignature} from './utils/LogicSignature.sol';
 
 contract RouterTest is Test, LogicSignature {
-    using SafeERC20 for IERC20;
-
     address public constant PAUSED = address(0);
     address public constant INIT_CURRENT_USER = address(1);
     uint256 public constant BPS_NOT_USED = 0;

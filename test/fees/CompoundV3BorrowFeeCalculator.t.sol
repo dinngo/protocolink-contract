@@ -35,7 +35,6 @@ interface IComet {
 contract CompoundV3BorrowFeeCalculatorTest is Test {
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
-    address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant C_USDCV3 = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
     address public constant ANY_TO_ADDRESS = address(0);
@@ -123,14 +122,14 @@ contract CompoundV3BorrowFeeCalculatorTest is Test {
         uint256 newAmount = this.decodeBorrowAmount(logics[0]);
 
         // Execute
-        address[] memory tokensReturns = new address[](1);
-        tokensReturns[0] = baseToken;
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = baseToken;
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(userAgent));
             emit FeeCharged(baseToken, expectedFee, META_DATA);
         }
         vm.prank(user);
-        router.execute(logics, tokensReturns, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(baseToken).balanceOf(address(router)), 0);
         assertEq(IERC20(baseToken).balanceOf(address(userAgent)), 0);

@@ -97,7 +97,6 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     INonfungiblePositionManager public constant NON_FUNGIBLE_POSITION_MANAGER =
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
-    uint256 public constant BPS_BASE = 10_000;
     uint256 public constant BPS_NOT_USED = 0;
 
     address public user;

@@ -2,8 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {ERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {ERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {BalancerV2FlashLoanCallback, IBalancerV2FlashLoanCallback} from 'src/callbacks/BalancerV2FlashLoanCallback.sol';
@@ -18,8 +17,6 @@ contract BalancerV2FlashLoanCallbackTest is Test {
     IERC20 public mockERC20;
 
     // Empty arrays
-    address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -79,7 +76,7 @@ contract BalancerV2FlashLoanCallbackTest is Test {
         );
 
         // Encode execute data
-        bytes memory userData = abi.encode(logics, feesEmpty, tokensReturnEmpty);
+        bytes memory userData = abi.encode(logics);
 
         // Execute
         vm.startPrank(BALANCER_V2_VAULT);

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
@@ -50,7 +50,6 @@ interface IUniswapV2Router02 {
 
 // Test Uniswap whose Router is not ERC20-compliant token
 contract UniswapV2Test is Test, ERC20Permit2Utils {
-    using SafeERC20 for IERC20;
     using SafeCast160 for uint256;
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -65,9 +64,6 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
     uint256 public userPrivateKey;
     IRouter public router;
     IAgent public agent;
-
-    // Empty arrays
-    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');

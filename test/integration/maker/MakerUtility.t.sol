@@ -26,7 +26,6 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     address public makerUtilityDSProxy;
 
     // Empty arrays
-    address[] public tokensReturnEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
