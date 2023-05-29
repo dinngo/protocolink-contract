@@ -30,7 +30,6 @@ contract RouterHandler is Test, LogicSignature {
     // Empty arrays
     address[] public tokensReturnEmpty;
     IParam.Fee[] public feesEmpty;
-    IParam.Input[] public inputsEmpty;
     IParam.Logic[] public logicsEmpty;
 
     constructor(Router router_) {

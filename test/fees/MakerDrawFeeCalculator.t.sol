@@ -36,7 +36,6 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -72,7 +71,7 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         assertEq(IERC20(DAI_TOKEN).balanceOf(user), DRAW_DAI_AMOUNT);
 
         // Build user agent's DSProxy
-        router.execute(_logicBuildDSProxy(), new address[](0), SIGNER_REFERRAL);
+        router.execute(_logicBuildDSProxy(), tokensReturnEmpty, SIGNER_REFERRAL);
         userAgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(userAgent));
 
         vm.stopPrank();
@@ -151,10 +150,10 @@ contract MakerDrawFeeCalculatorTest is Test, MakerCommonUtils {
         (logics, ) = router.getLogicsAndMsgValueWithFee(logics, 0);
 
         // Execute
-        address[] memory tokensReturns = new address[](1);
-        tokensReturns[0] = address(NATIVE);
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = address(NATIVE);
         vm.prank(user);
-        router.execute(logics, tokensReturns, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(address(router).balance, 0);
         assertEq(address(userAgent).balance, 0);

@@ -70,7 +70,6 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -143,7 +142,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount),
             isAaveV2
         );
-        bytes memory params = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+        bytes memory params = abi.encode(flashLoanLogics);
 
         // Encode logic
         address[] memory tokens = new address[](1);
@@ -206,7 +205,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
                 isAaveV2
             );
             flashLoanLogics[1] = _logicSendNativeToken(user2, nativeAmount);
-            params = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+            params = abi.encode(flashLoanLogics);
         }
 
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -286,7 +285,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             );
             flashLoanLogics[1] = _logicSendNativeToken(user2, nativeAmount);
             flashLoanLogics[2] = logicERC20Permit2PullToken(IERC20(USDT), amount.toUint160());
-            params = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+            params = abi.encode(flashLoanLogics);
         }
 
         // Get new logics and msg.value amount
@@ -331,8 +330,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
 
         {
             // Execute
-            address[] memory tokensReturns = new address[](1);
-            tokensReturns[0] = USDT;
+            address[] memory tokensReturn = new address[](1);
+            tokensReturn[0] = USDT;
             if (expectedNativeFee > 0) {
                 vm.expectEmit(true, true, true, true, address(userAgent));
                 emit FeeCharged(NATIVE, expectedNativeFee, NATIVE_TOKEN_META_DATA);
@@ -346,7 +345,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
                 emit FeeCharged(USDC, expectedUSDCFee, V2_FLASHLOAN_META_DATA);
             }
             vm.prank(user);
-            router.execute{value: nativeNewAmount}(logics, tokensReturns, SIGNER_REFERRAL);
+            router.execute{value: nativeNewAmount}(logics, tokensReturn, SIGNER_REFERRAL);
         }
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
@@ -375,7 +374,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test, ERC20Permit2Utils {
             FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount),
             isAaveV2
         );
-        bytes memory params = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+        bytes memory params = abi.encode(flashLoanLogics);
 
         // Encode logic
         address[] memory tokens = new address[](1);

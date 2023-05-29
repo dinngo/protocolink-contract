@@ -46,10 +46,8 @@ contract AaveBorrowFeeCalculatorTest is Test {
 
     event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
 
-    address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant AAVE_V2_PROVIDER = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
     address public constant AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
-    address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant AUSDC_V2 = 0xBcca60bB61934080951369a648Fb03DF4F96263C;
     address public constant AUSDC_V3 = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
     bytes4 public constant AAVE_BORROW_SELECTOR =
@@ -71,7 +69,6 @@ contract AaveBorrowFeeCalculatorTest is Test {
     address public borrowFeeCalculator;
 
     // Empty arrays
-    address[] public tokensReturnEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -141,14 +138,14 @@ contract AaveBorrowFeeCalculatorTest is Test {
         uint256 newAmount = this.decodeBorrowAmount(logics[0]);
 
         // Execute
-        address[] memory tokensReturns = new address[](1);
-        tokensReturns[0] = collateral;
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = collateral;
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(userAgent));
             emit FeeCharged(collateral, expectedFee, V2_BORROW_META_DATA);
         }
         vm.prank(user);
-        router.execute(logics, tokensReturns, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(collateral).balanceOf(address(router)), 0);
         assertEq(IERC20(collateral).balanceOf(address(userAgent)), 0);
@@ -183,14 +180,14 @@ contract AaveBorrowFeeCalculatorTest is Test {
         uint256 newAmount = this.decodeBorrowAmount(logics[0]);
 
         // Execute
-        address[] memory tokensReturns = new address[](1);
-        tokensReturns[0] = collateral;
+        address[] memory tokensReturn = new address[](1);
+        tokensReturn[0] = collateral;
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(userAgent));
             emit FeeCharged(collateral, expectedFee, V3_BORROW_META_DATA);
         }
         vm.prank(user);
-        router.execute(logics, tokensReturns, SIGNER_REFERRAL);
+        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(collateral).balanceOf(address(router)), 0);
         assertEq(IERC20(collateral).balanceOf(address(userAgent)), 0);

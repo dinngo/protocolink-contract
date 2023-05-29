@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
@@ -16,8 +16,6 @@ interface IYVault {
 
 // Test Yearn V2 which is also an ERC20-compliant token
 contract YearnV2Test is Test, ERC20Permit2Utils {
-    using SafeERC20 for IERC20;
-
     IERC20 public constant USDT = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7); // USDT
     IYVault public constant yVault = IYVault(0x2f08119C6f07c006695E079AAFc638b8789FAf18); // yUSDT
     uint256 public constant BPS_BASE = 10_000;
@@ -27,9 +25,6 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
     uint256 public userPrivateKey;
     IRouter public router;
     IAgent public agent;
-
-    // Empty arrays
-    IParam.Input[] public inputsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');

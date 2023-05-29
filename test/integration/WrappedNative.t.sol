@@ -2,15 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IWrappedNative} from 'src/interfaces/IWrappedNative.sol';
 
 // Test wrapped native
 contract WrappedNativeTest is Test {
-    using SafeERC20 for IERC20;
-
     uint256 public constant SIGNER_REFERRAL = 1;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     IERC20 public constant WRAPPED_NATIVE = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);

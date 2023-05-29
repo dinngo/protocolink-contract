@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {ERC721Holder} from 'openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol';
 import {MockERC721} from './MockERC721.sol';
-
-pragma solidity ^0.8.0;
 
 contract MockERC721Market is ERC721Holder {
     uint256 public constant amount = 1000000;

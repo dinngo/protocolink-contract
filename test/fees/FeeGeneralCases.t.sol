@@ -47,7 +47,6 @@ contract FeeGeneralCasesTest is Test {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
 
     function setUp() external {
@@ -184,7 +183,7 @@ contract FeeGeneralCasesTest is Test {
             USDC,
             FeeCalculatorBase(flashLoanFeeCalculator).calculateAmountWithFee(amount)
         );
-        bytes memory params = abi.encode(flashLoanLogics, feesEmpty, tokensReturnEmpty);
+        bytes memory params = abi.encode(flashLoanLogics);
 
         // Encode logic
         address[] memory tokens = new address[](1);

@@ -55,16 +55,13 @@ contract AaveFlashLoanFeeCalculator is IFeeCalculator, FeeCalculatorBase {
 
         if (params.length > 0) {
             // Decode data in the flash loan
-            (IParam.Logic[] memory logics, IParam.Fee[] memory fees, address[] memory tokensReturn) = abi.decode(
-                params,
-                (IParam.Logic[], IParam.Fee[], address[])
-            );
+            IParam.Logic[] memory logics = abi.decode(params, (IParam.Logic[]));
 
             // Update logics
             logics = Router(router).getLogicsWithFee(logics);
 
             // encode
-            params = abi.encode(logics, fees, tokensReturn);
+            params = abi.encode(logics);
         }
 
         amounts = calculateAmountWithFee(amounts);
