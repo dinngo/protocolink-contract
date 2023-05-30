@@ -15,6 +15,7 @@ contract DeployBase is Script {
         // role
         address owner;
         address pauser;
+        address deployer;
         address feeCollector;
         // token
         address wrappedNative;
