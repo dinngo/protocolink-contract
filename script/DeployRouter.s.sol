@@ -8,18 +8,23 @@ import {ICREATE3Factory} from 'create3-factory/ICREATE3Factory.sol';
 
 contract DeployRouter is DeployBase {
     function _run(
-        DeployParameters memory params
-    ) internal virtual override isCREATE3FactoryAddressZero(params.create3Factory) returns (address deployedAddress) {
-        ICREATE3Factory factory = ICREATE3Factory(params.create3Factory);
-        bytes32 salt = keccak256('composable.router.router');
-        bytes memory creationCode = abi.encodePacked(
-            type(Router).creationCode,
-            abi.encode(params.wrappedNative, params.owner, params.pauser, params.feeCollector)
-        );
-        deployedAddress = factory.deploy(salt, creationCode);
-        console2.log('Router Deployed:', deployedAddress);
-
-        Router router = Router(deployedAddress);
-        console2.log('Router Owner:', router.owner());
+        address create3Factory,
+        RouterConfigs memory cfgs
+    ) internal isCREATE3FactoryAddressZero(create3Factory) returns (address deployedAddress) {
+        deployedAddress = cfgs.deployedAddress;
+        if (deployedAddress == address(0)) {
+            ICREATE3Factory factory = ICREATE3Factory(create3Factory);
+            bytes32 salt = keccak256('composable.router.router');
+            bytes memory creationCode = abi.encodePacked(
+                type(Router).creationCode,
+                abi.encode(cfgs.wrappedNative, cfgs.owner, cfgs.pauser, cfgs.feeCollector)
+            );
+            deployedAddress = factory.deploy(salt, creationCode);
+            console2.log('Router Deployed:', deployedAddress);
+            Router router = Router(deployedAddress);
+            console2.log('Router Owner:', router.owner());
+        } else {
+            console2.log('Router Exists. Skip deployment of Router:', deployedAddress);
+        }
     }
 }
