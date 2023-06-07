@@ -2,15 +2,27 @@
 pragma solidity ^0.8.0;
 
 import {console2} from 'forge-std/console2.sol';
-import {DeployBase} from './DeployBase.s.sol';
-import {Router} from 'src/Router.sol';
 import {ICREATE3Factory} from 'create3-factory/ICREATE3Factory.sol';
 
+import {Router} from 'src/Router.sol';
+import {DeployBase} from './DeployBase.s.sol';
+
 contract DeployRouter is DeployBase {
-    function _run(
-        address create3Factory,
-        RouterConfigs memory cfgs
+    struct RouterConfig {
+        address deployedAddress;
+        // deploy params
+        address wrappedNative;
+        address owner;
+        address pauser;
+        address feeCollector;
+    }
+
+    RouterConfig internal routerConfig;
+
+    function _deployRouter(
+        address create3Factory
     ) internal isCREATE3FactoryAddressZero(create3Factory) returns (address deployedAddress) {
+        RouterConfig memory cfgs = routerConfig;
         deployedAddress = cfgs.deployedAddress;
         if (deployedAddress == address(0)) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);

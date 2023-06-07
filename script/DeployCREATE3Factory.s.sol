@@ -6,9 +6,18 @@ import {CREATE3Factory} from 'create3-factory/CREATE3Factory.sol';
 import {DeployBase} from './DeployBase.s.sol';
 
 contract DeployCREATE3Factory is DeployBase {
-    function _run(Create3FactoryConfigs memory cfgs) internal returns (address deployedAddress) {
+    struct Create3FactoryConfig {
+        address deployedAddress;
+        // deploy params
+        address deployer;
+    }
+
+    Create3FactoryConfig internal create3FactoryConfig;
+
+    function _deployCreate3Factory() internal returns (address deployedAddress) {
+        Create3FactoryConfig memory cfgs = create3FactoryConfig;
         deployedAddress = cfgs.deployedAddress;
-        if ( deployedAddress == address(0)) {
+        if (deployedAddress == address(0)) {
             deployedAddress = address(new CREATE3Factory(cfgs.deployer));
             console2.log('CREATE3Factory Deployed:', deployedAddress);
         } else {

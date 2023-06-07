@@ -3,52 +3,45 @@ pragma solidity ^0.8.0;
 
 import {DeployCREATE3Factory} from './DeployCREATE3Factory.s.sol';
 import {DeployRouter} from './DeployRouter.s.sol';
-import {DeployAaveV2FlashLoanCallback} from './DeployAaveV2FlashLoanCallback.s.sol';
-import {DeployAaveV3FlashLoanCallback} from './DeployAaveV3FlashLoanCallback.s.sol';
-import {DeployBalancerV2FlashLoanCallback} from './DeployBalancerV2FlashLoanCallback.s.sol';
-
-// import {DeployMakerUtility} from './DeployMakerUtility.s.sol';
-// import {DeployAaveBorrowFeeCalculator} from './DeployAaveBorrowFeeCalculator.s.sol';
-// import {DeployAaveFlashLoanFeeCalculator} from './DeployAaveFlashLoanFeeCalculator.s.sol';
-// import {DeployCompoundV3BorrowFeeCalculator} from './DeployCompoundV3BorrowFeeCalculator.s.sol';
-// import {DeployMakerDrawFeeCalculator} from './DeployMakerDrawFeeCalculator.s.sol';
-// import {DeployNativeFeeCalculator} from './DeployNativeFeeCalculator.s.sol';
-// import {DeployPermit2FeeCalculator} from './DeployPermit2FeeCalculator.s.sol';
-// import {DeployTransferFromFeeCalculator} from './DeployTransferFromFeeCalculator.s.sol';
+import {DeployAaveV2FlashLoanCallback} from './callbacks/DeployAaveV2FlashLoanCallback.s.sol';
+import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCallback.s.sol';
+import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
+import {DeployMakerUtility} from './utilities/DeployMakerUtility.s.sol';
+import {DeployAaveBorrowFeeCalculator} from './fees/DeployAaveBorrowFeeCalculator.s.sol';
+import {DeployAaveFlashLoanFeeCalculator} from './fees/DeployAaveFlashLoanFeeCalculator.s.sol';
+import {DeployCompoundV3BorrowFeeCalculator} from './fees/DeployCompoundV3BorrowFeeCalculator.s.sol';
+import {DeployMakerDrawFeeCalculator} from './fees/DeployMakerDrawFeeCalculator.s.sol';
+import {DeployNativeFeeCalculator} from './fees/DeployNativeFeeCalculator.s.sol';
+import {DeployPermit2FeeCalculator} from './fees/DeployPermit2FeeCalculator.s.sol';
+import {DeployTransferFromFeeCalculator} from './fees/DeployTransferFromFeeCalculator.s.sol';
 
 contract DeployLocal is
     DeployCREATE3Factory,
     DeployRouter,
     DeployAaveV2FlashLoanCallback,
     DeployAaveV3FlashLoanCallback,
-    DeployBalancerV2FlashLoanCallback
-    // DeployMakerUtility,
-    // DeployAaveBorrowFeeCalculator,
-    // DeployAaveFlashLoanFeeCalculator,
-    // DeployCompoundV3BorrowFeeCalculator,
-    // DeployMakerDrawFeeCalculator,
-    // DeployNativeFeeCalculator,
-    // DeployPermit2FeeCalculator,
-    // DeployTransferFromFeeCalculator
+    DeployBalancerV2FlashLoanCallback,
+    DeployMakerUtility,
+    DeployAaveBorrowFeeCalculator,
+    DeployAaveFlashLoanFeeCalculator,
+    DeployCompoundV3BorrowFeeCalculator,
+    DeployMakerDrawFeeCalculator,
+    DeployNativeFeeCalculator,
+    DeployPermit2FeeCalculator,
+    DeployTransferFromFeeCalculator
 {
-    struct DeployConfigs {
-        Create3FactoryConfigs create3FactoryConfigs;
-        RouterConfigs routerConfigs;
-        AaveV2FlashLoanCallbackConfigs aaveV2FlashLoanCallbackConfigs;
-        AaveV3FlashLoanCallbackConfigs aaveV3FlashLoanCallbackConfigs;
-        BalancerV2FlashLoanCallbackConfigs balancerV2FlashLoanCallbackConfigs;
-    }
+    // 3rd party address
+    address internal constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+    address internal AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
 
-    DeployConfigs public cfgs;
-
-    function setUp() external /*override*/ {
-        // init value
-        Create3FactoryConfigs memory create3FactoryConfigs = Create3FactoryConfigs({
+    function setUp() external {
+        // Init value
+        create3FactoryConfig = Create3FactoryConfig({
             deployedAddress: UNDEPLOYED,
             deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
         });
 
-        RouterConfigs memory routerConfigs = RouterConfigs({
+        routerConfig = RouterConfig({
             deployedAddress: UNDEPLOYED,
             wrappedNative: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
             owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
@@ -56,66 +49,78 @@ contract DeployLocal is
             feeCollector: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
         });
 
-        AaveV2FlashLoanCallbackConfigs memory aaveV2FlashLoanCallbackConfigs = AaveV2FlashLoanCallbackConfigs({
+        aaveV2FlashLoanCallbackConfig = AaveV2FlashLoanCallbackConfig({
             deployedAddress: UNDEPLOYED,
             aaveV2Provider: 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5
         });
 
-        AaveV3FlashLoanCallbackConfigs memory aaveV3FlashLoanCallbackConfigs = AaveV3FlashLoanCallbackConfigs({
+        aaveV3FlashLoanCallbackConfig = AaveV3FlashLoanCallbackConfig({
             deployedAddress: UNDEPLOYED,
-            aaveV3Provider: 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e
+            aaveV3Provider: AAVE_V3_PROVIDER
         });
 
-        BalancerV2FlashLoanCallbackConfigs
-            memory balancerV2FlashLoanCallbackConfigs = BalancerV2FlashLoanCallbackConfigs({
-                deployedAddress: UNDEPLOYED,
-                balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8
-            });
-
-        // assign value
-        cfgs = DeployConfigs({
-            create3FactoryConfigs: create3FactoryConfigs,
-            routerConfigs: routerConfigs,
-            aaveV2FlashLoanCallbackConfigs: aaveV2FlashLoanCallbackConfigs,
-            aaveV3FlashLoanCallbackConfigs: aaveV3FlashLoanCallbackConfigs,
-            balancerV2FlashLoanCallbackConfigs: balancerV2FlashLoanCallbackConfigs
+        balancerV2FlashLoanCallbackConfig = BalancerV2FlashLoanCallbackConfig({
+            deployedAddress: UNDEPLOYED,
+            balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8
         });
+
+        makerUtilityConfig = MakerUtilityConfig({
+            deployedAddress: UNDEPLOYED,
+            proxyRegistry: 0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4,
+            cdpManager: 0x5ef30b9986345249bc32d8928B7ee64DE9435E39,
+            proxyActions: 0x82ecD135Dce65Fbc6DbdD0e4237E0AF93FFD5038,
+            daiToken: DAI,
+            jug: 0x19c0976f590D67707E62397C87829d896Dc0f1F1
+        });
+
+        aaveBorrowFeeCalculatorConfig = AaveBorrowFeeCalculatorConfig({
+            deployedAddress: UNDEPLOYED,
+            feeRate: 0,
+            aaveV3Provider: AAVE_V3_PROVIDER
+        });
+
+        aaveFlashLoanFeeCalculatorConfig = AaveFlashLoanFeeCalculatorConfig({
+            deployedAddress: UNDEPLOYED,
+            feeRate: 0,
+            aaveV3Provider: AAVE_V3_PROVIDER
+        });
+
+        compoundV3BorrowFeeCalculatorConfig = CompoundV3BorrowFeeCalculatorConfig({
+            deployedAddress: UNDEPLOYED,
+            feeRate: 0
+        });
+        makerDrawFeeCalculatorConfig = MakerDrawFeeCalculatorConfig({
+            deployedAddress: UNDEPLOYED,
+            feeRate: 0,
+            daiToken: DAI
+        });
+        nativeFeeCalculatorConfig = NativeFeeCalculatorConfig({deployedAddress: UNDEPLOYED, feeRate: 0});
+        permit2FeeCalculatorConfig = Permit2FeeCalculatorConfig({deployedAddress: UNDEPLOYED, feeRate: 0});
+        transferFromFeeCalculatorConfig = TransferFromFeeCalculatorConfig({deployedAddress: UNDEPLOYED, feeRate: 0});
     }
 
     function _run() internal override {
         // create3 factory
-        address deployedCreate3FactoryAddress = DeployCREATE3Factory._run(cfgs.create3FactoryConfigs);
+        address deployedCreate3FactoryAddress = _deployCreate3Factory();
 
         // router
-        address deployedRouterAddress = DeployRouter._run(deployedCreate3FactoryAddress, cfgs.routerConfigs);
+        address deployedRouterAddress = _deployRouter(deployedCreate3FactoryAddress);
 
         // callback
-        DeployAaveV2FlashLoanCallback._run(
-            deployedCreate3FactoryAddress,
-            deployedRouterAddress,
-            cfgs.aaveV2FlashLoanCallbackConfigs
-        );
-        DeployAaveV3FlashLoanCallback._run(
-            deployedCreate3FactoryAddress,
-            deployedRouterAddress,
-            cfgs.aaveV3FlashLoanCallbackConfigs
-        );
-        DeployBalancerV2FlashLoanCallback._run(
-            deployedCreate3FactoryAddress,
-            deployedRouterAddress,
-            cfgs.balancerV2FlashLoanCallbackConfigs
-        );
+        _deployAaveV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployAaveV3FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployBalancerV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
 
         // utility
-        // DeployMakerUtility._run(params);
+        _deployMakerUtility(deployedCreate3FactoryAddress, deployedRouterAddress);
 
         // fee
-        // DeployAaveBorrowFeeCalculator._run(params);
-        // DeployAaveFlashLoanFeeCalculator._run(params);
-        // DeployCompoundV3BorrowFeeCalculator._run(params);
-        // DeployMakerDrawFeeCalculator._run(params);
-        // DeployNativeFeeCalculator._run(params);
-        // DeployPermit2FeeCalculator._run(params);
-        // DeployTransferFromFeeCalculator._run(params);
+        _deployAaveBorrowFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployAaveFlashLoanFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployCompoundV3BorrowFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployMakerDrawFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployNativeFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployPermit2FeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployTransferFromFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
     }
 }

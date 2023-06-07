@@ -2,21 +2,31 @@
 pragma solidity ^0.8.0;
 
 import {console2} from 'forge-std/console2.sol';
-import {DeployBase} from './DeployBase.s.sol';
-import {AaveV2FlashLoanCallback} from 'src/callbacks/AaveV2FlashLoanCallback.sol';
 import {ICREATE3Factory} from 'create3-factory/ICREATE3Factory.sol';
 
+import {AaveV2FlashLoanCallback} from 'src/callbacks/AaveV2FlashLoanCallback.sol';
+import {DeployBase} from 'script/DeployBase.s.sol';
+
 contract DeployAaveV2FlashLoanCallback is DeployBase {
-    function _run(
+    struct AaveV2FlashLoanCallbackConfig {
+        address deployedAddress;
+        // deploy params
+        // address router; use value from RouterConfig.deployedAddress
+        address aaveV2Provider;
+    }
+
+    AaveV2FlashLoanCallbackConfig internal aaveV2FlashLoanCallbackConfig;
+
+    function _deployAaveV2FlashLoanCallback(
         address create3Factory,
-        address router,
-        AaveV2FlashLoanCallbackConfigs memory cfgs
+        address router
     )
         internal
         isRouterAddressZero(router)
         isCREATE3FactoryAddressZero(create3Factory)
         returns (address deployedAddress)
     {
+        AaveV2FlashLoanCallbackConfig memory cfgs = aaveV2FlashLoanCallbackConfig;
         deployedAddress = cfgs.deployedAddress;
         if (deployedAddress == address(0)) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
