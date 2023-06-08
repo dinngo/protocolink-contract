@@ -38,44 +38,31 @@ Composable Router contracts consist of the following components:
 
 `forge coverage --rpc-url https://rpc.ankr.com/eth --report summary`
 
-### Deploy All
+### Deploy Contract(s)
 
-Fill out parameters in `script/deployParameters/<network>.json`
+Fill out parameters in `script/Deploy<network>.s.sol`
+
+- This script deploys all contracts whose `deployedAddress` equals `UNDEPLOYED`.
 
 ```console
 forge script --broadcast \
 --rpc-url <RPC-URL> \
 --private-key <PRIVATE-KEY> \
---sig 'run(string)' \
-script/DeployAll.s.sol:DeployAll \
-<pathToJSON>
+--sig 'run()' \
+script/Deploy<network>.s.sol:Deploy<network> \
 ```
 
-### Deploy All and Verify All
+### Deploy and Verify
 
-Fill out parameters in `script/deployParameters/<network>.json`
+Fill out parameters in `script/Deploy<network>.s.sol`
 
 ```console
 forge script --broadcast \
 --rpc-url <RPC-URL> \
 --private-key <PRIVATE-KEY> \
---sig 'run(string)' \
-script/DeployAll.s.sol:DeployAll \
-<pathToJSON> \
+--sig 'run()' \
+script/Deploy<network>.s.sol:Deploy<network> \
 --chain-id <CHAIN-ID> \
 --etherscan-api-key <ETHERSCAN-API-KEY> \
 --verify
-```
-
-#### Deploy Single Contract
-
-Fill out parameters in `scripts/deployParameters/<network>.json`
-
-```console
-forge script --broadcast \
---rpc-url <RPC-URL> \
---private-key <PRIVATE-KEY> \
---sig 'run(string)' \
-script/Deploy<CONTRACT-NAME>.s.sol:Deploy<CONTRACT-NAME> \
-<pathToJSON>
 ```
