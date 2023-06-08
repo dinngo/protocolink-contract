@@ -27,7 +27,7 @@ abstract contract DeployAaveV2FlashLoanCallback is DeployBase {
     {
         AaveV2FlashLoanCallbackConfig memory cfg = aaveV2FlashLoanCallbackConfig;
         deployedAddress = cfg.deployedAddress;
-        if (deployedAddress == address(0)) {
+        if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
             bytes32 salt = keccak256('composable.router.aave.v2.flash.loan.callback');
             bytes memory creationCode = abi.encodePacked(

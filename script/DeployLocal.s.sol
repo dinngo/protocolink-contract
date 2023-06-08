@@ -31,8 +31,8 @@ contract DeployLocal is
     DeployTransferFromFeeCalculator
 {
     // 3rd party address
-    address internal constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-    address internal AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+    address public constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+    address public constant AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
 
     function setUp() external {
         // Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.

@@ -27,7 +27,7 @@ abstract contract DeployTransferFromFeeCalculator is DeployBase {
     {
         TransferFromFeeCalculatorConfig memory cfg = transferFromFeeCalculatorConfig;
         deployedAddress = cfg.deployedAddress;
-        if (deployedAddress == address(0)) {
+        if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
             bytes32 salt = keccak256('composable.router.transfer.from.fee.calculator');
             bytes memory creationCode = abi.encodePacked(

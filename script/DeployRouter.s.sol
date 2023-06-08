@@ -24,7 +24,7 @@ abstract contract DeployRouter is DeployBase {
     ) internal isCREATE3FactoryAddressZero(create3Factory) returns (address deployedAddress) {
         RouterConfig memory cfg = routerConfig;
         deployedAddress = cfg.deployedAddress;
-        if (deployedAddress == address(0)) {
+        if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
             bytes32 salt = keccak256('composable.router.router');
             bytes memory creationCode = abi.encodePacked(

@@ -4,18 +4,18 @@ pragma solidity ^0.8.0;
 import {Script} from 'forge-std/Script.sol';
 
 abstract contract DeployBase is Script {
-    address internal constant UNDEPLOYED = address(0);
+    address public constant UNDEPLOYED = address(0);
 
     error InvalidRouterAddress();
     error InvalidCREATE3FactoryAddress();
 
     modifier isRouterAddressZero(address router) {
-        if (router == address(0)) revert InvalidRouterAddress();
+        if (router == UNDEPLOYED) revert InvalidRouterAddress();
         _;
     }
 
     modifier isCREATE3FactoryAddressZero(address factory) {
-        if (factory == address(0)) revert InvalidCREATE3FactoryAddress();
+        if (factory == UNDEPLOYED) revert InvalidCREATE3FactoryAddress();
         _;
     }
 

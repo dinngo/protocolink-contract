@@ -27,7 +27,7 @@ abstract contract DeployPermit2FeeCalculator is DeployBase {
     {
         Permit2FeeCalculatorConfig memory cfg = permit2FeeCalculatorConfig;
         deployedAddress = cfg.deployedAddress;
-        if (deployedAddress == address(0)) {
+        if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
             bytes32 salt = keccak256('composable.router.permit2.fee.calculator');
             bytes memory creationCode = abi.encodePacked(

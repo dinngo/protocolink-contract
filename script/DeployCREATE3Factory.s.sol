@@ -17,7 +17,7 @@ abstract contract DeployCREATE3Factory is DeployBase {
     function _deployCreate3Factory() internal returns (address deployedAddress) {
         Create3FactoryConfig memory cfg = create3FactoryConfig;
         deployedAddress = cfg.deployedAddress;
-        if (deployedAddress == address(0)) {
+        if (deployedAddress == UNDEPLOYED) {
             deployedAddress = address(new CREATE3Factory(cfg.deployer));
             console2.log('CREATE3Factory Deployed:', deployedAddress);
         } else {

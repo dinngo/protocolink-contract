@@ -28,7 +28,7 @@ abstract contract DeployMakerDrawFeeCalculator is DeployBase {
     {
         MakerDrawFeeCalculatorConfig memory cfg = makerDrawFeeCalculatorConfig;
         deployedAddress = cfg.deployedAddress;
-        if (deployedAddress == address(0)) {
+        if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
             bytes32 salt = keccak256('composable.router.maker.draw.fee.calculator');
             bytes memory creationCode = abi.encodePacked(
