@@ -7,11 +7,10 @@ import {ICREATE3Factory} from 'create3-factory/ICREATE3Factory.sol';
 import {AaveV2FlashLoanCallback} from 'src/callbacks/AaveV2FlashLoanCallback.sol';
 import {DeployBase} from 'script/DeployBase.s.sol';
 
-contract DeployAaveV2FlashLoanCallback is DeployBase {
+abstract contract DeployAaveV2FlashLoanCallback is DeployBase {
     struct AaveV2FlashLoanCallbackConfig {
         address deployedAddress;
         // deploy params
-        // address router; use value from RouterConfig.deployedAddress
         address aaveV2Provider;
     }
 
@@ -26,14 +25,14 @@ contract DeployAaveV2FlashLoanCallback is DeployBase {
         isCREATE3FactoryAddressZero(create3Factory)
         returns (address deployedAddress)
     {
-        AaveV2FlashLoanCallbackConfig memory cfgs = aaveV2FlashLoanCallbackConfig;
-        deployedAddress = cfgs.deployedAddress;
+        AaveV2FlashLoanCallbackConfig memory cfg = aaveV2FlashLoanCallbackConfig;
+        deployedAddress = cfg.deployedAddress;
         if (deployedAddress == address(0)) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
             bytes32 salt = keccak256('composable.router.aave.v2.flash.loan.callback');
             bytes memory creationCode = abi.encodePacked(
                 type(AaveV2FlashLoanCallback).creationCode,
-                abi.encode(router, cfgs.aaveV2Provider)
+                abi.encode(router, cfg.aaveV2Provider)
             );
             deployedAddress = factory.deploy(salt, creationCode);
             console2.log('AaveV2FlashLoanCallback Deployed:', deployedAddress);

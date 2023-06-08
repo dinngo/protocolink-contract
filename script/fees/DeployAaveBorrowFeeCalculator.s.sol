@@ -7,11 +7,10 @@ import {ICREATE3Factory} from 'create3-factory/ICREATE3Factory.sol';
 import {AaveBorrowFeeCalculator} from 'src/fees/AaveBorrowFeeCalculator.sol';
 import {DeployBase} from 'script/DeployBase.s.sol';
 
-contract DeployAaveBorrowFeeCalculator is DeployBase {
+abstract contract DeployAaveBorrowFeeCalculator is DeployBase {
     struct AaveBorrowFeeCalculatorConfig {
         address deployedAddress;
         // deploy params
-        // address router; use value from deployedRouterAddress
         uint256 feeRate;
         address aaveV3Provider;
     }
@@ -27,14 +26,14 @@ contract DeployAaveBorrowFeeCalculator is DeployBase {
         isCREATE3FactoryAddressZero(create3Factory)
         returns (address deployedAddress)
     {
-        AaveBorrowFeeCalculatorConfig memory cfgs = aaveBorrowFeeCalculatorConfig;
-        deployedAddress = cfgs.deployedAddress;
+        AaveBorrowFeeCalculatorConfig memory cfg = aaveBorrowFeeCalculatorConfig;
+        deployedAddress = cfg.deployedAddress;
         if (deployedAddress == address(0)) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
             bytes32 salt = keccak256('composable.router.aave.borrow.fee.calculator');
             bytes memory creationCode = abi.encodePacked(
                 type(AaveBorrowFeeCalculator).creationCode,
-                abi.encode(router, cfgs.feeRate, cfgs.aaveV3Provider)
+                abi.encode(router, cfg.feeRate, cfg.aaveV3Provider)
             );
             deployedAddress = factory.deploy(salt, creationCode);
             console2.log('AaveBorrowFeeCalculator Deployed:', deployedAddress);

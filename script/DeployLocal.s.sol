@@ -35,7 +35,7 @@ contract DeployLocal is
     address internal AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
 
     function setUp() external {
-        // Init value
+        // Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
         create3FactoryConfig = Create3FactoryConfig({
             deployedAddress: UNDEPLOYED,
             deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266

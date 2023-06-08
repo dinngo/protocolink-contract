@@ -49,7 +49,7 @@ forge script --broadcast \
 --rpc-url <RPC-URL> \
 --private-key <PRIVATE-KEY> \
 --sig 'run()' \
-script/Deploy<network>.s.sol \
+script/Deploy<network>.s.sol:Deploy<network> \
 ```
 
 ### Deploy and Verify
@@ -61,7 +61,7 @@ forge script --broadcast \
 --rpc-url <RPC-URL> \
 --private-key <PRIVATE-KEY> \
 --sig 'run()' \
-script/Deploy<network>.s.sol \
+script/Deploy<network>.s.sol:Deploy<network> \
 --chain-id <CHAIN-ID> \
 --etherscan-api-key <ETHERSCAN-API-KEY> \
 --verify
