@@ -11,7 +11,7 @@ import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
 
-/// @title Entry point for Composable Router
+/// @title Entry point for Protocolink
 contract Router is IRouter, EIP712, FeeGenerator {
     using SafeERC20 for IERC20;
     using LogicHash for IParam.LogicBatch;
@@ -59,7 +59,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         address owner_,
         address pauser_,
         address feeCollector_
-    ) EIP712('Composable Router', '1') {
+    ) EIP712('Protocolink', '1') {
         currentUser = _INIT_CURRENT_USER;
         agentImplementation = address(new AgentImplementation(wrappedNative));
         setPauser(pauser_);
@@ -74,7 +74,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @notice Get domain separator used for EIP-712
-    /// @return The domain separator of Composable Router
+    /// @return The domain separator of Protocolink
     function domainSeparator() external view returns (bytes32) {
         return _domainSeparatorV4();
     }

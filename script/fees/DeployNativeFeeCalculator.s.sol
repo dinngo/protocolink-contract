@@ -29,7 +29,7 @@ abstract contract DeployNativeFeeCalculator is DeployBase {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('composable.router.native.fee.calculator');
+            bytes32 salt = keccak256('protocolink.native.fee.calculator');
             bytes memory creationCode = abi.encodePacked(
                 type(NativeFeeCalculator).creationCode,
                 abi.encode(router, cfg.feeRate)

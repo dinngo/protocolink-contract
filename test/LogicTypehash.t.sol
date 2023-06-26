@@ -24,17 +24,17 @@ contract LogicTypehash is Test, LogicSignature {
         bytes32 typeHash = keccak256(
             'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
         );
-        bytes32 nameHash = keccak256('Composable Router');
+        bytes32 nameHash = keccak256('Protocolink');
         bytes32 versionHash = keccak256('1');
         return keccak256(abi.encode(typeHash, nameHash, versionHash, chainId, verifyingContract));
     }
 
     function testLogicBatchTypehash() external {
         // Signed a logicBatch using metamask to obtain an external sig
-        // https://github.com/dinngo/test-dapp/tree/for-composable-router-contract
-        bytes32 r = 0x303e7dc340515bad0190aa46a9a8091b0bec1c179bc74020eb84cc3f3f0a5db9;
-        bytes32 s = 0x5e1edd2e87dbe37a242f58d05de72018fb968dbe83f6dad1a3aac3ebafa93ab2;
-        uint8 v = 0x1c;
+        // https://github.com/dinngo/test-dapp/tree/for-protocolink-contract
+        bytes32 r = 0x751bae6d4ca977f4dcc4315a2ae1cf3d9c1fcf1db4827e320479035141776aaf;
+        bytes32 s = 0x37889effa9a20dabfc1ebb9199c19f12346d519a5893e4046e798a32cb18980d;
+        uint8 v = 0x1b;
         bytes memory sig = bytes.concat(r, s, bytes1(v));
 
         // Create the logicBatch with the same parameters as above
