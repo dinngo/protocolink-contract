@@ -11,7 +11,7 @@ Protocolink is a router system proficient in processing ERC20, NFT, and lending 
 The flexibility of Protocolink comes from its protocol-agnostic nature, with all protocol-related code defined in the below repos and outside of contracts:
 
 - https://github.com/dinngo/protocolink-logics
-- https://github.com/dinngo/protocolink-sdk
+- https://github.com/dinngo/protocolink-js-sdk
 
 ## Contract
 
