@@ -1,14 +1,14 @@
 {
-  "name": "@furucombo/composable-router-contract",
+  "name": "@protocolink/contract",
   "license": "GPL-3.0-or-later",
   "version": "0.1.0",
-  "description": "Composable Router Contract",
+  "description": "Protocolink Contract",
   "files": [
     "src/**/*.sol"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/dinngo/composable-router-contract"
+    "url": "https://github.com/dinngo/protocolink-contract"
   },
   "devDependencies": {
     "prettier": "2.8.4",

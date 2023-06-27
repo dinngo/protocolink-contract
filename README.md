@@ -1,22 +1,21 @@
-# Composable Router Contract
+# Protocolink Contract
 
-[![test](https://github.com/dinngo/composable-router-contract/actions/workflows/test.yml/badge.svg)](https://github.com/dinngo/composable-router-contract/actions/workflows/test.yml)
+[![test](https://github.com/dinngo/protocolink-contract/actions/workflows/test.yml/badge.svg)](https://github.com/dinngo/protocolink-contract/actions/workflows/test.yml)
 
 > This contract is still in the testing phase and has not been audited. Please do not use it in production.
 
 ## Overview
 
-Composable Router is a router system proficient in processing ERC20, NFT, and lending positions, providing users and developers greater flexibility when creating transactions across different protocols.
+Protocolink is a router system proficient in processing ERC20, NFT, and lending positions, providing users and developers greater flexibility when creating transactions across different protocols.
 
-The flexibility of Composable Router comes from its protocol-agnostic nature, with all protocol-related code defined in the below repos and outside of contracts:
+The flexibility of Protocolink comes from its protocol-agnostic nature, with all protocol-related code defined in the below repos and outside of contracts:
 
-- https://github.com/dinngo/composable-router-logics
-- https://github.com/dinngo/composable-router-sdk
-- https://github.com/dinngo/composable-router-api-sdk
+- https://github.com/dinngo/protocolink-logics
+- https://github.com/dinngo/protocolink-js-sdk
 
 ## Contract
 
-Composable Router contracts consist of the following components:
+Protocolink contracts consist of the following components:
 
 - `Router`: The single entry point for users to interact with when executing transactions. `Router` forwards user transactions to respective `Agents`.
 - `Agent`: The execution unit of user transactions. The token approvals are securely held since one `Agent` is exclusive to one user only.

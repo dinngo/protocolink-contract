@@ -29,7 +29,7 @@ abstract contract DeployCompoundV3BorrowFeeCalculator is DeployBase {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('composable.router.compound.v3.borrow.fee.calculator');
+            bytes32 salt = keccak256('protocolink.compound.v3.borrow.fee.calculator');
             bytes memory creationCode = abi.encodePacked(
                 type(CompoundV3BorrowFeeCalculator).creationCode,
                 abi.encode(router, cfg.feeRate)
