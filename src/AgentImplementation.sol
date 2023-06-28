@@ -109,6 +109,8 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         bool shouldChargeFeeByLogic = (callbackWithCharge & _CHARGE_MASK) != bytes32(0);
 
         // Reset immediately to prevent reentrancy
+        // If reentrancy is not blocked, an attacker could manipulate the callback contract to compel agent to execute
+        // malicious logic, such as transferring funds from agents and users.
         _callbackWithCharge = _INIT_CALLBACK_WITH_CHARGE;
 
         // Execute logics with the charge fee flag

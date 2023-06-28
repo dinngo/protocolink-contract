@@ -18,12 +18,4 @@ library ApproveHelper {
             }
         }
     }
-
-    function _approveZero(address token, address to) internal {
-        if (IERC20Usdt(token).allowance(address(this), to) > 0) {
-            try IERC20Usdt(token).approve(to, 0) {} catch {
-                IERC20Usdt(token).approve(to, 1);
-            }
-        }
-    }
 }

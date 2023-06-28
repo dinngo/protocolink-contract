@@ -41,6 +41,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @notice Address for invoking pause
     address public pauser;
 
+    /// @dev Modifier for setting transient `currentUser` address and blocking reentrancy.
     modifier whenReady() {
         if (currentUser != _INIT_CURRENT_USER) revert NotReady();
         currentUser = msg.sender;
@@ -48,6 +49,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         currentUser = _INIT_CURRENT_USER;
     }
 
+    /// @dev Modifier for checking if a caller has the privilege to pause/unpause this contract
     modifier onlyPauser() {
         if (msg.sender != pauser) revert InvalidPauser();
         _;
@@ -176,6 +178,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @notice Execute arbitrary logics through the current user's agent using a signer's signature. Creates an agent
     ///         for users if not created. The fees in logicBatch are off-chain encoded, instead of being calculated by
     ///         the FeeGenerator contract.
+    /// @dev Allow whitelisted signers to use custom fee rules and permit the reuse of the signature until the deadline
     /// @param logicBatch A struct containing logics, fees and deadline, signed by a signer using EIP-712
     /// @param signer The signer address
     /// @param signature The signer's signature bytes
