@@ -1,4 +1,0 @@
-forge-std/=lib/forge-std/src/
-openzeppelin-contracts/=lib/openzeppelin-contracts/
-permit2/=lib/permit2/src/
-create3-factory/=lib/create3-factory/src/

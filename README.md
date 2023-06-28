@@ -1,4 +1,4 @@
-# Protocolink Contract
+# Protocolink Contract on zkSync
 
 [![test](https://github.com/dinngo/protocolink-contract/actions/workflows/test.yml/badge.svg)](https://github.com/dinngo/protocolink-contract/actions/workflows/test.yml)
 
@@ -12,6 +12,13 @@ The flexibility of Protocolink comes from its protocol-agnostic nature, with all
 
 - https://github.com/dinngo/protocolink-logics
 - https://github.com/dinngo/protocolink-js-sdk
+
+## Project structure
+
+- `/contracts`: smart contracts.
+- `/deploy`: deployment and contract interaction scripts.
+- `/test`: test files
+- `hardhat.config.ts`: configuration file.
 
 ## Contract
 
@@ -27,41 +34,38 @@ Protocolink contracts consist of the following components:
 
 ### Build
 
-`forge build`
+`yarn compile`
 
 ### Test
 
-`forge test --fork-url https://cloudflare-eth.com -vvv`
-
-### Coverage
-
-`forge coverage --rpc-url https://rpc.ankr.com/eth --report summary`
-
-### Deploy Contract(s)
-
-Fill out parameters in `script/Deploy<network>.s.sol`
-
-- This script deploys all contracts whose `deployedAddress` equals `UNDEPLOYED`.
-
-```console
-forge script --broadcast \
---rpc-url <RPC-URL> \
---private-key <PRIVATE-KEY> \
---sig 'run()' \
-script/Deploy<network>.s.sol:Deploy<network> \
-```
+`yarn test`
 
 ### Deploy and Verify
 
-Fill out parameters in `script/Deploy<network>.s.sol`
+Fill out parameters in `/deploy/deploy-router.ts`
 
-```console
-forge script --broadcast \
---rpc-url <RPC-URL> \
---private-key <PRIVATE-KEY> \
---sig 'run()' \
-script/Deploy<network>.s.sol:Deploy<network> \
---chain-id <CHAIN-ID> \
---etherscan-api-key <ETHERSCAN-API-KEY> \
---verify
+`yarn run deploy` will execute the deployment script `/deploy/deploy-router.ts`. Requires [environment variable setup](#environment-variables).
+
+### Environment variables
+
+In order to prevent users to leak private keys, this project includes the `dotenv` package which is used to load environment variables. It's used to load the wallet private key, required to run the deploy script.
+
+To use it, rename `.env.example` to `.env` and enter your private key.
+
 ```
+WALLET_PRIVATE_KEY=123cde574ccff....
+```
+
+### Local testing
+
+In order to run test, you need to start the zkSync local environment. Please check [this section of the docs](https://v2-docs.zksync.io/api/hardhat/testing.html#prerequisites) which contains all the details.
+
+If you do not start the zkSync local environment, the tests will fail with error `Error: could not detect network (event="noNetwork", code=NETWORK_ERROR, version=providers/5.7.2)`
+
+## Official Links
+
+- [Website](https://zksync.io/)
+- [Documentation](https://v2-docs.zksync.io/dev/)
+- [GitHub](https://github.com/matter-labs)
+- [Twitter](https://twitter.com/zksync)
+- [Discord](https://discord.gg/nMaPGrDDwk)
