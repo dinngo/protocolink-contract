@@ -42,7 +42,6 @@ contract Router is IRouter, EIP712, FeeGenerator {
     address public pauser;
 
     /// @dev Modifier for setting transient `currentUser` address and blocking reentrancy.
-    ///      If reentrancy is not blocked, malicious contracts could transfer funds from agents and users
     modifier whenReady() {
         if (currentUser != _INIT_CURRENT_USER) revert NotReady();
         currentUser = msg.sender;
