@@ -39,4 +39,18 @@ interface IParam {
         WRAP_BEFORE, // Wrap native before calling `Logic.to`
         UNWRAP_AFTER // Unwrap native after calling `Logic.to`
     }
+
+    /// @notice Delegation details of a delegatee approval to execute on a user's behalf
+    struct DelegationDetails {
+        address delegatee;
+        uint128 expiry;
+        uint128 nonce;
+        uint256 deadline;
+    }
+
+    /// @notice The delegation information to be saved in storage
+    struct PackedDelegation {
+        uint128 expiry;
+        uint128 nonce;
+    }
 }

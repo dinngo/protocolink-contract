@@ -9,6 +9,8 @@ interface IRouter {
 
     event SignerRemoved(address indexed signer);
 
+    event Delegated(address indexed delegator, address indexed delegatee, uint128 expiry);
+
     event FeeCollectorSet(address indexed feeCollector_);
 
     event PauserSet(address indexed pauser);
@@ -20,6 +22,8 @@ interface IRouter {
     event Execute(address indexed user, address indexed agent, uint256 indexed referralCode);
 
     event AgentCreated(address indexed agent, address indexed user);
+
+    event NonceInvalidation(address indexed user, address indexed delegatee, uint128 newNonce, uint128 oldNonce);
 
     error NotReady();
 
@@ -39,11 +43,19 @@ interface IRouter {
 
     error InvalidSignature();
 
+    error InvalidDelegatee();
+
+    error InvalidNonce();
+
     error AgentAlreadyCreated();
+
+    error ExcessiveInvalidation();
 
     function agentImplementation() external view returns (address);
 
     function agents(address user) external view returns (IAgent);
+
+    function delegations(address user, address delegatee) external view returns (uint128 expiry, uint128 nonce);
 
     function signers(address signer) external view returns (bool);
 
@@ -60,6 +72,8 @@ interface IRouter {
     function getAgent(address user) external view returns (address);
 
     function getCurrentUserAgent() external view returns (address, address);
+
+    function isValidDelegateeFor(address user) external view returns (bool);
 
     function calcAgent(address user) external view returns (address);
 
@@ -83,7 +97,23 @@ interface IRouter {
         uint256 referralCode
     ) external payable;
 
+    function executeFor(
+        address user,
+        IParam.Logic[] calldata logics,
+        address[] calldata tokensReturn,
+        uint256 referralCode
+    ) external payable;
+
     function executeWithSignerFee(
+        IParam.LogicBatch calldata logicBatch,
+        address signer,
+        bytes calldata signature,
+        address[] calldata tokensReturn,
+        uint256 referralCode
+    ) external payable;
+
+    function executeForWithSignerFee(
+        address user,
         IParam.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
@@ -94,4 +124,16 @@ interface IRouter {
     function newAgent() external returns (address);
 
     function newAgent(address user) external returns (address);
+
+    function allow(address delegatee, uint128 expiry) external;
+
+    function allowBySig(
+        IParam.DelegationDetails calldata details,
+        address delegator,
+        bytes calldata signature
+    ) external;
+
+    function disallow(address delegatee) external;
+
+    function invalidateDelegationNonces(address delegatee, uint128 newNonce) external;
 }

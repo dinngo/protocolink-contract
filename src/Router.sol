@@ -10,11 +10,15 @@ import {FeeGenerator} from './fees/FeeGenerator.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
+import {Delegation} from './libraries/Delegation.sol';
+import {DelegationHash} from './libraries/DelegationHash.sol';
 
 /// @title Entry point for Protocolink
 contract Router is IRouter, EIP712, FeeGenerator {
     using SafeERC20 for IERC20;
     using LogicHash for IParam.LogicBatch;
+    using Delegation for IParam.PackedDelegation;
+    using DelegationHash for IParam.DelegationDetails;
     using SignatureChecker for address;
 
     /// @dev Flag for identifying the paused state used in `currentUser` for reducing cold read gas cost
@@ -29,6 +33,9 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @notice Mapping for recording exclusive agent contract to each user
     mapping(address user => IAgent agent) public agents;
 
+    /// @notice Mapping for user with each delegatee and expiry
+    mapping(address user => mapping(address delegatee => IParam.PackedDelegation delegation)) public delegations;
+
     /// @notice Mapping for recording valid signers
     mapping(address signer => bool valid) public signers;
 
@@ -42,9 +49,9 @@ contract Router is IRouter, EIP712, FeeGenerator {
     address public pauser;
 
     /// @dev Modifier for setting transient `currentUser` address and blocking reentrancy.
-    modifier whenReady() {
+    modifier whenReady(address user) {
         if (currentUser != _INIT_CURRENT_USER) revert NotReady();
-        currentUser = msg.sender;
+        currentUser = user;
         _;
         currentUser = _INIT_CURRENT_USER;
     }
@@ -94,6 +101,13 @@ contract Router is IRouter, EIP712, FeeGenerator {
     function getCurrentUserAgent() external view returns (address, address) {
         address user = currentUser;
         return (user, address(agents[user]));
+    }
+
+    /// @notice Check if the sender is a valid delegatee
+    /// @param user The delegator of the sender
+    /// @return Valid or not
+    function isValidDelegateeFor(address user) public view returns (bool) {
+        return block.timestamp <= uint256(delegations[user][msg.sender].expiry);
     }
 
     /// @notice Calculate agent address for a user using the CREATE2 formula
@@ -153,7 +167,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         emit Unpaused();
     }
 
-    /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for users if not created.
+    /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for user if not created.
     ///         Fees are charged in the user's agent based on the scenarios defined in the FeeGenerator contract, which
     ///         calculates fees by logics and msg.value.
     /// @param logics Array of logics to be executed
@@ -163,8 +177,33 @@ contract Router is IRouter, EIP712, FeeGenerator {
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
-    ) external payable whenReady {
-        address user = currentUser;
+    ) external payable whenReady(msg.sender) {
+        _execute(msg.sender, logics, tokensReturn, referralCode);
+    }
+
+    /// @notice Execute arbitrary logics through the given user's agent. Creates an agent for user if not created.
+    ///         Fees are charged in the user's agent based on the scenarios defined in the FeeGenerator contract, which
+    ///         calculates fees by logics and msg.value.
+    /// @param user The user address
+    /// @param logics Array of logics to be executed
+    /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
+    /// @param referralCode Referral code
+    function executeFor(
+        address user,
+        IParam.Logic[] calldata logics,
+        address[] calldata tokensReturn,
+        uint256 referralCode
+    ) external payable whenReady(user) {
+        if (!isValidDelegateeFor(user)) revert InvalidDelegatee();
+        _execute(user, logics, tokensReturn, referralCode);
+    }
+
+    function _execute(
+        address user,
+        IParam.Logic[] calldata logics,
+        address[] calldata tokensReturn,
+        uint256 referralCode
+    ) internal {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
@@ -176,7 +215,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @notice Execute arbitrary logics through the current user's agent using a signer's signature. Creates an agent
-    ///         for users if not created. The fees in logicBatch are off-chain encoded, instead of being calculated by
+    ///         for user if not created. The fees in logicBatch are off-chain encoded, instead of being calculated by
     ///         the FeeGenerator contract.
     /// @dev Allow whitelisted signers to use custom fee rules and permit the reuse of the signature until the deadline
     /// @param logicBatch A struct containing logics, fees and deadline, signed by a signer using EIP-712
@@ -190,14 +229,52 @@ contract Router is IRouter, EIP712, FeeGenerator {
         bytes calldata signature,
         address[] calldata tokensReturn,
         uint256 referralCode
-    ) external payable whenReady {
+    ) external payable whenReady(msg.sender) {
+        _verifySignerFee(logicBatch, signer, signature);
+        _executeWithSignerFee(msg.sender, logicBatch, tokensReturn, referralCode);
+    }
+
+    /// @notice Execute arbitrary logics through the given user's agent using a signer's signature. Creates an agent
+    ///         for user if not created. The fees in logicBatch are off-chain encoded, instead of being calculated by
+    ///         the FeeGenerator contract.
+    /// @dev Allow whitelisted signers to use custom fee rules and permit the reuse of the signature until the deadline
+    /// @param user The user address
+    /// @param logicBatch A struct containing logics, fees and deadline, signed by a signer using EIP-712
+    /// @param signer The signer address
+    /// @param signature The signer's signature bytes
+    /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
+    /// @param referralCode Referral code
+    function executeForWithSignerFee(
+        address user,
+        IParam.LogicBatch calldata logicBatch,
+        address signer,
+        bytes calldata signature,
+        address[] calldata tokensReturn,
+        uint256 referralCode
+    ) external payable whenReady(user) {
+        if (!isValidDelegateeFor(user)) revert InvalidDelegatee();
+        _verifySignerFee(logicBatch, signer, signature);
+        _executeWithSignerFee(user, logicBatch, tokensReturn, referralCode);
+    }
+
+    function _verifySignerFee(
+        IParam.LogicBatch calldata logicBatch,
+        address signer,
+        bytes calldata signature
+    ) internal view {
         // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
         if (!signers[signer]) revert InvalidSigner(signer);
         if (!signer.isValidSignatureNow(_hashTypedDataV4(logicBatch._hash()), signature)) revert InvalidSignature();
+    }
 
-        address user = currentUser;
+    function _executeWithSignerFee(
+        address user,
+        IParam.LogicBatch calldata logicBatch,
+        address[] calldata tokensReturn,
+        uint256 referralCode
+    ) internal {
         IAgent agent = agents[user];
 
         if (address(agent) == address(0)) {
@@ -230,6 +307,59 @@ contract Router is IRouter, EIP712, FeeGenerator {
         agents[user] = agent;
         emit AgentCreated(address(agent), user);
         return address(agent);
+    }
+
+    /// @notice Allow another address to execute on user's behalf
+    /// @param delegatee The address to be delegated
+    /// @param expiry The expiry of the delegation
+    function allow(address delegatee, uint128 expiry) public {
+        delegations[msg.sender][delegatee].expiry = expiry;
+        emit Delegated(msg.sender, delegatee, expiry);
+    }
+
+    /// @notice Set delegation information via signature
+    /// @param details The delegation details to be signed by a delegator using EIP-712
+    /// @param delegator The delegator address
+    /// @param signature The delegator's signature bytes
+    function allowBySig(
+        IParam.DelegationDetails calldata details,
+        address delegator,
+        bytes calldata signature
+    ) external {
+        address delegatee = details.delegatee;
+        uint128 expiry = details.expiry;
+        uint128 nonce = details.nonce;
+        uint256 deadline = details.deadline;
+        // Verify deadline, signature and nonce
+        if (block.timestamp > deadline) revert SignatureExpired(deadline);
+        if (!delegator.isValidSignatureNow(_hashTypedDataV4(details._hash()), signature)) revert InvalidSignature();
+        IParam.PackedDelegation storage delegation = delegations[delegator][delegatee];
+        if (delegation.nonce != nonce) revert InvalidNonce();
+        delegation.updateAll(expiry, nonce);
+        emit Delegated(delegator, delegatee, expiry);
+    }
+
+    /// @notice Disallow another address to execute on user's behalf
+    /// @param delegatee The address to be disallowed
+    function disallow(address delegatee) external {
+        allow(delegatee, 0);
+    }
+
+    /// @notice Invalidate nonces for a delegatee
+    /// @param delegatee The delegatee to invalidate nonces for
+    /// @param newNonce The new nonce to set. Invalidates all nonces less than it
+    /// @dev Can't invalidate more than 2**16 nonces per transaction
+    function invalidateDelegationNonces(address delegatee, uint128 newNonce) external {
+        uint128 oldNonce = delegations[msg.sender][delegatee].nonce;
+        if (newNonce <= oldNonce) revert InvalidNonce();
+        // Limit the amount of nonces that can be invalidated in one transaction.
+        unchecked {
+            uint128 delta = newNonce - oldNonce;
+            if (delta > type(uint16).max) revert ExcessiveInvalidation();
+        }
+
+        delegations[msg.sender][delegatee].nonce = newNonce;
+        emit NonceInvalidation(msg.sender, delegatee, newNonce, oldNonce);
     }
 
     /// @notice Set the fee collector address that collects fees from each user's agent by owner
