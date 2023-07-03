@@ -26,6 +26,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @notice Immutable implementation contract for all users' agents
     address public immutable agentImplementation;
     bytes32 public immutable agentBytecodeHash;
+    bytes32 public immutable constructorInputHash;
 
     /// @notice Mapping for recording exclusive agent contract to each user
     mapping(address user => IAgent agent) public agents;
@@ -67,6 +68,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         currentUser = _INIT_CURRENT_USER;
         agentImplementation = address(new AgentImplementation(wrappedNative));
         agentBytecodeHash = agentBytecodeHash_;
+        constructorInputHash = keccak256(abi.encode(agentImplementation));
         setPauser(pauser_);
         setFeeCollector(feeCollector_);
         transferOwnership(owner_);
@@ -104,8 +106,6 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @return The calculated agent address for the user
     function calcAgent(address user) external view returns (address) {
         // https://github.com/matter-labs/v2-testnet-contracts/blob/main/l2/contracts/L2ContractHelper.sol
-        bytes32 constructorInputHash = keccak256(abi.encode(agentImplementation));
-
         bytes32 hash = keccak256(
             bytes.concat(keccak256("zksyncCreate2"), bytes32(uint256(uint160(address(this)))), bytes32(bytes20(user)), agentBytecodeHash, constructorInputHash)
         );

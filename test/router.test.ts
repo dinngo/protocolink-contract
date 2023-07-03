@@ -105,6 +105,7 @@ describe('Router', function () {
       const salt = rightPad(wallet.address.toString(), 64, '0'); // Turn wallet address to bytes32
       const inputBytecode = abiCoder.encode(['address'], [await router.agentImplementation()]);
       const newAgentAddr = utils.create2Address(router.address, utils.hashBytecode(agentBytecode), salt, inputBytecode);
+      // TODO: expect returned new agent address is the same as the returned address from router.getAgent
       expect(await router.getAgent(wallet.address)).to.be.eq(newAgentAddr);
     });
 
