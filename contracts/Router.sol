@@ -61,7 +61,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
         address wrappedNative,
         address owner_,
         address pauser_,
-        address feeCollector_
+        address feeCollector_,
+        bytes32 agentBytecodeHash_
     ) EIP712('Protocolink', '1') {
         currentUser = _INIT_CURRENT_USER;
         agentImplementation = address(new AgentImplementation(wrappedNative));
