@@ -107,7 +107,13 @@ contract Router is IRouter, EIP712, FeeGenerator {
     function calcAgent(address user) external view returns (address) {
         // https://github.com/matter-labs/v2-testnet-contracts/blob/main/l2/contracts/L2ContractHelper.sol
         bytes32 hash = keccak256(
-            bytes.concat(keccak256("zksyncCreate2"), bytes32(uint256(uint160(address(this)))), bytes32(bytes20(user)), agentBytecodeHash, constructorInputHash)
+            bytes.concat(
+                keccak256('zksyncCreate2'),
+                bytes32(uint256(uint160(address(this)))),
+                bytes32(bytes20(user)),
+                agentBytecodeHash,
+                constructorInputHash
+            )
         );
 
         return address(uint160(uint256(hash)));

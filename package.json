@@ -11,6 +11,8 @@
     "url": "https://github.com/dinngo/protocolink-contract"
   },
   "devDependencies": {
+    "prettier": "2.8.4",
+    "prettier-plugin-solidity": "1.1.3",
     "@matterlabs/hardhat-zksync-deploy": "^0.6.3",
     "@matterlabs/hardhat-zksync-solc": "^0.3.17",
     "@matterlabs/hardhat-zksync-verify": "^0.1.8",
