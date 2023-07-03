@@ -21,7 +21,7 @@ contract Agent {
     }
 
     /// @notice Delegate the call to `_implementation`
-    /// @dev Referenced from https://github.com/OpenZeppelin/@openzeppelin/blob/v4.8.1/contracts/proxy/Proxy.sol#L22
+    /// @dev Referenced from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.8.1/contracts/proxy/Proxy.sol#L22
     /// @param implementation The address of the implementation contract that this agent delegates calls to
     function _delegate(address implementation) internal {
         assembly {

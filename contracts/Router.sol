@@ -152,8 +152,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
     ///         Fees are charged in the user's agent based on the scenarios defined in the FeeGenerator contract, which
     ///         calculates fees by logics and msg.value.
     /// @param logics Array of logics to be executed
-    // @param tokensReturn Array of ERC-20 tokens to be returned to the current user
-    // @param referralCode Referral code
+    /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
+    /// @param referralCode Referral code
     function execute(
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,

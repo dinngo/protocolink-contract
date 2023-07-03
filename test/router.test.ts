@@ -112,7 +112,7 @@ describe('Router', function () {
       const user = wallet.address;
       const calcAgent = await router.calcAgent(user);
       // use sendTransaction here due to error msg: newAgent is not a function
-      const calldata = abi.simpleEncode('newAgent()');
+      const calldata = abi.simpleEncode('newAgent(address)', user);
       const receipt = await wallet.sendTransaction({ to: router.address, data: calldata });
       await receipt.wait();
 

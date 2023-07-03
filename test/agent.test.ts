@@ -163,7 +163,7 @@ describe('Agent', function () {
       expect((await mockWrappedNative.balanceOf(agent)).toString()).to.be.eq(amount.toString());
     });
 
-    it('wrap before with token', async function () {
+    it('wrap before replace amounts', async function () {
       const amount = 100000;
       const bps = 10;
       const input0 = {
@@ -196,6 +196,47 @@ describe('Agent', function () {
 
       // const agent = await router.getAgent(user);
       expect((await mockWrappedNative.balanceOf(agent)).toString()).to.be.eq(amount.toString());
+    });
+
+    it('wrap before with token', async function () {
+      const user = wallet.address;
+      const amount1 = 100000;
+      const amount2 = 100000;
+
+      const receiptMint = await mockERC20.mint(agent, amount2);
+      await receiptMint.wait();
+
+      // The inputs contain native and ERC-20
+      const input0 = {
+        token: mockWrappedNative.address,
+        balanceBps: BPS_NOT_USED,
+        amountOrOffset: amount1,
+      };
+      const input1 = {
+        token: mockERC20.address,
+        balanceBps: BPS_NOT_USED,
+        amountOrOffset: amount2,
+      };
+
+      const inputs = [input0, input1];
+      const logic0 = {
+        to: mockTo.address,
+        data: [],
+        inputs: inputs,
+        wrapMode: WRAP_BEFORE,
+        approveTo: ZERO_ADDRESS,
+        callback: ZERO_ADDRESS,
+      };
+      const logics = [logic0];
+      const receipt = await router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL, {
+        from: user,
+        value: amount1,
+      });
+      await receipt.wait();
+
+      // const agent = await router.getAgent(user);
+      expect((await mockWrappedNative.balanceOf(agent)).toString()).to.be.eq(amount1.toString());
+      expect((await mockERC20.balanceOf(agent)).toString()).to.be.eq(amount2.toString());
     });
 
     it('unwrap after', async function () {
@@ -391,7 +432,7 @@ describe('Agent', function () {
       );
     });
 
-    it('should revert: reset callback with charge', async function () {
+    it('should revert: unreset callback with charge', async function () {
       const user = wallet.address;
 
       const logic0 = {
