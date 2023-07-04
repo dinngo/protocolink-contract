@@ -30,7 +30,7 @@ abstract contract DeployAaveFlashLoanFeeCalculator is DeployBase {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('protocolink.aave.flash.loan.fee.calculator');
+            bytes32 salt = keccak256('protocolink.aave.flash.loan.fee.calculator.v1');
             bytes memory creationCode = abi.encodePacked(
                 type(AaveFlashLoanFeeCalculator).creationCode,
                 abi.encode(router, cfg.feeRate, cfg.aaveV3Provider)

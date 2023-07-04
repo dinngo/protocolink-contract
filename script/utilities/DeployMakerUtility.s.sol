@@ -33,7 +33,7 @@ abstract contract DeployMakerUtility is DeployBase {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('protocolink.maker.utility');
+            bytes32 salt = keccak256('protocolink.maker.utility.v1');
             bytes memory creationCode = abi.encodePacked(
                 type(MakerUtility).creationCode,
                 abi.encode(router, cfg.proxyRegistry, cfg.cdpManager, cfg.proxyActions, cfg.daiToken, cfg.jug)

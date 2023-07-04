@@ -30,7 +30,7 @@ abstract contract DeployAaveBorrowFeeCalculator is DeployBase {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('protocolink.aave.borrow.fee.calculator');
+            bytes32 salt = keccak256('protocolink.aave.borrow.fee.calculator.v1');
             bytes memory creationCode = abi.encodePacked(
                 type(AaveBorrowFeeCalculator).creationCode,
                 abi.encode(router, cfg.feeRate, cfg.aaveV3Provider)
