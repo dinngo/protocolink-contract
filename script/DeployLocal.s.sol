@@ -30,12 +30,8 @@ contract DeployLocal is
     DeployPermit2FeeCalculator,
     DeployTransferFromFeeCalculator
 {
-    // 3rd party address
-    address public constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-    address public constant AAVE_V3_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
-
+    /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
     function setUp() external {
-        // Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
         create3FactoryConfig = Create3FactoryConfig({
             deployedAddress: UNDEPLOYED,
             deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
@@ -56,7 +52,7 @@ contract DeployLocal is
 
         aaveV3FlashLoanCallbackConfig = AaveV3FlashLoanCallbackConfig({
             deployedAddress: UNDEPLOYED,
-            aaveV3Provider: AAVE_V3_PROVIDER
+            aaveV3Provider: 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e
         });
 
         balancerV2FlashLoanCallbackConfig = BalancerV2FlashLoanCallbackConfig({
@@ -69,20 +65,20 @@ contract DeployLocal is
             proxyRegistry: 0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4,
             cdpManager: 0x5ef30b9986345249bc32d8928B7ee64DE9435E39,
             proxyActions: 0x82ecD135Dce65Fbc6DbdD0e4237E0AF93FFD5038,
-            daiToken: DAI,
+            daiToken: 0x6B175474E89094C44Da98b954EedeAC495271d0F,
             jug: 0x19c0976f590D67707E62397C87829d896Dc0f1F1
         });
 
         aaveBorrowFeeCalculatorConfig = AaveBorrowFeeCalculatorConfig({
             deployedAddress: UNDEPLOYED,
             feeRate: 0,
-            aaveV3Provider: AAVE_V3_PROVIDER
+            aaveV3Provider: 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e
         });
 
         aaveFlashLoanFeeCalculatorConfig = AaveFlashLoanFeeCalculatorConfig({
             deployedAddress: UNDEPLOYED,
             feeRate: 0,
-            aaveV3Provider: AAVE_V3_PROVIDER
+            aaveV3Provider: 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e
         });
 
         compoundV3BorrowFeeCalculatorConfig = CompoundV3BorrowFeeCalculatorConfig({
@@ -92,7 +88,7 @@ contract DeployLocal is
         makerDrawFeeCalculatorConfig = MakerDrawFeeCalculatorConfig({
             deployedAddress: UNDEPLOYED,
             feeRate: 0,
-            daiToken: DAI
+            daiToken: 0x6B175474E89094C44Da98b954EedeAC495271d0F
         });
         nativeFeeCalculatorConfig = NativeFeeCalculatorConfig({deployedAddress: UNDEPLOYED, feeRate: 0});
         permit2FeeCalculatorConfig = Permit2FeeCalculatorConfig({deployedAddress: UNDEPLOYED, feeRate: 0});
