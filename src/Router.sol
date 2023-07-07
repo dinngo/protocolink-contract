@@ -117,7 +117,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         return result;
     }
 
-    /// @notice Add a signer whose signature can pass the validation in `executeWithSignature` by owner
+    /// @notice Add a signer whose signature can pass the validation in `executeWithSignerFee` by owner
     /// @param signer The signer address to be added
     function addSigner(address signer) external onlyOwner {
         signers[signer] = true;
@@ -139,14 +139,14 @@ contract Router is IRouter, EIP712, FeeGenerator {
         IERC20(token).safeTransfer(receiver, amount);
     }
 
-    /// @notice Pause `execute` and `executeWithSignature` by pauser
+    /// @notice Pause `execute` and `executeWithSignerFee` by pauser
     function pause() external onlyPauser {
         if (currentUser == _PAUSED) revert AlreadyPaused();
         currentUser = _PAUSED;
         emit Paused();
     }
 
-    /// @notice Unpause `execute` and `executeWithSignature` by pauser
+    /// @notice Unpause `execute` and `executeWithSignerFee` by pauser
     function unpause() external onlyPauser {
         if (currentUser != _PAUSED) revert NotPaused();
         currentUser = _INIT_CURRENT_USER;
@@ -184,7 +184,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     /// @param signature The signer's signature bytes
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     /// @param referralCode Referral code
-    function executeWithSignature(
+    function executeWithSignerFee(
         IParam.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
@@ -205,7 +205,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         }
 
         emit Execute(user, address(agent), referralCode);
-        agent.executeWithSignature{value: msg.value}(logicBatch.logics, logicBatch.fees, tokensReturn);
+        agent.executeWithSignerFee{value: msg.value}(logicBatch.logics, logicBatch.fees, tokensReturn);
     }
 
     /// @notice Create an agent for `msg.sender`
@@ -240,7 +240,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         emit FeeCollectorSet(feeCollector_);
     }
 
-    /// @notice Set the pauser address that can pause `execute` and `executeWithSignature` by owner
+    /// @notice Set the pauser address that can pause `execute` and `executeWithSignerFee` by owner
     /// @param pauser_ The pauser address
     function setPauser(address pauser_) public onlyOwner {
         if (pauser_ == address(0)) revert InvalidNewPauser();

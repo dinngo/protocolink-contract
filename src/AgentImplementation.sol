@@ -81,7 +81,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     /// @param logics Array of logics to be executed
     /// @param fees Array of fees
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
-    function executeWithSignature(
+    function executeWithSignerFee(
         IParam.Logic[] calldata logics,
         IParam.Fee[] calldata fees,
         address[] calldata tokensReturn

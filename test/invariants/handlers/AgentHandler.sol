@@ -40,10 +40,10 @@ contract AgentHandler is Test {
         IMockAgent(agent).execute(logicsEmpty, tokensReturnEmpty);
     }
 
-    function executeWithSignature() external {
-        numCalls['executeWithSignature']++;
+    function executeWithSignerFee() external {
+        numCalls['executeWithSignerFee']++;
         vm.prank(router);
-        IMockAgent(agent).executeWithSignature(_logicsWithCallback(), feesEmpty, tokensReturnEmpty);
+        IMockAgent(agent).executeWithSignerFee(_logicsWithCallback(), feesEmpty, tokensReturnEmpty);
     }
 
     function executeByCallback() external {

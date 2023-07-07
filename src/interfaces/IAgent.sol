@@ -26,7 +26,7 @@ interface IAgent {
 
     function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
 
-    function executeWithSignature(
+    function executeWithSignerFee(
         IParam.Logic[] calldata logics,
         IParam.Fee[] calldata fees,
         address[] calldata tokensReturn

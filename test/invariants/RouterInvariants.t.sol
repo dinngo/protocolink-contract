@@ -17,7 +17,7 @@ contract RouterInvariantsTest is Test {
 
         bytes4[] memory selectors = new bytes4[](4);
         selectors[0] = RouterHandler.execute.selector;
-        selectors[1] = RouterHandler.executeWithSignature.selector;
+        selectors[1] = RouterHandler.executeWithSignerFee.selector;
         selectors[2] = RouterHandler.newAgent.selector;
         selectors[3] = RouterHandler.newAgentFor.selector;
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));

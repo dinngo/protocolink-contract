@@ -75,7 +75,7 @@ contract AgentTest is Test {
         vm.expectRevert(IAgent.NotRouter.selector);
         agent.execute(logicsEmpty, tokensReturnEmpty);
         vm.expectRevert(IAgent.NotRouter.selector);
-        agent.executeWithSignature(logicsEmpty, feesEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(logicsEmpty, feesEmpty, tokensReturnEmpty);
         vm.stopPrank();
     }
 
@@ -122,7 +122,7 @@ contract AgentTest is Test {
         agent.execute(logics, tokensReturnEmpty);
     }
 
-    function testShouldNotChargeWhenExecuteWithSignature() external {
+    function testShouldNotChargeWhenExecuteWithSignerFee() external {
         // Invoke callback
         bytes memory data = abi.encodeWithSelector(IAgent.executeByCallback.selector, logicsEmpty);
         IParam.Logic[] memory logics = new IParam.Logic[](1);
@@ -137,7 +137,7 @@ contract AgentTest is Test {
         // Expected call to router::getFeeCalculator is 0 time
         vm.expectCall(router, abi.encode(IFeeGenerator.getFeeCalculator.selector), 0);
         vm.prank(router);
-        agent.executeWithSignature(logics, feesEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(logics, feesEmpty, tokensReturnEmpty);
     }
 
     function testWrapBeforeFixedAmounts(uint128 amount1, uint128 amount2) external {
