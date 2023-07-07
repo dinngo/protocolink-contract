@@ -29,7 +29,7 @@ abstract contract DeployPermit2FeeCalculator is DeployBase {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('protocolink.permit2.fee.calculator');
+            bytes32 salt = keccak256('protocolink.permit2.fee.calculator.v1');
             bytes memory creationCode = abi.encodePacked(
                 type(Permit2FeeCalculator).creationCode,
                 abi.encode(router, cfg.feeRate)
