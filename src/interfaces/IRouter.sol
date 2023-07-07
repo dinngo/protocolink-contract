@@ -83,7 +83,7 @@ interface IRouter {
         uint256 referralCode
     ) external payable;
 
-    function executeWithSignature(
+    function executeWithSignerFee(
         IParam.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,

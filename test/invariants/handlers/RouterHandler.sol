@@ -81,7 +81,7 @@ contract RouterHandler is Test, LogicSignature {
     function callSummary() external view {
         console2.log('\nCall Summary\n');
         console2.log('execute', calls['execute']);
-        console2.log('executeWithSignature', calls['executeWithSignature']);
+        console2.log('executeWithSignerFee', calls['executeWithSignerFee']);
         console2.log('newAgent', calls['newAgent']);
         console2.log('newAgentFor', calls['newAgentFor']);
         console2.log('actorsNum', calls['actorsNum']);
@@ -92,14 +92,14 @@ contract RouterHandler is Test, LogicSignature {
         router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
-    function executeWithSignature(
+    function executeWithSignerFee(
         uint256 actorSeed
-    ) external useActor(actorSeed) recordAgent countCall('executeWithSignature') {
+    ) external useActor(actorSeed) recordAgent countCall('executeWithSignerFee') {
         vm.startPrank(currentActor);
         uint256 deadline = block.timestamp;
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory sigature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
-        router.executeWithSignature(logicBatch, signer, sigature, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeWithSignerFee(logicBatch, signer, sigature, tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }
 
