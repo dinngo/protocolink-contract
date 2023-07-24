@@ -20,7 +20,7 @@ contract DeployPolygon is
         });
 
         routerConfig = RouterConfig({
-            deployedAddress: 0xdAAe399e32e3F6cE47cA96E3A5db09f65cAa575a,
+            deployedAddress: 0xf4dEf6B4389eAb49dF2a7D67890810e5249B5E70,
             wrappedNative: 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270,
             owner: 0xa3C1C91403F0026b9dd086882aDbC8Cdbc3b3cfB,
             pauser: 0xa3C1C91403F0026b9dd086882aDbC8Cdbc3b3cfB,
@@ -28,12 +28,12 @@ contract DeployPolygon is
         });
 
         aaveV3FlashLoanCallbackConfig = AaveV3FlashLoanCallbackConfig({
-            deployedAddress: 0x48060855cdAeFf1fE806d46dd592606A8F6cA760,
+            deployedAddress: 0xe1356560B683cA54e7D7e9e81b05319E9140a977,
             aaveV3Provider: 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb
         });
 
         balancerV2FlashLoanCallbackConfig = BalancerV2FlashLoanCallbackConfig({
-            deployedAddress: 0xCD8063C4Edb42f6eC6d41295268D60Fa525401A4,
+            deployedAddress: 0x03EdE4da71B8c404f7a2d61b8Ad367edEFc90Af8,
             balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8
         });
     }

@@ -49,6 +49,7 @@ forge script --broadcast \
 --private-key <PRIVATE-KEY> \
 --sig 'run()' \
 script/Deploy<network>.s.sol:Deploy<network> \
+--slow
 ```
 
 ### Deploy and Verify
@@ -63,5 +64,6 @@ forge script --broadcast \
 script/Deploy<network>.s.sol:Deploy<network> \
 --chain-id <CHAIN-ID> \
 --etherscan-api-key <ETHERSCAN-API-KEY> \
---verify
+--verify \
+--slow
 ```
