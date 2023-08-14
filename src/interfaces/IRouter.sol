@@ -104,6 +104,12 @@ interface IRouter {
         uint256 referralCode
     ) external payable;
 
+    function executeBySig(
+        IParam.ExecutionDetails calldata details,
+        address user,
+        bytes calldata signature
+    ) external payable;
+
     function executeWithSignerFee(
         IParam.LogicBatch calldata logicBatch,
         address signer,
@@ -119,6 +125,14 @@ interface IRouter {
         bytes calldata signature,
         address[] calldata tokensReturn,
         uint256 referralCode
+    ) external payable;
+
+    function executeBySigWithSignerFee(
+        IParam.ExecutionBatchDetails calldata details,
+        address user,
+        bytes calldata userSignature,
+        address signer,
+        bytes calldata signerSignature
     ) external payable;
 
     function newAgent() external returns (address);

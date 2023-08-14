@@ -12,6 +12,7 @@ import {IRouter} from './interfaces/IRouter.sol';
 import {LogicHash} from './libraries/LogicHash.sol';
 import {Delegation} from './libraries/Delegation.sol';
 import {DelegationHash} from './libraries/DelegationHash.sol';
+import {ExecutionHash} from './libraries/ExecutionHash.sol';
 
 /// @title Entry point for Protocolink
 contract Router is IRouter, EIP712, FeeGenerator {
@@ -19,6 +20,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
     using LogicHash for IParam.LogicBatch;
     using Delegation for IParam.PackedDelegation;
     using DelegationHash for IParam.DelegationDetails;
+    using ExecutionHash for IParam.ExecutionDetails;
+    using ExecutionHash for IParam.ExecutionBatchDetails;
     using SignatureChecker for address;
 
     /// @dev Flag for identifying the paused state used in `currentUser` for reducing cold read gas cost
@@ -35,6 +38,9 @@ contract Router is IRouter, EIP712, FeeGenerator {
 
     /// @notice Mapping for user with each delegatee and expiry
     mapping(address user => mapping(address delegatee => IParam.PackedDelegation delegation)) public delegations;
+
+    /// @notice Mapping for user with each delegatee and expiry
+    mapping(address user => uint256 nonce) public executionNonces;
 
     /// @notice Mapping for recording valid signers
     mapping(address signer => bool valid) public signers;
@@ -198,6 +204,22 @@ contract Router is IRouter, EIP712, FeeGenerator {
         _execute(user, logics, tokensReturn, referralCode);
     }
 
+    function executeBySig(
+        IParam.ExecutionDetails calldata details,
+        address user,
+        bytes calldata signature
+    ) external payable whenReady(user) {
+        uint256 deadline = details.deadline;
+        uint256 nonce = details.nonce;
+        // Verify deadline, signature and nonce
+        if (block.timestamp > deadline) revert SignatureExpired(deadline);
+        if (!user.isValidSignatureNow(_hashTypedDataV4(details._hash()), signature)) revert InvalidSignature();
+        if (executionNonces[user] != nonce) revert InvalidNonce();
+        executionNonces[user] = nonce;
+
+        _execute(user, details.logics, details.tokensReturn, details.referralCode);
+    }
+
     function _execute(
         address user,
         IParam.Logic[] calldata logics,
@@ -255,6 +277,25 @@ contract Router is IRouter, EIP712, FeeGenerator {
         if (!isValidDelegateeFor(user)) revert InvalidDelegatee();
         _verifySignerFee(logicBatch, signer, signature);
         _executeWithSignerFee(user, logicBatch, tokensReturn, referralCode);
+    }
+
+    function executeBySigWithSignerFee(
+        IParam.ExecutionBatchDetails calldata details,
+        address user,
+        bytes calldata userSignature,
+        address signer,
+        bytes calldata signerSignature
+    ) external payable whenReady(user) {
+        IParam.LogicBatch calldata logicBatch = details.logicBatch;
+        uint256 deadline = details.deadline;
+        uint256 nonce = details.nonce;
+        // Verify deadline, signature and nonce
+        if (block.timestamp > deadline) revert SignatureExpired(deadline);
+        if (!user.isValidSignatureNow(_hashTypedDataV4(details._hash()), userSignature)) revert InvalidSignature();
+        if (executionNonces[user] != nonce) revert InvalidNonce();
+        executionNonces[user] = nonce;
+        _verifySignerFee(logicBatch, signer, signerSignature);
+        _executeWithSignerFee(user, logicBatch, details.tokensReturn, details.referralCode);
     }
 
     function _verifySignerFee(
