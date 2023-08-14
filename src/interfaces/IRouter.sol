@@ -23,7 +23,14 @@ interface IRouter {
 
     event AgentCreated(address indexed agent, address indexed user);
 
-    event NonceInvalidation(address indexed user, address indexed delegatee, uint128 newNonce, uint128 oldNonce);
+    event DelegationNonceInvalidation(
+        address indexed user,
+        address indexed delegatee,
+        uint128 newNonce,
+        uint128 oldNonce
+    );
+
+    event ExecutionNonceInvalidation(address indexed user, uint256 newNonce, uint256 oldNonce);
 
     error NotReady();
 
@@ -56,6 +63,8 @@ interface IRouter {
     function agents(address user) external view returns (IAgent);
 
     function delegations(address user, address delegatee) external view returns (uint128 expiry, uint128 nonce);
+
+    function executionNonces(address user) external view returns (uint256 nonce);
 
     function signers(address signer) external view returns (bool);
 
@@ -134,6 +143,8 @@ interface IRouter {
         address signer,
         bytes calldata signerSignature
     ) external payable;
+
+    function invalidateExecutionNonces(uint256 newNonce) external;
 
     function newAgent() external returns (address);
 

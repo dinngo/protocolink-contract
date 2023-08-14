@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {DelegationSignature} from './utils/DelegationSignature.sol';
+import {TypedDataSignature} from './utils/TypedDataSignature.sol';
 
-contract DelegationTypehash is Test, DelegationSignature {
+contract DelegationTypehash is Test, TypedDataSignature {
     using SignatureChecker for address;
 
     uint256 public constant PRIVATE_KEY = 0x290441b34d375a426eb23e32d27296fe944c734f58b21a1d2736191dfaafce90;
@@ -46,10 +46,10 @@ contract DelegationTypehash is Test, DelegationSignature {
         );
 
         // Verify the locally generated signature using the private key is the same as the external sig
-        assertEq(getDelegationSignature(details, _buildDomainSeparator(), PRIVATE_KEY), sig);
+        assertEq(getTypedDataSignature(details, _buildDomainSeparator(), PRIVATE_KEY), sig);
 
         // Verify the signer can be recovered using the external sig
-        bytes32 hashedTypedData = getDelegationHashedTypedData(details, _buildDomainSeparator());
-        assertEq(SIGNER.isValidSignatureNow(hashedTypedData, sig), true);
+        bytes32 hashedTypedData = getHashedTypedData(details, _buildDomainSeparator());
+        assertTrue(SIGNER.isValidSignatureNow(hashedTypedData, sig));
     }
 }
