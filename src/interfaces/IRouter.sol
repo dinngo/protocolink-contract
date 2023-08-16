@@ -82,8 +82,6 @@ interface IRouter {
 
     function getCurrentUserAgent() external view returns (address, address);
 
-    function isValidDelegateeFor(address user) external view returns (bool);
-
     function calcAgent(address user) external view returns (address);
 
     function addSigner(address signer) external;

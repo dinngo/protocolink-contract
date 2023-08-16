@@ -551,8 +551,6 @@ contract RouterTest is Test, TypedDataSignature {
         (uint128 resultExpiry, uint128 resultNonce) = router.delegations(user, delegatee);
         assertEq(resultExpiry, expiry);
         assertEq(resultNonce, 0);
-        vm.prank(delegatee);
-        assertTrue(router.isValidDelegateeFor(user));
     }
 
     function testAllowBySig() external {
@@ -568,8 +566,6 @@ contract RouterTest is Test, TypedDataSignature {
         (uint128 resultExpiry, uint128 resultNonce) = router.delegations(user, delegatee);
         assertEq(resultExpiry, expiry);
         assertEq(resultNonce, nonce + 1);
-        vm.prank(delegatee);
-        assertTrue(router.isValidDelegateeFor(user));
     }
 
     function testCannotAllowBySigWithIncorrectNonce() external {

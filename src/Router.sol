@@ -107,13 +107,6 @@ contract Router is IRouter, EIP712, FeeGenerator {
         return (user, address(agents[user]));
     }
 
-    /// @notice Check if the sender is a valid delegatee
-    /// @param user The delegator of the sender
-    /// @return Valid or not
-    function isValidDelegateeFor(address user) public view returns (bool) {
-        return block.timestamp <= uint256(delegations[user][msg.sender].expiry);
-    }
-
     /// @notice Calculate agent address for a user using the CREATE2 formula
     /// @param user The user address
     /// @return The calculated agent address for the user
@@ -198,7 +191,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable whenReady(user) {
-        if (!isValidDelegateeFor(user)) revert InvalidDelegatee();
+        if (!_isValidDelegateeFor(user)) revert InvalidDelegatee();
         _execute(user, logics, tokensReturn, referralCode);
     }
 
@@ -279,7 +272,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable whenReady(user) {
-        if (!isValidDelegateeFor(user)) revert InvalidDelegatee();
+        if (!_isValidDelegateeFor(user)) revert InvalidDelegatee();
         _verifySignerFee(logicBatch, signer, signature);
         _executeWithSignerFee(user, logicBatch, tokensReturn, referralCode);
     }
@@ -311,6 +304,10 @@ contract Router is IRouter, EIP712, FeeGenerator {
         }
         _verifySignerFee(logicBatch, signer, signerSignature);
         _executeWithSignerFee(user, logicBatch, details.tokensReturn, details.referralCode);
+    }
+
+    function _isValidDelegateeFor(address user) internal view returns (bool) {
+        return block.timestamp <= uint256(delegations[user][msg.sender].expiry);
     }
 
     function _verifySignerFee(
