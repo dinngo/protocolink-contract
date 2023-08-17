@@ -102,37 +102,19 @@ contract RouterTest is Test, TypedDataSignature {
     }
 
     function testNewUserExecute() external {
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo), // to
-            '',
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
         assertEq(router.getAgent(user), address(0));
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         assertFalse(router.getAgent(user) == address(0));
     }
 
     function testOldUserExecute() external {
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo), // to
-            '',
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
         vm.startPrank(user);
         router.newAgent();
         assertFalse(router.getAgent(user) == address(0));
         vm.expectEmit(true, true, true, true, address(router));
         emit Execute(user, address(router.agents(user)), SIGNER_REFERRAL);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }
 
@@ -140,17 +122,8 @@ contract RouterTest is Test, TypedDataSignature {
         vm.prank(user);
         router.newAgent();
         address agent = router.getAgent(user);
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(this), // to
-            abi.encodeCall(this.checkExecutingAgent, (agent)),
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         (, agent) = router.getCurrentUserAgent();
         // The executing agent should be reset to 0
         assertEq(agent, address(0));
@@ -164,20 +137,11 @@ contract RouterTest is Test, TypedDataSignature {
     function testExecuteBySig() external {
         vm.prank(user);
         router.newAgent();
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo), // to
-            '',
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
         // Ensure correct EIP-712 encodeData
         uint256 deadline = block.timestamp + 3600;
         uint256 nonce = 0;
         IParam.ExecutionDetails memory details = IParam.ExecutionDetails(
-            logics,
+            logicsEmpty,
             tokensReturnEmpty,
             SIGNER_REFERRAL,
             nonce,
@@ -194,20 +158,11 @@ contract RouterTest is Test, TypedDataSignature {
     function testCannotExecuteBySigWithIncorrectSignature() external {
         vm.prank(user);
         router.newAgent();
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo), // to
-            '',
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
         // Ensure correct EIP-712 encodeData
         uint256 deadline = block.timestamp + 3600;
         uint256 nonce = 0;
         IParam.ExecutionDetails memory details = IParam.ExecutionDetails(
-            logics,
+            logicsEmpty,
             tokensReturnEmpty,
             SIGNER_REFERRAL,
             nonce,
@@ -247,27 +202,8 @@ contract RouterTest is Test, TypedDataSignature {
 
     function testExecuteWithSignerFee() external {
         router.addSigner(signer);
-
-        // Ensure correct EIP-712 encodeData for non-empty Input, Logic, Fee
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0] = IParam.Input(
-            address(mockERC20),
-            BPS_NOT_USED, // balanceBps
-            0 // amountOrOffset
-        );
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo),
-            '',
-            inputs,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        IParam.Fee[] memory fees = new IParam.Fee[](1);
-        fees[0] = IParam.Fee(address(mockERC20), 0, bytes32(0));
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
+        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectEmit(true, true, true, true, address(router));
@@ -296,7 +232,7 @@ contract RouterTest is Test, TypedDataSignature {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
             address(router), // to
-            abi.encodeCall(IRouter.execute, (logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL)),
+            abi.encodeCall(IRouter.execute, (logics, tokensReturnEmpty, SIGNER_REFERRAL)),
             inputsEmpty,
             IParam.WrapMode.NONE,
             address(0), // approveTo
@@ -352,27 +288,8 @@ contract RouterTest is Test, TypedDataSignature {
 
     function testExecuteBySigWithSignerFee() external {
         router.addSigner(signer);
-
-        // Ensure correct EIP-712 encodeData for non-empty Input, Logic, Fee
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0] = IParam.Input(
-            address(mockERC20),
-            BPS_NOT_USED, // balanceBps
-            0 // amountOrOffset
-        );
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo),
-            '',
-            inputs,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        IParam.Fee[] memory fees = new IParam.Fee[](1);
-        fees[0] = IParam.Fee(address(mockERC20), 0, bytes32(0));
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
+        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
         // Ensure correct EIP-712 encodeData
         deadline = block.timestamp + 3600;
@@ -395,27 +312,8 @@ contract RouterTest is Test, TypedDataSignature {
 
     function testExecuteBySigWithSignerFeeWithIncorrectUserSignature() external {
         router.addSigner(signer);
-
-        // Ensure correct EIP-712 encodeData for non-empty Input, Logic, Fee
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0] = IParam.Input(
-            address(mockERC20),
-            BPS_NOT_USED, // balanceBps
-            0 // amountOrOffset
-        );
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo),
-            '',
-            inputs,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        IParam.Fee[] memory fees = new IParam.Fee[](1);
-        fees[0] = IParam.Fee(address(mockERC20), 0, bytes32(0));
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
+        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
         // Ensure correct EIP-712 encodeData
         deadline = block.timestamp + 3600;
@@ -636,27 +534,8 @@ contract RouterTest is Test, TypedDataSignature {
         vm.prank(user);
         router.allow(delegatee, expiry);
         router.addSigner(signer);
-
-        // Ensure correct EIP-712 encodeData for non-empty Input, Logic, Fee
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0] = IParam.Input(
-            address(mockERC20),
-            BPS_NOT_USED, // balanceBps
-            0 // amountOrOffset
-        );
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo),
-            '',
-            inputs,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        IParam.Fee[] memory fees = new IParam.Fee[](1);
-        fees[0] = IParam.Fee(address(mockERC20), 0, bytes32(0));
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
+        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectEmit(true, true, true, true, address(router));
@@ -671,27 +550,8 @@ contract RouterTest is Test, TypedDataSignature {
         vm.prank(user);
         router.allow(delegatee, expiry);
         router.addSigner(signer);
-
-        // Ensure correct EIP-712 encodeData for non-empty Input, Logic, Fee
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0] = IParam.Input(
-            address(mockERC20),
-            BPS_NOT_USED, // balanceBps
-            0 // amountOrOffset
-        );
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo),
-            '',
-            inputs,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        IParam.Fee[] memory fees = new IParam.Fee[](1);
-        fees[0] = IParam.Fee(address(mockERC20), 0, bytes32(0));
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
+        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.prank(delegatee);
