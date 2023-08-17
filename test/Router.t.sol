@@ -6,10 +6,9 @@ import {ERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
-import {LogicSignature} from './utils/LogicSignature.sol';
-import {DelegationSignature} from './utils/DelegationSignature.sol';
+import {TypedDataSignature} from './utils/TypedDataSignature.sol';
 
-contract RouterTest is Test, LogicSignature, DelegationSignature {
+contract RouterTest is Test, TypedDataSignature {
     address public constant PAUSED = address(0);
     address public constant INIT_CURRENT_USER = address(1);
     uint256 public constant BPS_NOT_USED = 0;
@@ -43,7 +42,13 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
     event AgentCreated(address indexed agent, address indexed user);
     event Execute(address indexed user, address indexed agent, uint256 indexed referralCode);
     event Delegated(address indexed delegator, address indexed delegatee, uint128 expiry);
-    event NonceInvalidation(address indexed user, address indexed delegatee, uint128 newNonce, uint128 oldNonce);
+    event DelegationNonceInvalidation(
+        address indexed user,
+        address indexed delegatee,
+        uint128 newNonce,
+        uint128 oldNonce
+    );
+    event ExecutionNonceInvalidation(address indexed user, uint256 newNonce, uint256 oldNonce);
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
@@ -97,37 +102,19 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
     }
 
     function testNewUserExecute() external {
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo), // to
-            '',
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
         assertEq(router.getAgent(user), address(0));
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         assertFalse(router.getAgent(user) == address(0));
     }
 
     function testOldUserExecute() external {
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo), // to
-            '',
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
         vm.startPrank(user);
         router.newAgent();
         assertFalse(router.getAgent(user) == address(0));
         vm.expectEmit(true, true, true, true, address(router));
         emit Execute(user, address(router.agents(user)), SIGNER_REFERRAL);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }
 
@@ -135,17 +122,8 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
         vm.prank(user);
         router.newAgent();
         address agent = router.getAgent(user);
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(this), // to
-            abi.encodeCall(this.checkExecutingAgent, (agent)),
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         (, agent) = router.getCurrentUserAgent();
         // The executing agent should be reset to 0
         assertEq(agent, address(0));
@@ -154,6 +132,45 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
     function checkExecutingAgent(address agent) external view {
         (, address executingAgent) = router.getCurrentUserAgent();
         if (agent != executingAgent) revert();
+    }
+
+    function testExecuteBySig() external {
+        vm.prank(user);
+        router.newAgent();
+        // Ensure correct EIP-712 encodeData
+        uint256 deadline = block.timestamp + 3600;
+        uint256 nonce = 0;
+        IParam.ExecutionDetails memory details = IParam.ExecutionDetails(
+            logicsEmpty,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL,
+            nonce,
+            deadline
+        );
+        bytes memory signature = getTypedDataSignature(details, router.domainSeparator(), userPrivateKey);
+        vm.expectEmit(true, true, true, true, address(router));
+        emit Execute(user, address(router.agents(user)), SIGNER_REFERRAL);
+        router.executeBySig(details, user, signature);
+        uint256 newNonce = router.executionNonces(user);
+        assertEq(newNonce, nonce + 1);
+    }
+
+    function testCannotExecuteBySigWithIncorrectSignature() external {
+        vm.prank(user);
+        router.newAgent();
+        // Ensure correct EIP-712 encodeData
+        uint256 deadline = block.timestamp + 3600;
+        uint256 nonce = 0;
+        IParam.ExecutionDetails memory details = IParam.ExecutionDetails(
+            logicsEmpty,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL,
+            nonce,
+            deadline
+        );
+        bytes memory signature = getTypedDataSignature(details, router.domainSeparator(), signerPrivateKey);
+        vm.expectRevert(IRouter.InvalidSignature.selector);
+        router.executeBySig(details, user, signature);
     }
 
     function testAddSigner(address signer_) external {
@@ -185,35 +202,15 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
 
     function testExecuteWithSignerFee() external {
         router.addSigner(signer);
-
-        // Ensure correct EIP-712 encodeData for non-empty Input, Logic, Fee
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0] = IParam.Input(
-            address(mockERC20),
-            BPS_NOT_USED, // balanceBps
-            0 // amountOrOffset
-        );
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo),
-            '',
-            inputs,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        IParam.Fee[] memory fees = new IParam.Fee[](1);
-        fees[0] = IParam.Fee(address(mockERC20), 0, bytes32(0));
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
-        bytes memory signature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
-        vm.startPrank(user);
         vm.expectEmit(true, true, true, true, address(router));
         address calcAgent = router.calcAgent(user);
         emit Execute(user, calcAgent, SIGNER_REFERRAL);
+        vm.prank(user);
         router.executeWithSignerFee(logicBatch, signer, signature, tokensReturnEmpty, SIGNER_REFERRAL);
-        vm.stopPrank();
     }
 
     function testCannotExecuteWhenPaused() external {
@@ -235,7 +232,7 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
             address(router), // to
-            abi.encodeCall(IRouter.execute, (logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL)),
+            abi.encodeCall(IRouter.execute, (logics, tokensReturnEmpty, SIGNER_REFERRAL)),
             inputsEmpty,
             IParam.WrapMode.NONE,
             address(0), // approveTo
@@ -249,7 +246,7 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
     function testCannotExecuteSignatureExpired() external {
         uint256 deadline = block.timestamp - 1; // Expired
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
-        bytes memory signature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.SignatureExpired.selector, deadline));
         vm.prank(user);
@@ -260,7 +257,7 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
         // Don't add signer
         uint256 deadline = block.timestamp;
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
-        bytes memory signature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.InvalidSigner.selector, signer));
         vm.prank(user);
@@ -273,7 +270,7 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
         // Sign correct deadline and logicBatch
         uint256 deadline = block.timestamp;
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
-        bytes memory signature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         // Tamper deadline
         logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline + 1);
@@ -287,6 +284,50 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
         vm.prank(user);
         vm.expectRevert(IRouter.InvalidSignature.selector);
         router.executeWithSignerFee(logicBatch, signer, signature, tokensReturnEmpty, SIGNER_REFERRAL);
+    }
+
+    function testExecuteBySigWithSignerFee() external {
+        router.addSigner(signer);
+        uint256 deadline = block.timestamp;
+        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        // Ensure correct EIP-712 encodeData
+        deadline = block.timestamp + 3600;
+        uint256 nonce = 0;
+        IParam.ExecutionBatchDetails memory details = IParam.ExecutionBatchDetails(
+            logicBatch,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL,
+            nonce,
+            deadline
+        );
+        bytes memory userSignature = getTypedDataSignature(details, router.domainSeparator(), userPrivateKey);
+        vm.expectEmit(true, true, true, true, address(router));
+        address calcAgent = router.calcAgent(user);
+        emit Execute(user, calcAgent, SIGNER_REFERRAL);
+        router.executeBySigWithSignerFee(details, user, userSignature, signer, signerSignature);
+        uint256 newNonce = router.executionNonces(user);
+        assertEq(newNonce, nonce + 1);
+    }
+
+    function testExecuteBySigWithSignerFeeWithIncorrectUserSignature() external {
+        router.addSigner(signer);
+        uint256 deadline = block.timestamp;
+        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        // Ensure correct EIP-712 encodeData
+        deadline = block.timestamp + 3600;
+        uint256 nonce = 0;
+        IParam.ExecutionBatchDetails memory details = IParam.ExecutionBatchDetails(
+            logicBatch,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL,
+            nonce,
+            deadline
+        );
+        bytes memory userSignature = getTypedDataSignature(details, router.domainSeparator(), signerPrivateKey);
+        vm.expectRevert(IRouter.InvalidSignature.selector);
+        router.executeBySigWithSignerFee(details, user, userSignature, signer, signerSignature);
     }
 
     function testSetPauser(address pauser_) external {
@@ -408,8 +449,6 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
         (uint128 resultExpiry, uint128 resultNonce) = router.delegations(user, delegatee);
         assertEq(resultExpiry, expiry);
         assertEq(resultNonce, 0);
-        vm.prank(delegatee);
-        assertTrue(router.isValidDelegateeFor(user));
     }
 
     function testAllowBySig() external {
@@ -418,15 +457,13 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
         uint128 expiry = uint128(deadline) + 3600;
         uint128 nonce = 0;
         IParam.DelegationDetails memory details = IParam.DelegationDetails(delegatee, expiry, nonce, deadline);
-        bytes memory signature = getDelegationSignature(details, router.domainSeparator(), userPrivateKey);
+        bytes memory signature = getTypedDataSignature(details, router.domainSeparator(), userPrivateKey);
         vm.expectEmit(true, true, true, true, address(router));
         emit Delegated(user, delegatee, expiry);
         router.allowBySig(details, user, signature);
         (uint128 resultExpiry, uint128 resultNonce) = router.delegations(user, delegatee);
         assertEq(resultExpiry, expiry);
         assertEq(resultNonce, nonce + 1);
-        vm.prank(delegatee);
-        assertTrue(router.isValidDelegateeFor(user));
     }
 
     function testCannotAllowBySigWithIncorrectNonce() external {
@@ -434,7 +471,7 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
         uint128 expiry = uint128(deadline) + 3600;
         uint128 nonce = 1;
         IParam.DelegationDetails memory details = IParam.DelegationDetails(delegatee, expiry, nonce, deadline);
-        bytes memory signature = getDelegationSignature(details, router.domainSeparator(), userPrivateKey);
+        bytes memory signature = getTypedDataSignature(details, router.domainSeparator(), userPrivateKey);
         vm.expectRevert(IRouter.InvalidNonce.selector);
         router.allowBySig(details, user, signature);
     }
@@ -446,28 +483,29 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
         vm.expectEmit(true, true, true, true, address(router));
         emit Delegated(user, delegatee, 0);
         router.disallow(delegatee);
+        vm.stopPrank();
     }
 
     function testInvalidateDelegationNonces() external {
         uint128 newNonce = 10;
         vm.expectEmit(true, true, true, true, address(router));
-        emit NonceInvalidation(user, delegatee, newNonce, 0);
-        vm.startPrank(user);
+        emit DelegationNonceInvalidation(user, delegatee, newNonce, 0);
+        vm.prank(user);
         router.invalidateDelegationNonces(delegatee, newNonce);
         (, uint128 nonce) = router.delegations(user, delegatee);
         assertEq(nonce, newNonce);
     }
 
-    function testCannotInvalidateExcessiveNonces() external {
+    function testCannotInvalidateExcessiveDelegationNonces() external {
         uint128 newNonce = uint128(type(uint16).max) + 1;
-        vm.startPrank(user);
+        vm.prank(user);
         vm.expectRevert(IRouter.ExcessiveInvalidation.selector);
         router.invalidateDelegationNonces(delegatee, newNonce);
     }
 
-    function testCannotInvalidateOldNonce() external {
+    function testCannotInvalidateOldDelegationNonce() external {
         uint128 newNonce = 0;
-        vm.startPrank(user);
+        vm.prank(user);
         vm.expectRevert(IRouter.InvalidNonce.selector);
         router.invalidateDelegationNonces(delegatee, newNonce);
     }
@@ -496,35 +534,15 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
         vm.prank(user);
         router.allow(delegatee, expiry);
         router.addSigner(signer);
-
-        // Ensure correct EIP-712 encodeData for non-empty Input, Logic, Fee
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0] = IParam.Input(
-            address(mockERC20),
-            BPS_NOT_USED, // balanceBps
-            0 // amountOrOffset
-        );
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo),
-            '',
-            inputs,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        IParam.Fee[] memory fees = new IParam.Fee[](1);
-        fees[0] = IParam.Fee(address(mockERC20), 0, bytes32(0));
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
-        bytes memory signature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
-        vm.startPrank(delegatee);
         vm.expectEmit(true, true, true, true, address(router));
         address calcAgent = router.calcAgent(user);
         emit Execute(user, calcAgent, SIGNER_REFERRAL);
+        vm.prank(delegatee);
         router.executeForWithSignerFee(user, logicBatch, signer, signature, tokensReturnEmpty, SIGNER_REFERRAL);
-        vm.stopPrank();
     }
 
     function testExecuteForWithSignerFeeAfterExpiry() external {
@@ -532,32 +550,37 @@ contract RouterTest is Test, LogicSignature, DelegationSignature {
         vm.prank(user);
         router.allow(delegatee, expiry);
         router.addSigner(signer);
-
-        // Ensure correct EIP-712 encodeData for non-empty Input, Logic, Fee
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0] = IParam.Input(
-            address(mockERC20),
-            BPS_NOT_USED, // balanceBps
-            0 // amountOrOffset
-        );
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockTo),
-            '',
-            inputs,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-        IParam.Fee[] memory fees = new IParam.Fee[](1);
-        fees[0] = IParam.Fee(address(mockERC20), 0, bytes32(0));
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
-        bytes memory signature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.prank(delegatee);
         vm.expectRevert(IRouter.InvalidDelegatee.selector);
         vm.warp(expiry + 1);
         router.executeForWithSignerFee(user, logicBatch, signer, signature, tokensReturnEmpty, SIGNER_REFERRAL);
+    }
+
+    function testInvalidateExecutionNonces() external {
+        uint256 newNonce = 10;
+        vm.expectEmit(true, true, true, true, address(router));
+        emit ExecutionNonceInvalidation(user, newNonce, 0);
+        vm.prank(user);
+        router.invalidateExecutionNonces(newNonce);
+        uint256 nonce = router.executionNonces(user);
+        assertEq(nonce, newNonce);
+    }
+
+    function testCannotInvalidateExcessiveExecutionNonces() external {
+        uint256 newNonce = uint256(type(uint16).max) + 1;
+        vm.prank(user);
+        vm.expectRevert(IRouter.ExcessiveInvalidation.selector);
+        router.invalidateExecutionNonces(newNonce);
+    }
+
+    function testCannotInvalidateOldExecutionNonce() external {
+        uint256 newNonce = 0;
+        vm.prank(user);
+        vm.expectRevert(IRouter.InvalidNonce.selector);
+        router.invalidateExecutionNonces(newNonce);
     }
 }

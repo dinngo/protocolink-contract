@@ -5,9 +5,9 @@ import {Test} from 'forge-std/Test.sol';
 import {console2} from 'forge-std/Test.sol';
 import {Router} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IRouter.sol';
-import {LogicSignature} from '../../utils/LogicSignature.sol';
+import {TypedDataSignature} from '../../utils/TypedDataSignature.sol';
 
-contract RouterHandler is Test, LogicSignature {
+contract RouterHandler is Test, TypedDataSignature {
     uint256 public constant SIGNER_REFERRAL = 1;
 
     // Setup
@@ -98,7 +98,7 @@ contract RouterHandler is Test, LogicSignature {
         vm.startPrank(currentActor);
         uint256 deadline = block.timestamp;
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
-        bytes memory sigature = getLogicBatchSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        bytes memory sigature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
         router.executeWithSignerFee(logicBatch, signer, sigature, tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }

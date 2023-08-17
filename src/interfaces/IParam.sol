@@ -2,11 +2,29 @@
 pragma solidity ^0.8.0;
 
 interface IParam {
+    /// @notice ExecutionDetails represents a series of logics to be executed
+    struct ExecutionBatchDetails {
+        LogicBatch logicBatch;
+        address[] tokensReturn;
+        uint256 referralCode;
+        uint256 nonce;
+        uint256 deadline;
+    }
+
     /// @notice LogicBatch is signed by a signer using EIP-712
     struct LogicBatch {
         Logic[] logics; // An array of `Logic` structs to be executed
         Fee[] fees; // An array of `Fee` structs to be charged
         uint256 deadline; // The deadline for a signer's signature
+    }
+
+    /// @notice ExecutionDetails represents a series of logics to be executed
+    struct ExecutionDetails {
+        Logic[] logics;
+        address[] tokensReturn;
+        uint256 referralCode;
+        uint256 nonce;
+        uint256 deadline;
     }
 
     /// @notice Logic represents a single action to be executed
