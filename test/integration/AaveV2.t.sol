@@ -54,6 +54,7 @@ contract AaveV2IntegrationTest is Test {
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address public constant AUSDC_V2 = 0xBcca60bB61934080951369a648Fb03DF4F96263C;
     IDebtToken public constant AUSDC_V2_DEBT_VARIABLE = IDebtToken(0x619beb58998eD2278e08620f97007e1116D5D25b);
+    address internal constant permit2Addr = address(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
     address public user;
     IRouter public router;
@@ -64,10 +65,17 @@ contract AaveV2IntegrationTest is Test {
     // Empty arrays
     address[] public tokensReturnEmpty;
     IParam.Input[] public inputsEmpty;
+    bytes[] public permit2DatasEmpty;
 
     function setUp() external {
         user = makeAddr('User');
-        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(
+            makeAddr('WrappedNative'),
+            permit2Addr,
+            address(this),
+            makeAddr('Pauser'),
+            makeAddr('FeeCollector')
+        );
         vm.prank(user);
         agent = IAgent(router.newAgent());
         flashLoanCallback = new AaveV2FlashLoanCallback(address(router), address(AAVE_V2_PROVIDER));
@@ -109,7 +117,7 @@ contract AaveV2IntegrationTest is Test {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(borrowedToken);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(borrowedToken.balanceOf(address(router)), 0);
         assertEq(borrowedToken.balanceOf(address(agent)), 0);
@@ -137,7 +145,7 @@ contract AaveV2IntegrationTest is Test {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         assertEq(borrowedToken.balanceOf(address(router)), 0);
         assertEq(borrowedToken.balanceOf(address(agent)), 0);

@@ -31,6 +31,7 @@ contract RouterHandler is Test, TypedDataSignature {
     address[] public tokensReturnEmpty;
     IParam.Fee[] public feesEmpty;
     IParam.Logic[] public logicsEmpty;
+    bytes[] public permit2DatasEmpty;
 
     constructor(Router router_) {
         owner = msg.sender;
@@ -89,7 +90,7 @@ contract RouterHandler is Test, TypedDataSignature {
 
     function execute(uint256 actorSeed) external useActor(actorSeed) recordAgent countCall('execute') {
         vm.prank(currentActor);
-        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function executeWithSignerFee(
@@ -99,7 +100,14 @@ contract RouterHandler is Test, TypedDataSignature {
         uint256 deadline = block.timestamp;
         IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory sigature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
-        router.executeWithSignerFee(logicBatch, signer, sigature, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeWithSignerFee(
+            permit2DatasEmpty,
+            logicBatch,
+            signer,
+            sigature,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL
+        );
         vm.stopPrank();
     }
 

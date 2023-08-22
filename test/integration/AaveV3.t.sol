@@ -66,10 +66,17 @@ contract AaveV3IntegrationTest is Test {
     // Empty arrays
     address[] public tokensReturnEmpty;
     IParam.Input[] public inputsEmpty;
+    bytes[] public permit2DatasEmpty;
 
     function setUp() external {
         user = makeAddr('User');
-        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(
+            makeAddr('WrappedNative'),
+            makeAddr('Permit2'),
+            address(this),
+            makeAddr('Pauser'),
+            makeAddr('FeeCollector')
+        );
         vm.prank(user);
         agent = IAgent(router.newAgent());
         flashLoanCallback = new AaveV3FlashLoanCallback(address(router), address(AAVE_V3_PROVIDER));
@@ -111,7 +118,7 @@ contract AaveV3IntegrationTest is Test {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(borrowedToken);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(borrowedToken.balanceOf(address(router)), 0);
         assertEq(borrowedToken.balanceOf(address(agent)), 0);
@@ -139,7 +146,7 @@ contract AaveV3IntegrationTest is Test {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         assertEq(borrowedToken.balanceOf(address(router)), 0);
         assertEq(borrowedToken.balanceOf(address(agent)), 0);

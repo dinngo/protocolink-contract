@@ -27,10 +27,17 @@ contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
 
     // Empty arrays
     IParam.Input[] public inputsEmpty;
+    bytes[] public permit2DatasEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(
+            makeAddr('WrappedNative'),
+            permit2Addr,
+            address(this),
+            makeAddr('Pauser'),
+            makeAddr('FeeCollector')
+        );
         vm.prank(user);
         agent = IAgent(router.newAgent());
         market = new MockERC721Market(USDC);
@@ -55,17 +62,20 @@ contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
         tokenId = bound(tokenId, 0, 1e10);
         deal(address(tokenIn), user, amountIn);
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = dataERC20Permit2PullToken(tokenIn, amountIn.toUint160());
+
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicERC20Permit2PullToken(tokenIn, amountIn.toUint160());
-        logics[1] = _logicERC721MarketTokenToNFT(tokenIn, amountIn, tokenId, user);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicERC721MarketTokenToNFT(tokenIn, amountIn, tokenId, user);
 
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenIn);
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
@@ -97,7 +107,7 @@ contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
         // Execute
         uint256 tokenBefore = tokenIn.balanceOf(user);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);

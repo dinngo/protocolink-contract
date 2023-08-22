@@ -22,6 +22,7 @@ contract DeployArbitrum is
         routerConfig = RouterConfig({
             deployedAddress: 0xf4dEf6B4389eAb49dF2a7D67890810e5249B5E70,
             wrappedNative: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,
+            permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
             owner: 0xa3C1C91403F0026b9dd086882aDbC8Cdbc3b3cfB,
             pauser: 0xa3C1C91403F0026b9dd086882aDbC8Cdbc3b3cfB,
             feeCollector: 0xa3C1C91403F0026b9dd086882aDbC8Cdbc3b3cfB

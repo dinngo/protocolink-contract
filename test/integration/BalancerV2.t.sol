@@ -29,10 +29,17 @@ contract BalancerV2IntegrationTest is Test {
     // Empty arrays
     address[] public tokensReturnEmpty;
     IParam.Input[] public inputsEmpty;
+    bytes[] public permit2DatasEmpty;
 
     function setUp() external {
         user = makeAddr('User');
-        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(
+            makeAddr('WrappedNative'),
+            makeAddr('Permit2'),
+            address(this),
+            makeAddr('Pauser'),
+            makeAddr('FeeCollector')
+        );
         flashLoanCallback = new BalancerV2FlashLoanCallback(address(router), address(balancerV2Vault));
 
         vm.label(address(router), 'Router');
@@ -58,7 +65,7 @@ contract BalancerV2IntegrationTest is Test {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         address agent = router.getAgent(user);
         assertEq(token.balanceOf(address(router)), 0);

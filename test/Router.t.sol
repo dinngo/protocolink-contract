@@ -32,6 +32,7 @@ contract RouterTest is Test, TypedDataSignature {
     IParam.Input[] public inputsEmpty;
     IParam.Logic[] public logicsEmpty;
     IParam.LogicBatch public logicBatchEmpty;
+    bytes[] public permit2DatasEmpty;
 
     event SignerAdded(address indexed signer);
     event SignerRemoved(address indexed signer);
@@ -56,7 +57,7 @@ contract RouterTest is Test, TypedDataSignature {
         pauser = makeAddr('Pauser');
         feeCollector = makeAddr('FeeCollector');
         (signer, signerPrivateKey) = makeAddrAndKey('Signer');
-        router = new Router(makeAddr('WrappedNative'), address(this), pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this), pauser, feeCollector);
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockTo = address(new MockFallback());
 
@@ -104,7 +105,7 @@ contract RouterTest is Test, TypedDataSignature {
     function testNewUserExecute() external {
         assertEq(router.getAgent(user), address(0));
         vm.prank(user);
-        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         assertFalse(router.getAgent(user) == address(0));
     }
 
@@ -114,7 +115,7 @@ contract RouterTest is Test, TypedDataSignature {
         assertFalse(router.getAgent(user) == address(0));
         vm.expectEmit(true, true, true, true, address(router));
         emit Execute(user, address(router.agents(user)), SIGNER_REFERRAL);
-        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         vm.stopPrank();
     }
 
@@ -123,7 +124,7 @@ contract RouterTest is Test, TypedDataSignature {
         router.newAgent();
         address agent = router.getAgent(user);
         vm.prank(user);
-        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         (, agent) = router.getCurrentUserAgent();
         // The executing agent should be reset to 0
         assertEq(agent, address(0));
@@ -141,6 +142,7 @@ contract RouterTest is Test, TypedDataSignature {
         uint256 deadline = block.timestamp + 3600;
         uint256 nonce = 0;
         IParam.ExecutionDetails memory details = IParam.ExecutionDetails(
+            permit2DatasEmpty,
             logicsEmpty,
             tokensReturnEmpty,
             SIGNER_REFERRAL,
@@ -162,6 +164,7 @@ contract RouterTest is Test, TypedDataSignature {
         uint256 deadline = block.timestamp + 3600;
         uint256 nonce = 0;
         IParam.ExecutionDetails memory details = IParam.ExecutionDetails(
+            permit2DatasEmpty,
             logicsEmpty,
             tokensReturnEmpty,
             SIGNER_REFERRAL,
@@ -210,7 +213,14 @@ contract RouterTest is Test, TypedDataSignature {
         address calcAgent = router.calcAgent(user);
         emit Execute(user, calcAgent, SIGNER_REFERRAL);
         vm.prank(user);
-        router.executeWithSignerFee(logicBatch, signer, signature, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeWithSignerFee(
+            permit2DatasEmpty,
+            logicBatch,
+            signer,
+            signature,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL
+        );
     }
 
     function testCannotExecuteWhenPaused() external {
@@ -220,11 +230,18 @@ contract RouterTest is Test, TypedDataSignature {
         vm.startPrank(user);
         // `execute` should revert when router is paused
         vm.expectRevert(IRouter.NotReady.selector);
-        router.execute(logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
 
         // `executeWithSignerFee` should revert when router is paused
         vm.expectRevert(IRouter.NotReady.selector);
-        router.executeWithSignerFee(logicBatchEmpty, signer, new bytes(0), tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeWithSignerFee(
+            permit2DatasEmpty,
+            logicBatchEmpty,
+            signer,
+            new bytes(0),
+            tokensReturnEmpty,
+            SIGNER_REFERRAL
+        );
         vm.stopPrank();
     }
 
@@ -232,7 +249,7 @@ contract RouterTest is Test, TypedDataSignature {
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logics[0] = IParam.Logic(
             address(router), // to
-            abi.encodeCall(IRouter.execute, (logics, tokensReturnEmpty, SIGNER_REFERRAL)),
+            abi.encodeCall(IRouter.execute, (permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL)),
             inputsEmpty,
             IParam.WrapMode.NONE,
             address(0), // approveTo
@@ -240,7 +257,7 @@ contract RouterTest is Test, TypedDataSignature {
         );
         vm.expectRevert(IRouter.NotReady.selector);
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function testCannotExecuteSignatureExpired() external {
@@ -250,7 +267,14 @@ contract RouterTest is Test, TypedDataSignature {
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.SignatureExpired.selector, deadline));
         vm.prank(user);
-        router.executeWithSignerFee(logicBatch, signer, signature, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeWithSignerFee(
+            permit2DatasEmpty,
+            logicBatch,
+            signer,
+            signature,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL
+        );
     }
 
     function testCannotExecuteInvalidSigner() external {
@@ -261,7 +285,14 @@ contract RouterTest is Test, TypedDataSignature {
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.InvalidSigner.selector, signer));
         vm.prank(user);
-        router.executeWithSignerFee(logicBatch, signer, signature, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeWithSignerFee(
+            permit2DatasEmpty,
+            logicBatch,
+            signer,
+            signature,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL
+        );
     }
 
     function testCannotExecuteInvalidSignature() external {
@@ -276,14 +307,28 @@ contract RouterTest is Test, TypedDataSignature {
         logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline + 1);
         vm.prank(user);
         vm.expectRevert(IRouter.InvalidSignature.selector);
-        router.executeWithSignerFee(logicBatch, signer, signature, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeWithSignerFee(
+            permit2DatasEmpty,
+            logicBatch,
+            signer,
+            signature,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL
+        );
 
         // Tamper logics
         IParam.Logic[] memory logics = new IParam.Logic[](1);
         logicBatch = IParam.LogicBatch(logics, feesEmpty, deadline);
         vm.prank(user);
         vm.expectRevert(IRouter.InvalidSignature.selector);
-        router.executeWithSignerFee(logicBatch, signer, signature, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeWithSignerFee(
+            permit2DatasEmpty,
+            logicBatch,
+            signer,
+            signature,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL
+        );
     }
 
     function testExecuteBySigWithSignerFee() external {
@@ -295,6 +340,7 @@ contract RouterTest is Test, TypedDataSignature {
         deadline = block.timestamp + 3600;
         uint256 nonce = 0;
         IParam.ExecutionBatchDetails memory details = IParam.ExecutionBatchDetails(
+            permit2DatasEmpty,
             logicBatch,
             tokensReturnEmpty,
             SIGNER_REFERRAL,
@@ -319,6 +365,7 @@ contract RouterTest is Test, TypedDataSignature {
         deadline = block.timestamp + 3600;
         uint256 nonce = 0;
         IParam.ExecutionBatchDetails memory details = IParam.ExecutionBatchDetails(
+            permit2DatasEmpty,
             logicBatch,
             tokensReturnEmpty,
             SIGNER_REFERRAL,
@@ -515,7 +562,7 @@ contract RouterTest is Test, TypedDataSignature {
         vm.prank(user);
         router.allow(delegatee, expiry);
         vm.prank(delegatee);
-        router.executeFor(user, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeFor(user, permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
         assertFalse(router.getAgent(user) == address(0));
     }
 
@@ -526,7 +573,7 @@ contract RouterTest is Test, TypedDataSignature {
         vm.prank(delegatee);
         vm.expectRevert(IRouter.InvalidDelegatee.selector);
         vm.warp(expiry + 1);
-        router.executeFor(user, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeFor(user, permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
     }
 
     function testExecuteForWithSignerFeeBeforeExpiry() external {
@@ -542,7 +589,15 @@ contract RouterTest is Test, TypedDataSignature {
         address calcAgent = router.calcAgent(user);
         emit Execute(user, calcAgent, SIGNER_REFERRAL);
         vm.prank(delegatee);
-        router.executeForWithSignerFee(user, logicBatch, signer, signature, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeForWithSignerFee(
+            user,
+            permit2DatasEmpty,
+            logicBatch,
+            signer,
+            signature,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL
+        );
     }
 
     function testExecuteForWithSignerFeeAfterExpiry() external {
@@ -557,7 +612,15 @@ contract RouterTest is Test, TypedDataSignature {
         vm.prank(delegatee);
         vm.expectRevert(IRouter.InvalidDelegatee.selector);
         vm.warp(expiry + 1);
-        router.executeForWithSignerFee(user, logicBatch, signer, signature, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeForWithSignerFee(
+            user,
+            permit2DatasEmpty,
+            logicBatch,
+            signer,
+            signature,
+            tokensReturnEmpty,
+            SIGNER_REFERRAL
+        );
     }
 
     function testInvalidateExecutionNonces() external {

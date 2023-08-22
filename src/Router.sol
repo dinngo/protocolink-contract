@@ -27,6 +27,9 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @dev Flag for identifying the initialized state and reducing gas cost when resetting `currentUser`
     address internal constant _INIT_CURRENT_USER = address(1);
 
+    /// @dev Denominator for calculating basis points
+    uint256 internal constant _BPS_BASE = 10_000;
+
     /// @notice Immutable implementation contract for all users' agents
     address public immutable agentImplementation;
 
@@ -51,6 +54,9 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @notice Address for invoking pause
     address public pauser;
 
+    /// @notice Fee rate
+    uint256 public feeRate;
+
     /// @dev Modifier for setting transient `currentUser` address and blocking reentrancy.
     modifier whenReady(address user) {
         if (currentUser != _INIT_CURRENT_USER) revert NotReady();
@@ -68,12 +74,13 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @dev Create the router with EIP-712 and the agent implementation contracts
     constructor(
         address wrappedNative,
+        address permit2,
         address owner_,
         address pauser_,
         address feeCollector_
     ) EIP712('Protocolink', '1') {
         currentUser = _INIT_CURRENT_USER;
-        agentImplementation = address(new AgentImplementation(wrappedNative));
+        agentImplementation = address(new AgentImplementation(wrappedNative, permit2));
         setPauser(pauser_);
         setFeeCollector(feeCollector_);
         transferOwnership(owner_);
@@ -165,31 +172,35 @@ contract Router is IRouter, Ownable, EIP712 {
 
     /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for user if not created.
     ///         Fees are charged in the user's agent during the execution of msg.value, permit2 and flash loans.
+    /// @param permit2Datas Array of datas to be processed through permit2 contract
     /// @param logics Array of logics to be executed
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     /// @param referralCode Referral code
     function execute(
+        bytes[] calldata permit2Datas,
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable whenReady(msg.sender) {
-        _execute(msg.sender, logics, tokensReturn, referralCode);
+        _execute(msg.sender, permit2Datas, logics, tokensReturn, referralCode);
     }
 
     /// @notice Execute arbitrary logics through the given user's agent. Creates an agent for user if not created.
     ///         Fees are charged in the user's agent during the execution of msg.value, permit2 and flash loans.
     /// @param user The user address
+    /// @param permit2Datas Array of datas to be processed through permit2 contract
     /// @param logics Array of logics to be executed
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     /// @param referralCode Referral code
     function executeFor(
         address user,
+        bytes[] calldata permit2Datas,
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable whenReady(user) {
         if (!_isValidDelegateeFor(user)) revert InvalidDelegatee();
-        _execute(user, logics, tokensReturn, referralCode);
+        _execute(user, permit2Datas, logics, tokensReturn, referralCode);
     }
 
     /// @notice Execute permitted execution data through the given user's agent. Creates an agent for user if not created.
@@ -211,11 +222,12 @@ contract Router is IRouter, Ownable, EIP712 {
             if (executionNonces[user] != nonce) revert InvalidNonce();
             executionNonces[user] = nonce + 1;
         }
-        _execute(user, details.logics, details.tokensReturn, details.referralCode);
+        _execute(user, details.permit2Datas, details.logics, details.tokensReturn, details.referralCode);
     }
 
     function _execute(
         address user,
+        bytes[] calldata permit2Datas,
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
@@ -227,19 +239,21 @@ contract Router is IRouter, Ownable, EIP712 {
         }
 
         emit Execute(user, address(agent), referralCode);
-        agent.execute{value: msg.value}(logics, tokensReturn);
+        agent.execute{value: msg.value}(permit2Datas, logics, tokensReturn);
     }
 
     /// @notice Execute arbitrary logics through the current user's agent using a signer's signature. Creates an agent
     ///         for user if not created. Fees in logicBatch are off-chain encoded, rather than calculated in the user's
     ///         agent.
     /// @dev Allow whitelisted signers to use custom fee rules and permit the reuse of the signature until the deadline
+    /// @param permit2Datas Array of datas to be processed through permit2 contract
     /// @param logicBatch A struct containing logics, fees and deadline, signed by a signer using EIP-712
     /// @param signer The signer address
     /// @param signature The signer's signature bytes
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     /// @param referralCode Referral code
     function executeWithSignerFee(
+        bytes[] calldata permit2Datas,
         IParam.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
@@ -247,7 +261,7 @@ contract Router is IRouter, Ownable, EIP712 {
         uint256 referralCode
     ) external payable whenReady(msg.sender) {
         _verifySignerFee(logicBatch, signer, signature);
-        _executeWithSignerFee(msg.sender, logicBatch, tokensReturn, referralCode);
+        _executeWithSignerFee(msg.sender, permit2Datas, logicBatch, tokensReturn, referralCode);
     }
 
     /// @notice Execute arbitrary logics through the given user's agent using a signer's signature. Creates an agent
@@ -255,6 +269,7 @@ contract Router is IRouter, Ownable, EIP712 {
     ///         agent.
     /// @dev Allow whitelisted signers to use custom fee rules and permit the reuse of the signature until the deadline
     /// @param user The user address
+    /// @param permit2Datas Array of datas to be processed through permit2 contract
     /// @param logicBatch A struct containing logics, fees and deadline, signed by a signer using EIP-712
     /// @param signer The signer address
     /// @param signature The signer's signature bytes
@@ -262,6 +277,7 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @param referralCode Referral code
     function executeForWithSignerFee(
         address user,
+        bytes[] calldata permit2Datas,
         IParam.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
@@ -270,7 +286,7 @@ contract Router is IRouter, Ownable, EIP712 {
     ) external payable whenReady(user) {
         if (!_isValidDelegateeFor(user)) revert InvalidDelegatee();
         _verifySignerFee(logicBatch, signer, signature);
-        _executeWithSignerFee(user, logicBatch, tokensReturn, referralCode);
+        _executeWithSignerFee(user, permit2Datas, logicBatch, tokensReturn, referralCode);
     }
 
     /// @notice Execute permitted execution data through the given user's agent using a signer's signature. Creates an agent
@@ -299,7 +315,7 @@ contract Router is IRouter, Ownable, EIP712 {
             executionNonces[user] = nonce + 1;
         }
         _verifySignerFee(logicBatch, signer, signerSignature);
-        _executeWithSignerFee(user, logicBatch, details.tokensReturn, details.referralCode);
+        _executeWithSignerFee(user, details.permit2Datas, logicBatch, details.tokensReturn, details.referralCode);
     }
 
     function _isValidDelegateeFor(address user) internal view returns (bool) {
@@ -320,6 +336,7 @@ contract Router is IRouter, Ownable, EIP712 {
 
     function _executeWithSignerFee(
         address user,
+        bytes[] calldata permit2Datas,
         IParam.LogicBatch calldata logicBatch,
         address[] calldata tokensReturn,
         uint256 referralCode
@@ -331,7 +348,7 @@ contract Router is IRouter, Ownable, EIP712 {
         }
 
         emit Execute(user, address(agent), referralCode);
-        agent.executeWithSignerFee{value: msg.value}(logicBatch.logics, logicBatch.fees, tokensReturn);
+        agent.executeWithSignerFee{value: msg.value}(permit2Datas, logicBatch.logics, logicBatch.fees, tokensReturn);
     }
 
     /// @notice Invalidate nonces for an execution
@@ -441,5 +458,12 @@ contract Router is IRouter, Ownable, EIP712 {
         if (pauser_ == address(0)) revert InvalidNewPauser();
         pauser = pauser_;
         emit PauserSet(pauser_);
+    }
+
+    /// @notice Set a new fee rate by owner
+    /// @param feeRate_ The new fee rate in basis points
+    function setFeeRate(uint256 feeRate_) external onlyOwner {
+        if (feeRate_ >= _BPS_BASE) revert InvalidRate();
+        feeRate = feeRate_;
     }
 }
