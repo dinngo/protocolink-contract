@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {console2} from 'forge-std/console2.sol';
 import {Agent} from 'src/Agent.sol';
-import {IFeeGenerator} from 'src/interfaces/fees/IFeeGenerator.sol';
 import {AgentHandler} from './handlers/AgentHandler.sol';
 import {MockFallback} from '../mocks/MockFallback.sol';
 import {MockCallback} from '../mocks/MockCallback.sol';
@@ -29,8 +28,6 @@ contract AgentInvariants is Test {
         mockFallback = address(new MockFallback());
         agentHandler = new AgentHandler(router, address(agent), mockCallback, mockFallback);
 
-        vm.mockCall(router, abi.encodePacked(IFeeGenerator.getNativeFeeCalculator.selector), abi.encode(address(0)));
-        vm.mockCall(router, abi.encodePacked(IFeeGenerator.getFeeCalculator.selector), abi.encode(address(0)));
         vm.label(address(agent), 'Agent');
         vm.label(address(agentHandler), 'Agent Handler');
         vm.label(mockCallback, 'mCallback');

@@ -7,8 +7,6 @@ import {Agent} from 'src/Agent.sol';
 import {AgentImplementation, IAgent} from 'src/AgentImplementation.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
-import {IFeeCalculator} from 'src/interfaces/fees/IFeeCalculator.sol';
-import {IFeeGenerator} from 'src/interfaces/fees/IFeeGenerator.sol';
 import {ICallback, MockCallback} from './mocks/MockCallback.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
 import {MockWrappedNative, IWrappedNative} from './mocks/MockWrappedNative.sol';
@@ -48,8 +46,6 @@ contract AgentTest is Test {
         mockCallback = new MockCallback();
         mockFallback = address(new MockFallback());
 
-        vm.mockCall(router, abi.encodePacked(IFeeGenerator.getNativeFeeCalculator.selector), abi.encode(address(0)));
-        vm.mockCall(router, abi.encodePacked(IFeeGenerator.getFeeCalculator.selector), abi.encode(address(0)));
         vm.label(address(agent), 'Agent');
         vm.label(address(mockWrappedNative), 'mWrappedNative');
         vm.label(address(mockERC20), 'mERC20');
@@ -120,24 +116,6 @@ contract AgentTest is Test {
         vm.expectRevert(IAgent.UnresetCallbackWithCharge.selector);
         vm.prank(router);
         agent.execute(logics, tokensReturnEmpty);
-    }
-
-    function testShouldNotChargeWhenExecuteWithSignerFee() external {
-        // Invoke callback
-        bytes memory data = abi.encodeWithSelector(IAgent.executeByCallback.selector, logicsEmpty);
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
-            address(mockCallback),
-            abi.encodeWithSelector(ICallback.callback.selector, data),
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(mockCallback) // callback
-        );
-        // Expected call to router::getFeeCalculator is 0 time
-        vm.expectCall(router, abi.encode(IFeeGenerator.getFeeCalculator.selector), 0);
-        vm.prank(router);
-        agent.executeWithSignerFee(logics, feesEmpty, tokensReturnEmpty);
     }
 
     function testWrapBeforeFixedAmounts(uint128 amount1, uint128 amount2) external {
@@ -382,135 +360,5 @@ contract AgentTest is Test {
         );
         vm.prank(router);
         agent.execute(logics, tokensReturnEmpty);
-    }
-
-    function testExecuteWithFeeThenUnwrap(uint256 amount, uint256 fee, bytes32 metadata) external {
-        amount = bound(amount, 0, type(uint256).max / BPS_BASE); // Prevent overflow when calculates the replaced amount
-        fee = bound(fee, 0, amount);
-
-        // Mock router fee collector
-        address feeCollector = makeAddr('FeeCollector');
-        vm.mockCall(router, abi.encodeWithSelector(IRouter.feeCollector.selector), abi.encode(feeCollector));
-
-        // Mock router token fee calculator
-        address feeCalculator = makeAddr('FeeCalculator');
-        vm.mockCall(
-            router,
-            abi.encodeWithSelector(IFeeGenerator.getFeeCalculator.selector, bytes4(0), mockWrappedNative),
-            abi.encode(feeCalculator)
-        );
-        IParam.Fee[] memory fees = new IParam.Fee[](1);
-        fees[0] = IParam.Fee(mockWrappedNative, fee, metadata);
-        vm.mockCall(feeCalculator, abi.encodePacked(IFeeCalculator.getFees.selector), abi.encode(fees));
-
-        // Airdrop native
-        vm.deal(address(router), amount);
-
-        // Encode logics which
-        // - deposit native to get wrapped native
-        // - charge wrapped native due to the mock fee calculator
-        // - unwrap
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0] = IParam.Input(NATIVE, BPS_BASE, OFFSET_NOT_USED);
-        logics[0] = IParam.Logic(
-            mockWrappedNative, // to
-            new bytes(0),
-            inputs,
-            IParam.WrapMode.UNWRAP_AFTER,
-            address(0), // approveTo
-            address(0) // callback
-        );
-
-        // Execute
-        vm.prank(router);
-        agent.execute{value: amount}(logics, tokensReturnEmpty);
-
-        assertEq(address(agent).balance, amount - fee);
-        assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), 0);
-        assertEq(IERC20(mockWrappedNative).balanceOf(feeCollector), fee);
-    }
-
-    function testExecuteWithFeeThenMaxBps(uint256 amount, uint256 fee, bytes32 metadata) external {
-        amount = bound(amount, 0, type(uint256).max / BPS_BASE); // Prevent overflow when calculates the replaced amount
-        fee = bound(fee, 0, amount);
-
-        // Mock router fee collector
-        address feeCollector = makeAddr('FeeCollector');
-        vm.mockCall(router, abi.encodeWithSelector(IRouter.feeCollector.selector), abi.encode(feeCollector));
-
-        // Mock router native fee calculator
-        address nativeFeeCalculator = makeAddr('NativeFeeCalculator');
-        vm.mockCall(
-            router,
-            abi.encodeWithSelector(IFeeGenerator.getNativeFeeCalculator.selector),
-            abi.encode(nativeFeeCalculator)
-        );
-        IParam.Fee[] memory nativeFees = new IParam.Fee[](1);
-        nativeFees[0] = IParam.Fee(NATIVE, fee, metadata);
-        vm.mockCall(nativeFeeCalculator, abi.encodePacked(IFeeCalculator.getFees.selector), abi.encode(nativeFees));
-
-        // Mock router token fee calculator
-        address feeCalculator = makeAddr('FeeCalculator');
-        vm.mockCall(
-            router,
-            abi.encodeWithSelector(IFeeGenerator.getFeeCalculator.selector, bytes4(0), mockFallback),
-            abi.encode(feeCalculator)
-        );
-        IParam.Fee[] memory fees = new IParam.Fee[](1);
-        fees[0] = IParam.Fee(address(mockERC20), fee, metadata);
-        vm.mockCall(feeCalculator, abi.encodePacked(IFeeCalculator.getFees.selector), abi.encode(fees));
-
-        // Airdrop native and token
-        vm.deal(address(router), amount);
-        deal(address(mockERC20), address(agent), amount);
-
-        // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
-
-        // First logic charges fee for token
-        logics[0] = IParam.Logic(
-            mockFallback, // to
-            new bytes(0),
-            inputsEmpty,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-
-        // Second logic transfers remaining native to user
-        IParam.Input[] memory nativeInputs = new IParam.Input[](1);
-        nativeInputs[0] = IParam.Input(NATIVE, BPS_BASE, OFFSET_NOT_USED);
-        logics[1] = IParam.Logic(
-            user, // to
-            new bytes(0),
-            nativeInputs,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-
-        // Third logic transfers remaining token to user
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0] = IParam.Input(address(mockERC20), BPS_BASE, 0x20);
-        logics[2] = IParam.Logic(
-            address(mockERC20), // to
-            abi.encodeWithSelector(IERC20.transfer.selector, user, 0), // The amount will be replaced with 100% balance
-            inputs,
-            IParam.WrapMode.NONE,
-            address(0), // approveTo
-            address(0) // callback
-        );
-
-        // Execute
-        vm.prank(router);
-        agent.execute{value: amount}(logics, tokensReturnEmpty);
-
-        assertEq(address(agent).balance, 0);
-        assertEq(user.balance, amount - fee);
-        assertEq(feeCollector.balance, fee);
-        assertEq(mockERC20.balanceOf(address(agent)), 0);
-        assertEq(mockERC20.balanceOf(user), amount - fee);
-        assertEq(mockERC20.balanceOf(feeCollector), fee);
     }
 }

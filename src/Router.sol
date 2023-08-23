@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {Ownable} from 'openzeppelin-contracts/contracts/access/Ownable.sol';
+import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {EIP712} from 'openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol';
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
 import {IAgent, AgentImplementation} from './AgentImplementation.sol';
 import {Agent} from './Agent.sol';
-import {FeeGenerator} from './fees/FeeGenerator.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {TypedDataHash} from './libraries/TypedDataHash.sol';
 import {Delegation} from './libraries/Delegation.sol';
 
 /// @title Entry point for Protocolink
-contract Router is IRouter, EIP712, FeeGenerator {
+contract Router is IRouter, Ownable, EIP712 {
     using SafeERC20 for IERC20;
     using TypedDataHash for IParam.LogicBatch;
     using TypedDataHash for IParam.ExecutionDetails;
@@ -165,8 +164,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for user if not created.
-    ///         Fees are charged in the user's agent based on the scenarios defined in the FeeGenerator contract, which
-    ///         calculates fees by logics and msg.value.
+    ///         Fees are charged in the user's agent during the execution of msg.value, permit2 and flash loans.
     /// @param logics Array of logics to be executed
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     /// @param referralCode Referral code
@@ -179,8 +177,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @notice Execute arbitrary logics through the given user's agent. Creates an agent for user if not created.
-    ///         Fees are charged in the user's agent based on the scenarios defined in the FeeGenerator contract, which
-    ///         calculates fees by logics and msg.value.
+    ///         Fees are charged in the user's agent during the execution of msg.value, permit2 and flash loans.
     /// @param user The user address
     /// @param logics Array of logics to be executed
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
@@ -196,8 +193,7 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @notice Execute permitted execution data through the given user's agent. Creates an agent for user if not created.
-    ///         Fees are charged in the user's agent based on the scenarios defined in the FeeGenerator contract, which
-    ///         calculates fees by logics and msg.value.
+    ///         Fees are charged in the user's agent during the execution of msg.value, permit2 and flash loans.
     /// @param details The execution details permitted by user
     /// @param user The user address
     /// @param signature The user's signature bytes
@@ -235,8 +231,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @notice Execute arbitrary logics through the current user's agent using a signer's signature. Creates an agent
-    ///         for user if not created. The fees in logicBatch are off-chain encoded, instead of being calculated by
-    ///         the FeeGenerator contract.
+    ///         for user if not created. Fees in logicBatch are off-chain encoded, rather than calculated in the user's
+    ///         agent.
     /// @dev Allow whitelisted signers to use custom fee rules and permit the reuse of the signature until the deadline
     /// @param logicBatch A struct containing logics, fees and deadline, signed by a signer using EIP-712
     /// @param signer The signer address
@@ -255,8 +251,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @notice Execute arbitrary logics through the given user's agent using a signer's signature. Creates an agent
-    ///         for user if not created. The fees in logicBatch are off-chain encoded, instead of being calculated by
-    ///         the FeeGenerator contract.
+    ///         for user if not created. Fees in logicBatch are off-chain encoded, rather than calculated in the user's
+    ///         agent.
     /// @dev Allow whitelisted signers to use custom fee rules and permit the reuse of the signature until the deadline
     /// @param user The user address
     /// @param logicBatch A struct containing logics, fees and deadline, signed by a signer using EIP-712
@@ -278,8 +274,8 @@ contract Router is IRouter, EIP712, FeeGenerator {
     }
 
     /// @notice Execute permitted execution data through the given user's agent using a signer's signature. Creates an agent
-    ///         for user if not created. The fees in logicBatch are off-chain encoded, instead of being calculated by
-    ///         the FeeGenerator contract.
+    ///         for user if not created. Fees in logicBatch are off-chain encoded, rather than calculated in the user's
+    ///         agent.
     /// @param details The execution details permitted by user
     /// @param user The user address
     /// @param userSignature The user's signature bytes
