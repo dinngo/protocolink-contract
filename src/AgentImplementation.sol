@@ -7,8 +7,6 @@ import {ERC1155Holder} from 'openzeppelin-contracts/contracts/token/ERC1155/util
 import {IAgent} from './interfaces/IAgent.sol';
 import {IParam} from './interfaces/IParam.sol';
 import {IRouter} from './interfaces/IRouter.sol';
-import {IFeeCalculator} from './interfaces/fees/IFeeCalculator.sol';
-import {IFeeGenerator} from './interfaces/fees/IFeeGenerator.sol';
 import {IWrappedNative} from './interfaces/IWrappedNative.sol';
 import {ApproveHelper} from './libraries/ApproveHelper.sol';
 
@@ -27,9 +25,6 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
 
     /// @dev Flag for identifying the native address such as ETH on Ethereum
     address internal constant _NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-    /// @dev Flag for identifying any address in router's fee calculators mapping
-    address internal constant _ANY_TO_ADDRESS = address(0);
 
     /// @dev Denominator for calculating basis points
     uint256 internal constant _BPS_BASE = 10_000;
@@ -61,8 +56,8 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _callbackWithCharge = _INIT_CALLBACK_WITH_CHARGE;
     }
 
-    /// @notice Execute arbitrary logics and is only callable by the router. Charge fee based on the scenarios defined
-    ///         in the router.
+    /// @notice Execute arbitrary logics and is only callable by the router. Charge fee during the execution of
+    ///         msg.value, permit2 and flash loans.
     /// @dev The router is designed to prevent reentrancy so additional prevention is not needed here
     /// @param logics Array of logics to be executed
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
@@ -95,8 +90,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _returnTokens(tokensReturn);
     }
 
-    /// @notice Execute arbitrary logics and is only callable by a valid callback. Charge fee based on the scenarios
-    ///         defined in the router if the charge bit is set.
+    /// @notice Execute arbitrary logics and is only callable by a valid callback.
     /// @dev A valid callback address is set during `_executeLogics` and reset here
     /// @param logics Array of logics to be executed
     function executeByCallback(IParam.Logic[] calldata logics) external payable {
@@ -105,8 +99,8 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         // Revert if msg.sender is not equal to the callback address
         if (msg.sender != address(bytes20(callbackWithCharge))) revert NotCallback();
 
-        // Check the least significant bit to determine whether to charge fee
-        bool shouldChargeFeeByLogic = (callbackWithCharge & _CHARGE_MASK) != bytes32(0);
+        // Retain the least significant bit to determine whether to charge fee on callback afterward
+        bool chargeFeeOnCallback = (callbackWithCharge & _CHARGE_MASK) != bytes32(0);
 
         // Reset immediately to prevent reentrancy
         // If reentrancy is not blocked, an attacker could manipulate the callback contract to compel agent to execute
@@ -114,7 +108,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         _callbackWithCharge = _INIT_CALLBACK_WITH_CHARGE;
 
         // Execute logics with the charge fee flag
-        _executeLogics(logics, shouldChargeFeeByLogic);
+        _executeLogics(logics, chargeFeeOnCallback);
     }
 
     function _getBalance(address token) internal view returns (uint256 balance) {
@@ -125,7 +119,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         }
     }
 
-    function _executeLogics(IParam.Logic[] calldata logics, bool shouldChargeFeeByLogic) internal {
+    function _executeLogics(IParam.Logic[] calldata logics, bool chargeFeeOnCallback) internal {
         // Execute each logic
         uint256 logicsLength = logics.length;
         for (uint256 i; i < logicsLength; ) {
@@ -203,7 +197,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             // Set callback who should enter one-time `executeByCallback`
             if (logics[i].callback != address(0)) {
                 bytes32 callback = bytes32(bytes20(logics[i].callback));
-                if (shouldChargeFeeByLogic) {
+                if (chargeFeeOnCallback) {
                     // Set the least significant bit
                     _callbackWithCharge = callback | _CHARGE_MASK;
                 } else {
@@ -221,11 +215,6 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             // Revert if the previous call didn't enter `executeByCallback`
             if (_callbackWithCharge != _INIT_CALLBACK_WITH_CHARGE) revert UnresetCallbackWithCharge();
 
-            // Charge fee before unwrap to prevent insufficient wrapped native
-            if (shouldChargeFeeByLogic) {
-                _chargeFeeByLogic(logics[i]);
-            }
-
             // Unwrap to native after the call
             if (wrapMode == IParam.WrapMode.UNWRAP_AFTER) {
                 IWrappedNative(wrappedNative).withdraw(_getBalance(wrappedNative) - wrappedAmount);
@@ -240,21 +229,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     function _chargeFeeByMsgValue() internal {
         if (msg.value == 0) return;
 
-        address nativeFeeCalculator = IFeeGenerator(router).getNativeFeeCalculator();
-        if (nativeFeeCalculator != address(0)) {
-            _chargeFee(IFeeCalculator(nativeFeeCalculator).getFees(_ANY_TO_ADDRESS, abi.encodePacked(msg.value)));
-        }
-    }
-
-    function _chargeFeeByLogic(IParam.Logic calldata logic) internal {
-        bytes memory data = logic.data;
-        bytes4 selector = bytes4(data);
-        address to = logic.to;
-
-        address feeCalculator = IFeeGenerator(router).getFeeCalculator(selector, to);
-        if (feeCalculator != address(0)) {
-            _chargeFee(IFeeCalculator(feeCalculator).getFees(to, data));
-        }
+        // TODO: implement new msg.value fee charge mechanism
     }
 
     function _chargeFee(IParam.Fee[] memory fees) internal {

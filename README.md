@@ -21,7 +21,6 @@ Protocolink contracts consist of the following components:
 - `Agent`: The execution unit of user transactions. The token approvals are securely held since one `Agent` is exclusive to one user only.
 - `Callback`: One-time address is used for reentering `Agent`. Can only be set during contract execution.
 - `Utility`: Can be called by `Agent` to perform additional actions.
-- `Fee`: Calculates fees and verifies them based on various fee scenarios.
 
 ## Usage
 

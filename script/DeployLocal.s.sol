@@ -7,13 +7,6 @@ import {DeployAaveV2FlashLoanCallback} from './callbacks/DeployAaveV2FlashLoanCa
 import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCallback.s.sol';
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
 import {DeployMakerUtility} from './utilities/DeployMakerUtility.s.sol';
-import {DeployAaveBorrowFeeCalculator} from './fees/DeployAaveBorrowFeeCalculator.s.sol';
-import {DeployAaveFlashLoanFeeCalculator} from './fees/DeployAaveFlashLoanFeeCalculator.s.sol';
-import {DeployCompoundV3BorrowFeeCalculator} from './fees/DeployCompoundV3BorrowFeeCalculator.s.sol';
-import {DeployMakerDrawFeeCalculator} from './fees/DeployMakerDrawFeeCalculator.s.sol';
-import {DeployNativeFeeCalculator} from './fees/DeployNativeFeeCalculator.s.sol';
-import {DeployPermit2FeeCalculator} from './fees/DeployPermit2FeeCalculator.s.sol';
-import {DeployTransferFromFeeCalculator} from './fees/DeployTransferFromFeeCalculator.s.sol';
 
 contract DeployLocal is
     DeployCREATE3Factory,
@@ -21,14 +14,7 @@ contract DeployLocal is
     DeployAaveV2FlashLoanCallback,
     DeployAaveV3FlashLoanCallback,
     DeployBalancerV2FlashLoanCallback,
-    DeployMakerUtility,
-    DeployAaveBorrowFeeCalculator,
-    DeployAaveFlashLoanFeeCalculator,
-    DeployCompoundV3BorrowFeeCalculator,
-    DeployMakerDrawFeeCalculator,
-    DeployNativeFeeCalculator,
-    DeployPermit2FeeCalculator,
-    DeployTransferFromFeeCalculator
+    DeployMakerUtility
 {
     /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
     function setUp() external {
@@ -68,31 +54,6 @@ contract DeployLocal is
             daiToken: 0x6B175474E89094C44Da98b954EedeAC495271d0F,
             jug: 0x19c0976f590D67707E62397C87829d896Dc0f1F1
         });
-
-        aaveBorrowFeeCalculatorConfig = AaveBorrowFeeCalculatorConfig({
-            deployedAddress: UNDEPLOYED,
-            feeRate: 0,
-            aaveV3Provider: 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e
-        });
-
-        aaveFlashLoanFeeCalculatorConfig = AaveFlashLoanFeeCalculatorConfig({
-            deployedAddress: UNDEPLOYED,
-            feeRate: 0,
-            aaveV3Provider: 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e
-        });
-
-        compoundV3BorrowFeeCalculatorConfig = CompoundV3BorrowFeeCalculatorConfig({
-            deployedAddress: UNDEPLOYED,
-            feeRate: 0
-        });
-        makerDrawFeeCalculatorConfig = MakerDrawFeeCalculatorConfig({
-            deployedAddress: UNDEPLOYED,
-            feeRate: 0,
-            daiToken: 0x6B175474E89094C44Da98b954EedeAC495271d0F
-        });
-        nativeFeeCalculatorConfig = NativeFeeCalculatorConfig({deployedAddress: UNDEPLOYED, feeRate: 0});
-        permit2FeeCalculatorConfig = Permit2FeeCalculatorConfig({deployedAddress: UNDEPLOYED, feeRate: 0});
-        transferFromFeeCalculatorConfig = TransferFromFeeCalculatorConfig({deployedAddress: UNDEPLOYED, feeRate: 0});
     }
 
     function _run() internal override {
@@ -109,14 +70,5 @@ contract DeployLocal is
 
         // utility
         _deployMakerUtility(deployedCreate3FactoryAddress, deployedRouterAddress);
-
-        // fee
-        _deployAaveBorrowFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
-        _deployAaveFlashLoanFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
-        _deployCompoundV3BorrowFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
-        _deployMakerDrawFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
-        _deployNativeFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
-        _deployPermit2FeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
-        _deployTransferFromFeeCalculator(deployedCreate3FactoryAddress, deployedRouterAddress);
     }
 }
