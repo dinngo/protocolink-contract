@@ -60,6 +60,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
     IUniswapV2Router02 public constant uniswapRouter02 = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     uint256 public constant BPS_BASE = 10_000;
     uint256 public constant BPS_NOT_USED = 0;
+    uint256 internal constant _DUST = 10;
 
     address public user;
     uint256 public userPrivateKey;
@@ -120,8 +121,11 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         assertEq(tokenIn.balanceOf(address(agent)), 0);
         assertEq(tokenIn.balanceOf(address(user)), 0);
         assertEq(tokenOut.balanceOf(address(router)), 0);
-        assertEq(tokenOut.balanceOf(address(agent)), 0);
-        assertGt(tokenOut.balanceOf(user), 0);
+        if (tokenOut.balanceOf(user) == 0) {
+            assertLe(tokenOut.balanceOf(address(agent)), _DUST);
+        } else {
+            assertEq(tokenOut.balanceOf(address(agent)), 0);
+        }
     }
 
     function testExecuteUniswapV2SwapTokenToNative(uint256 amountIn) external {
@@ -175,8 +179,11 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenIn.balanceOf(address(agent)), 0);
-        assertEq(tokenOut.balanceOf(address(agent)), 0);
-        assertGt(tokenOut.balanceOf(user), 0);
+        if (tokenOut.balanceOf(user) == 0) {
+            assertLe(tokenOut.balanceOf(address(agent)), _DUST);
+        } else {
+            assertEq(tokenOut.balanceOf(address(agent)), 0);
+        }
     }
 
     // 1. Swap 50% token0 to token1

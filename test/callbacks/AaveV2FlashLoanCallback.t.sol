@@ -11,6 +11,7 @@ contract AaveV2FlashLoanCallbackTest is Test {
     IAaveV2Provider public constant aaveV2Provider = IAaveV2Provider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
 
     address public user;
+    address public feeCollector;
     address public router;
     address public agent;
     IAaveV2FlashLoanCallback public flashLoanCallback;
@@ -21,17 +22,20 @@ contract AaveV2FlashLoanCallbackTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
+        feeCollector = makeAddr('feeCollector');
         // Setup router and agent mock
         router = makeAddr('Router');
         vm.etch(router, 'code');
         agent = makeAddr('Agent');
         vm.etch(agent, 'code');
 
-        flashLoanCallback = new AaveV2FlashLoanCallback(router, address(aaveV2Provider));
+        flashLoanCallback = new AaveV2FlashLoanCallback(router, address(aaveV2Provider), 0);
         mockERC20 = new ERC20('mockERC20', 'mock');
 
         // Return activated agent from router
         vm.mockCall(router, 0, abi.encodeWithSignature('getCurrentUserAgent()'), abi.encode(user, agent));
+        vm.mockCall(router, 0, abi.encodeWithSignature('feeCollector()'), abi.encode(feeCollector));
+        vm.mockCall(agent, 0, abi.encodeWithSignature('isCharging()'), abi.encode(true));
         vm.label(address(flashLoanCallback), 'AaveV2FlashLoanCallback');
         vm.label(address(aaveV2Provider), 'AaveV2Provider');
         vm.label(address(mockERC20), 'mERC20');

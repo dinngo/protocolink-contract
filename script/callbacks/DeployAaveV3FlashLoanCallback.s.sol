@@ -12,6 +12,7 @@ abstract contract DeployAaveV3FlashLoanCallback is DeployBase {
         address deployedAddress;
         // deploy params
         address aaveV3Provider;
+        uint256 feeRate;
     }
 
     AaveV3FlashLoanCallbackConfig internal aaveV3FlashLoanCallbackConfig;
@@ -32,7 +33,7 @@ abstract contract DeployAaveV3FlashLoanCallback is DeployBase {
             bytes32 salt = keccak256('protocolink.aave.v3.flash.loan.callback.v2');
             bytes memory creationCode = abi.encodePacked(
                 type(AaveV3FlashLoanCallback).creationCode,
-                abi.encode(router, cfg.aaveV3Provider)
+                abi.encode(router, cfg.aaveV3Provider, cfg.feeRate)
             );
             deployedAddress = factory.deploy(salt, creationCode);
             console2.log('AaveV3FlashLoanCallback Deployed:', deployedAddress);

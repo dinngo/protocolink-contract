@@ -34,17 +34,20 @@ contract DeployLocal is
 
         aaveV2FlashLoanCallbackConfig = AaveV2FlashLoanCallbackConfig({
             deployedAddress: UNDEPLOYED,
-            aaveV2Provider: 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5
+            aaveV2Provider: 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5,
+            feeRate: 5
         });
 
         aaveV3FlashLoanCallbackConfig = AaveV3FlashLoanCallbackConfig({
             deployedAddress: UNDEPLOYED,
-            aaveV3Provider: 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e
+            aaveV3Provider: 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e,
+            feeRate: 5
         });
 
         balancerV2FlashLoanCallbackConfig = BalancerV2FlashLoanCallbackConfig({
             deployedAddress: UNDEPLOYED,
-            balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8
+            balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8,
+            feeRate: 5
         });
 
         makerUtilityConfig = MakerUtilityConfig({

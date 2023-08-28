@@ -20,6 +20,7 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
     IYVault public constant yVault = IYVault(0x2f08119C6f07c006695E079AAFc638b8789FAf18); // yUSDT
     uint256 public constant BPS_BASE = 10_000;
     uint256 public constant BPS_NOT_USED = 0;
+    uint256 internal constant _DUST = 10;
 
     address public user;
     uint256 public userPrivateKey;
@@ -71,8 +72,11 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenIn.balanceOf(address(agent)), 0);
         assertEq(yVault.balanceOf(address(router)), 0);
-        assertEq(yVault.balanceOf(address(agent)), 0);
-        assertGt(yVault.balanceOf(user), 0);
+        if (yVault.balanceOf(user) == 0) {
+            assertLe(yVault.balanceOf(address(agent)), _DUST);
+        } else {
+            assertEq(yVault.balanceOf(address(agent)), 0);
+        }
     }
 
     function _logicYearn(

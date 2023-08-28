@@ -3,21 +3,26 @@ pragma solidity ^0.8.0;
 
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IAgent} from '../interfaces/IAgent.sol';
+import {IParam} from '../interfaces/IParam.sol';
 import {IRouter} from '../interfaces/IRouter.sol';
 import {IAaveV2FlashLoanCallback} from '../interfaces/callbacks/IAaveV2FlashLoanCallback.sol';
 import {IAaveV2Provider} from '../interfaces/aaveV2/IAaveV2Provider.sol';
 import {ApproveHelper} from '../libraries/ApproveHelper.sol';
+import {FeeLibrary} from '../libraries/FeeLibrary.sol';
+import {CallbackFeeBase} from './CallbackFeeBase.sol';
 
 /// @title Aave V2 flash loan callback
 /// @notice Invoked by Aave V2 pool to call the current user's agent
-contract AaveV2FlashLoanCallback is IAaveV2FlashLoanCallback {
+contract AaveV2FlashLoanCallback is IAaveV2FlashLoanCallback, CallbackFeeBase {
     using SafeERC20 for IERC20;
     using Address for address;
+    using FeeLibrary for IParam.Fee;
 
     address public immutable router;
     address public immutable aaveV2Provider;
+    bytes32 internal constant _META_DATA = bytes32(bytes('aave-v2:flash-loan'));
 
-    constructor(address router_, address aaveV2Provider_) {
+    constructor(address router_, address aaveV2Provider_, uint256 feeRate_) CallbackFeeBase(feeRate_, _META_DATA) {
         router = router_;
         aaveV2Provider = aaveV2Provider_;
     }
@@ -35,33 +40,41 @@ contract AaveV2FlashLoanCallback is IAaveV2FlashLoanCallback {
         bytes calldata params
     ) external returns (bool) {
         address pool = IAaveV2Provider(aaveV2Provider).getLendingPool();
-
         if (msg.sender != pool) revert InvalidCaller();
-        (, address agent) = IRouter(router).getCurrentUserAgent();
+        bool charge;
+        uint256[] memory initBalances = new uint256[](assets.length);
+        {
+            (, address agent) = IRouter(router).getCurrentUserAgent();
+            charge = feeRate > 0 && IAgent(agent).isCharging();
 
-        // Transfer assets to the agent and record initial balances
-        uint256 assetsLength = assets.length;
-        uint256[] memory initBalances = new uint256[](assetsLength);
-        for (uint256 i; i < assetsLength; ) {
-            address asset = assets[i];
+            // Transfer assets to the agent and record initial balances
+            for (uint256 i; i < assets.length; ) {
+                address asset = assets[i];
+                IERC20(asset).safeTransfer(agent, amounts[i]);
+                initBalances[i] = IERC20(asset).balanceOf(address(this));
 
-            IERC20(asset).safeTransfer(agent, amounts[i]);
-            initBalances[i] = IERC20(asset).balanceOf(address(this));
-
-            unchecked {
-                ++i;
+                unchecked {
+                    ++i;
+                }
             }
+
+            agent.functionCall(
+                abi.encodePacked(IAgent.executeByCallback.selector, params),
+                'ERROR_AAVE_V2_FLASH_LOAN_CALLBACK'
+            );
         }
 
-        agent.functionCall(
-            abi.encodePacked(IAgent.executeByCallback.selector, params),
-            'ERROR_AAVE_V2_FLASH_LOAN_CALLBACK'
-        );
-
         // Approve assets for pulling from Aave Pool
-        for (uint256 i; i < assetsLength; ) {
+        address feeCollector = IRouter(router).feeCollector();
+        for (uint256 i; i < assets.length; ) {
             address asset = assets[i];
-            uint256 amountOwing = amounts[i] + premiums[i];
+            uint256 amount = amounts[i];
+            uint256 amountOwing = amount + premiums[i];
+
+            if (charge) {
+                IParam.Fee memory fee = FeeLibrary.calculateFee(asset, amount, feeRate, metadata);
+                fee.pay(feeCollector);
+            }
 
             // Check balance is valid
             if (IERC20(asset).balanceOf(address(this)) != initBalances[i] + amountOwing) revert InvalidBalance(asset);

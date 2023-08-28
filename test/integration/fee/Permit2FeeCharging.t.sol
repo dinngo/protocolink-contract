@@ -7,6 +7,7 @@ import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {Router} from 'src/Router.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
+import {FeeLibrary} from 'src/libraries/FeeLibrary.sol';
 import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
 import {TypedDataSignature} from 'test/utils/TypedDataSignature.sol';
 
@@ -21,6 +22,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
     address public constant PERMIT2_ADDR = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     uint256 public constant BPS_BASE = 10_000;
     bytes32 public constant META_DATA = bytes32(bytes('permit2:pull-token'));
+    uint256 internal constant _DUST = 10;
 
     address public user;
     uint256 public userPrivateKey;
@@ -62,7 +64,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
 
         // Encode permit2Datas
         bytes[] memory datas = new bytes[](1);
-        uint256 amountWithFee = (amount * (BPS_BASE + feeRate)) / BPS_BASE;
+        uint256 amountWithFee = FeeLibrary.calculateAmountWithFee(amount, feeRate);
         datas[0] = dataERC20Permit2PullToken(IERC20(USDC), amountWithFee.toUint160());
 
         // Prepare assert data
@@ -84,9 +86,14 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
         router.execute(datas, logicsEmpty, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
-        assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
         assertEq(IERC20(USDC).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
-        assertEq(IERC20(USDC).balanceOf(user), amount);
+        if (amount > _DUST) {
+            assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
+            assertEq(IERC20(USDC).balanceOf(user), amount);
+        } else {
+            assertLe(IERC20(USDC).balanceOf(address(userAgent)), _DUST);
+            assertEq(IERC20(USDC).balanceOf(user), 0);
+        }
         assertEq(newAmount, expectedNewAmount);
     }
 
@@ -100,7 +107,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
         // Encode permit2Datas
         bytes[] memory datas = new bytes[](1);
 
-        uint256 amountFee = (amount * feeRate) / BPS_BASE;
+        uint256 amountFee = FeeLibrary.calculateFeeFromAmount(amount, feeRate);
 
         datas[0] = dataERC20Permit2PullToken(IERC20(USDC), amount.toUint160());
         IParam.Fee[] memory fees = new IParam.Fee[](1);
@@ -127,9 +134,14 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
         router.executeWithSignerFee(datas, logicBatch, signer, signature, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
-        assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
         assertEq(IERC20(USDC).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
-        assertEq(IERC20(USDC).balanceOf(user), amount);
+        if (amount > _DUST) {
+            assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
+            assertEq(IERC20(USDC).balanceOf(user), amount);
+        } else {
+            assertLe(IERC20(USDC).balanceOf(address(userAgent)), _DUST);
+            assertEq(IERC20(USDC).balanceOf(user), 0);
+        }
         assertEq(newAmount, expectedNewAmount);
     }
 

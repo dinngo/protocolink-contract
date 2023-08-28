@@ -12,6 +12,7 @@ abstract contract DeployBalancerV2FlashLoanCallback is DeployBase {
         address deployedAddress;
         // deploy params
         address balancerV2Vault;
+        uint256 feeRate;
     }
 
     BalancerV2FlashLoanCallbackConfig internal balancerV2FlashLoanCallbackConfig;
@@ -32,7 +33,7 @@ abstract contract DeployBalancerV2FlashLoanCallback is DeployBase {
             bytes32 salt = keccak256('protocolink.balancer.v2.flash.loan.callback.v2');
             bytes memory creationCode = abi.encodePacked(
                 type(BalancerV2FlashLoanCallback).creationCode,
-                abi.encode(router, cfg.balancerV2Vault)
+                abi.encode(router, cfg.balancerV2Vault, cfg.feeRate)
             );
             deployedAddress = factory.deploy(salt, creationCode);
             console2.log('BalancerV2FlashLoanCallback Deployed:', deployedAddress);

@@ -40,7 +40,7 @@ contract BalancerV2IntegrationTest is Test {
             makeAddr('Pauser'),
             makeAddr('FeeCollector')
         );
-        flashLoanCallback = new BalancerV2FlashLoanCallback(address(router), address(balancerV2Vault));
+        flashLoanCallback = new BalancerV2FlashLoanCallback(address(router), address(balancerV2Vault), 0);
 
         vm.label(address(router), 'Router');
         vm.label(address(flashLoanCallback), 'BalancerV2FlashLoanCallback');

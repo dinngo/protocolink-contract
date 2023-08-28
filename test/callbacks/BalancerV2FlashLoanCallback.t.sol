@@ -11,6 +11,7 @@ contract BalancerV2FlashLoanCallbackTest is Test {
     address public constant BALANCER_V2_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
 
     address public user;
+    address public feeCollector;
     address public router;
     address public agent;
     IBalancerV2FlashLoanCallback public flashLoanCallback;
@@ -21,17 +22,20 @@ contract BalancerV2FlashLoanCallbackTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
+        feeCollector = makeAddr('feeCollector');
         // Setup router and agent mock
         router = makeAddr('Router');
         vm.etch(router, 'code');
         agent = makeAddr('Agent');
         vm.etch(agent, 'code');
 
-        flashLoanCallback = new BalancerV2FlashLoanCallback(address(router), BALANCER_V2_VAULT);
+        flashLoanCallback = new BalancerV2FlashLoanCallback(address(router), BALANCER_V2_VAULT, 0);
         mockERC20 = new ERC20('mockERC20', 'mock');
 
         // Return activated agent from router
         vm.mockCall(router, 0, abi.encodeWithSignature('getCurrentUserAgent()'), abi.encode(user, agent));
+        vm.mockCall(router, 0, abi.encodeWithSignature('feeCollector()'), abi.encode(feeCollector));
+        vm.mockCall(agent, 0, abi.encodeWithSignature('isCharging()'), abi.encode(true));
         vm.label(address(flashLoanCallback), 'BalancerV2FlashLoanCallback');
         vm.label(BALANCER_V2_VAULT, 'BalancerV2Vault');
         vm.label(address(mockERC20), 'mERC20');

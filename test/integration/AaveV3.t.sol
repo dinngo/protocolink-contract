@@ -79,7 +79,7 @@ contract AaveV3IntegrationTest is Test {
         );
         vm.prank(user);
         agent = IAgent(router.newAgent());
-        flashLoanCallback = new AaveV3FlashLoanCallback(address(router), address(AAVE_V3_PROVIDER));
+        flashLoanCallback = new AaveV3FlashLoanCallback(address(router), address(AAVE_V3_PROVIDER), 0);
 
         // User approved agent aave v3 delegation
         vm.startPrank(user);
