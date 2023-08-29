@@ -220,7 +220,7 @@ contract Router is IRouter, Ownable, EIP712 {
             if (block.timestamp > deadline) revert SignatureExpired(deadline);
             if (!user.isValidSignatureNow(_hashTypedDataV4(details._hash()), signature)) revert InvalidSignature();
             if (executionNonces[user] != nonce) revert InvalidNonce();
-            executionNonces[user] = nonce + 1;
+            ++executionNonces[user];
         }
         _execute(user, details.permit2Datas, details.logics, details.tokensReturn, details.referralCode);
     }
@@ -312,7 +312,7 @@ contract Router is IRouter, Ownable, EIP712 {
             if (block.timestamp > deadline) revert SignatureExpired(deadline);
             if (!user.isValidSignatureNow(_hashTypedDataV4(details._hash()), userSignature)) revert InvalidSignature();
             if (executionNonces[user] != nonce) revert InvalidNonce();
-            executionNonces[user] = nonce + 1;
+            ++executionNonces[user];
         }
         _verifySignerFee(logicBatch, signer, signerSignature);
         _executeWithSignerFee(user, details.permit2Datas, logicBatch, details.tokensReturn, details.referralCode);
