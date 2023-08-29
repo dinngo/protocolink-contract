@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
+import {IAllowanceTransfer} from 'permit2/interfaces/IAllowanceTransfer.sol';
 import {IParam} from 'src/interfaces/IParam.sol';
 import {TypedDataSignature} from './utils/TypedDataSignature.sol';
 
@@ -32,12 +33,14 @@ contract ExecutionTypehash is Test, TypedDataSignature {
     function testExecutionTypehash() external {
         // Sign an execution using metamask to obtain an external sig
         // https://github.com/dinngo/test-dapp/tree/for-protocolink-contract
-        bytes32 r = 0x8e65bac0b03b4929e6fa2bd08d0ff2aa54830b7b0f6952a37746186e0247b1c0;
-        bytes32 s = 0x53fcfdf3e742855dbce317e007bebd221a2a81e496f5a099dfd2f5eaddd02962;
-        uint8 v = 0x1c;
+        bytes32 r = 0x00f7564accec520663a722d7e545dbeaf029748215f2a177ba3729d760274f24;
+        bytes32 s = 0x454956f59b5c4eada12a5bf61bc3054ec6ca98782eebb65443edfef44cb06ca1;
+        uint8 v = 0x1b;
         bytes memory sig = bytes.concat(r, s, bytes1(v));
 
         // Create the execution with the same parameters as above
+        bytes[] memory permit2Datas = new bytes[](1);
+        permit2Datas[0] = abi.encodeWithSelector(0x36c78516, SIGNER, verifyingContract, 1, address(2));
         IParam.Input[] memory inputs = new IParam.Input[](2);
         inputs[0] = IParam.Input(
             address(1), // token
@@ -66,6 +69,7 @@ contract ExecutionTypehash is Test, TypedDataSignature {
         uint256 nonce = 9;
         uint256 deadline = 1704067200;
         IParam.ExecutionDetails memory details = IParam.ExecutionDetails(
+            permit2Datas,
             logics,
             tokensReturn,
             referralCode,
@@ -84,12 +88,14 @@ contract ExecutionTypehash is Test, TypedDataSignature {
     function testExecutionBatchTypehash() external {
         // Sign an execution using metamask to obtain an external sig
         // https://github.com/dinngo/test-dapp/tree/for-protocolink-contract
-        bytes32 r = 0x3b69de043a6e284b833aa7aae1a5a1ef21d8575da87ab8e6197336ffd2b5adb3;
-        bytes32 s = 0x3bd9781323656e313a6122b57423eee4c11a862c63b5ad4173d43db5ecb274d6;
+        bytes32 r = 0xf96a72163d9a9fa32c21aa2389b1ac4ba30417b9653f2ba0edcbcff3992967e0;
+        bytes32 s = 0x3f83a7e1451e0ac57e225c9f90a0d38cbacfffcb7eb84c50caa52bf305d6ab3d;
         uint8 v = 0x1c;
         bytes memory sig = bytes.concat(r, s, bytes1(v));
 
         // Create the execution with the same parameters as above
+        bytes[] memory permit2Datas = new bytes[](1);
+        permit2Datas[0] = abi.encodeWithSelector(0x36c78516, SIGNER, verifyingContract, 1, address(2));
         IParam.Input[] memory inputs = new IParam.Input[](2);
         inputs[0] = IParam.Input(
             address(1), // token
@@ -122,6 +128,7 @@ contract ExecutionTypehash is Test, TypedDataSignature {
         uint256 referralCode = 8;
         uint256 nonce = 9;
         IParam.ExecutionBatchDetails memory details = IParam.ExecutionBatchDetails(
+            permit2Datas,
             logicBatch,
             tokensReturn,
             referralCode,

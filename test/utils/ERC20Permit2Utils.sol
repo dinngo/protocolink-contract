@@ -48,23 +48,14 @@ contract ERC20Permit2Utils is Test, PermitSignature {
         vm.stopPrank();
     }
 
-    function logicERC20Permit2PullToken(IERC20 token, uint160 amount) internal view returns (IParam.Logic memory) {
-        IParam.Input[] memory inputsEmpty;
-
+    function dataERC20Permit2PullToken(IERC20 token, uint160 amount) internal view returns (bytes memory) {
         return
-            IParam.Logic(
-                address(permit2Addr), // to
-                abi.encodeWithSignature(
-                    'transferFrom(address,address,uint160,address)',
-                    _erc20User,
-                    _erc20Agent,
-                    amount,
-                    token
-                ),
-                inputsEmpty,
-                IParam.WrapMode.NONE,
-                address(0), // approveTo
-                address(0) // callback
+            abi.encodeWithSignature(
+                'transferFrom(address,address,uint160,address)',
+                _erc20User,
+                _erc20Agent,
+                amount,
+                token
             );
     }
 }

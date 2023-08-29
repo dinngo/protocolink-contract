@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 interface IParam {
     /// @notice ExecutionDetails represents a series of logics to be executed
     struct ExecutionBatchDetails {
+        bytes[] permit2Datas;
         LogicBatch logicBatch;
         address[] tokensReturn;
         uint256 referralCode;
@@ -20,6 +21,7 @@ interface IParam {
 
     /// @notice ExecutionDetails represents a series of logics to be executed
     struct ExecutionDetails {
+        bytes[] permit2Datas;
         Logic[] logics;
         address[] tokensReturn;
         uint256 referralCode;

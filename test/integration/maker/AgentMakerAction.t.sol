@@ -34,11 +34,18 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     // Empty arrays
     address[] public tokensReturnEmpty;
     IParam.Input[] public inputsEmpty;
+    bytes[] public permit2DatasEmpty;
 
     function setUp() external {
         user = makeAddr('User');
         (user2, user2PrivateKey) = makeAddrAndKey('User2');
-        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(
+            makeAddr('WrappedNative'),
+            permit2Addr,
+            address(this),
+            makeAddr('Pauser'),
+            makeAddr('FeeCollector')
+        );
 
         // Empty router the balance
         vm.prank(address(router));
@@ -51,7 +58,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
 
         // Build user agent's DSProxy
         userAgent = IAgent(router.newAgent());
-        router.execute(_logicBuildAgentDSProxy(), tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, _logicBuildAgentDSProxy(), tokensReturnEmpty, SIGNER_REFERRAL);
         userAgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(userAgent));
 
         // Open ETH Vault
@@ -102,7 +109,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         // Build user2's agent
         vm.startPrank(user2);
         user2Agent = IAgent(router.newAgent());
-        router.execute(_logicBuildAgentDSProxy(), tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, _logicBuildAgentDSProxy(), tokensReturnEmpty, SIGNER_REFERRAL);
         user2AgentDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(user2Agent));
         vm.stopPrank();
 
@@ -135,7 +142,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
 
         // Execute
         vm.prank(user2);
-        router.execute{value: lockETHAmount}(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute{value: lockETHAmount}(permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         (, uint256 collateralAfter) = _getCdpInfo(ethCdp);
 
@@ -159,7 +166,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(NATIVE);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(user.balance - userEthBalanceBefore, freeETHAmount);
         assertEq(address(router).balance, 0);
@@ -182,7 +189,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(NATIVE);
         vm.prank(user2);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(user2.balance - user2EthBalanceBefore, freeETHAmount);
         assertEq(address(router).balance, 0);
@@ -202,7 +209,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         tokensReturn[0] = address(NATIVE);
         vm.expectRevert('ERROR_ROUTER_EXECUTE');
         vm.prank(user2);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
     }
 
     function testLockGem() external {
@@ -212,15 +219,18 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         uint256 user2GemBalanceBefore = IERC20(GEM).balanceOf(user2);
         (, uint256 collateralBefore) = _getCdpInfo(gemCdp);
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = dataERC20Permit2PullToken(IERC20(GEM), lockGemAmount.toUint160());
+
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicERC20Permit2PullToken(IERC20(GEM), lockGemAmount.toUint160());
-        logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, GEM, lockGemAmount);
-        logics[2] = _logicLockGem(gemCdp, lockGemAmount);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
+        logics[0] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, GEM, lockGemAmount);
+        logics[1] = _logicLockGem(gemCdp, lockGemAmount);
 
         // Execute
         vm.prank(user2);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         (, uint256 collateralAfter) = _getCdpInfo(gemCdp);
         uint256 collateralDiff = (collateralAfter - collateralBefore) / (10 ** (18 - GEM_DECIMAL));
@@ -246,7 +256,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(GEM);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         uint256 userEthBalanceAfter = IERC20(GEM).balanceOf(user);
 
@@ -262,15 +272,18 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         uint256 user2DaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user2);
         (uint256 debtBefore, ) = _getCdpInfo(gemCdp);
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = dataERC20Permit2PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
+
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicERC20Permit2PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
-        logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
-        logics[2] = _logicWipe(gemCdp, wipeAmount);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
+        logics[0] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
+        logics[1] = _logicWipe(gemCdp, wipeAmount);
 
         // Execute
         vm.prank(user2);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         (uint256 debtAfter, ) = _getCdpInfo(gemCdp);
         uint256 user2DaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user2);
@@ -289,17 +302,20 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         uint256 user2DaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user2);
         (uint256 debtBefore, ) = _getCdpInfo(gemCdp);
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = dataERC20Permit2PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
+
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicERC20Permit2PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
-        logics[1] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
-        logics[2] = _logicWipeAll(gemCdp);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
+        logics[0] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
+        logics[1] = _logicWipeAll(gemCdp);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user2);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
 
         (uint256 debtAfter, ) = _getCdpInfo(gemCdp);
         uint256 user2DaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user2);
@@ -324,7 +340,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         uint256 userDaiBalanceAfter = IERC20(DAI_TOKEN).balanceOf(user);
 

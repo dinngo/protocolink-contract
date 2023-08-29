@@ -14,6 +14,7 @@ contract AgentHandler is Test {
     address public immutable mFallback;
 
     // Empty arrays
+    bytes[] permit2DatasEmpty;
     IParam.Logic[] logicsEmpty;
     IParam.Fee[] feesEmpty;
     IParam.Input[] inputsEmpty;
@@ -31,19 +32,19 @@ contract AgentHandler is Test {
     function execute() external {
         numCalls['execute']++;
         vm.prank(router);
-        IMockAgent(agent).execute(_logicsWithCallback(), tokensReturnEmpty);
+        IMockAgent(agent).execute(permit2DatasEmpty, _logicsWithCallback(), tokensReturnEmpty);
     }
 
     function executeWithoutCallback() external {
         numCalls['executeWithoutCallback']++;
         vm.prank(router);
-        IMockAgent(agent).execute(logicsEmpty, tokensReturnEmpty);
+        IMockAgent(agent).execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
     }
 
     function executeWithSignerFee() external {
         numCalls['executeWithSignerFee']++;
         vm.prank(router);
-        IMockAgent(agent).executeWithSignerFee(_logicsWithCallback(), feesEmpty, tokensReturnEmpty);
+        IMockAgent(agent).executeWithSignerFee(permit2DatasEmpty, _logicsWithCallback(), feesEmpty, tokensReturnEmpty);
     }
 
     function executeByCallback() external {

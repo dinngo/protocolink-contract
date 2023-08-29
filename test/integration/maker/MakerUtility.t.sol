@@ -27,10 +27,17 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
 
     // Empty arrays
     IParam.Input[] public inputsEmpty;
+    bytes[] public permit2DatasEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(
+            makeAddr('WrappedNative'),
+            permit2Addr,
+            address(this),
+            makeAddr('Pauser'),
+            makeAddr('FeeCollector')
+        );
         makerUtility = new MakerUtility(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
         makerUtilityDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(makerUtility));
 
@@ -78,7 +85,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
-        router.execute{value: ethLockAmount}(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute{value: ethLockAmount}(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(makerUtility)), 0);
@@ -108,11 +115,14 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         uint256 daiDrawMax = _getDAIDrawMaxAmount(tokenLockAmount, daiDrawMin, spot, rate);
         daiDrawAmount = bound(daiDrawAmount, daiDrawMin, daiDrawMax);
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = dataERC20Permit2PullToken(IERC20(GEM), tokenLockAmount.toUint160());
+
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicERC20Permit2PullToken(IERC20(GEM), tokenLockAmount.toUint160());
-        logics[1] = _logicTransferERC20ToMakerUtility(GEM, tokenLockAmount);
-        logics[2] = _logicOpenLockGemAndDraw(tokenLockAmount, daiDrawAmount);
+        IParam.Logic[] memory logics = new IParam.Logic[](2);
+        logics[0] = _logicTransferERC20ToMakerUtility(GEM, tokenLockAmount);
+        logics[1] = _logicOpenLockGemAndDraw(tokenLockAmount, daiDrawAmount);
 
         // Get param before execute
         uint256 userDAIBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user);
@@ -122,7 +132,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(makerUtility)), 0);

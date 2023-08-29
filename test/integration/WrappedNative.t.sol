@@ -12,16 +12,24 @@ contract WrappedNativeTest is Test {
     uint256 public constant SIGNER_REFERRAL = 1;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     IERC20 public constant WRAPPED_NATIVE = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     uint256 public constant BPS_BASE = 10_000;
     uint256 public constant BPS_NOT_USED = 0;
     uint256 public constant OFFSET_NOT_USED = 0x8000000000000000000000000000000000000000000000000000000000000000;
 
     address public user;
     IRouter public router;
+    bytes[] public permit2DatasEmpty;
 
     function setUp() external {
         user = makeAddr('User');
-        router = new Router(address(WRAPPED_NATIVE), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(
+            address(WRAPPED_NATIVE),
+            address(PERMIT2),
+            address(this),
+            makeAddr('Pauser'),
+            makeAddr('FeeCollector')
+        );
 
         // Empty router the balance
         vm.prank(address(router));
@@ -47,7 +55,7 @@ contract WrappedNativeTest is Test {
         tokensReturn[0] = tokenIn;
         tokensReturn[1] = address(tokenOut);
         vm.prank(user);
-        router.execute{value: amountIn}(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute{value: amountIn}(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         address agent = router.getAgent(user);
         assertEq(address(router).balance, 0);

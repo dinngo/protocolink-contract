@@ -54,6 +54,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     IERC20 public constant WRAPPED_NATIVE = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     IERC20 public constant USDT = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     IUniswapV2Router02 public constant uniswapRouter02 = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
@@ -64,10 +65,17 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
     uint256 public userPrivateKey;
     IRouter public router;
     IAgent public agent;
+    bytes[] public permit2DatasEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(address(WRAPPED_NATIVE), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(
+            address(WRAPPED_NATIVE),
+            address(PERMIT2),
+            address(this),
+            makeAddr('Pauser'),
+            makeAddr('FeeCollector')
+        );
         vm.prank(user);
         agent = IAgent(router.newAgent());
 
@@ -104,7 +112,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute{value: amountIn}(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute{value: amountIn}(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(address(router).balance, 0);
         assertEq(address(agent).balance, 0);
@@ -122,16 +130,19 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         amountIn = bound(amountIn, 1e6, 1e12);
         deal(address(tokenIn), user, amountIn);
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = dataERC20Permit2PullToken(tokenIn, amountIn.toUint160());
+
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicERC20Permit2PullToken(tokenIn, amountIn.toUint160());
-        logics[1] = _logicUniswapV2Swap(tokenIn, amountIn, BPS_NOT_USED, tokenOut, IParam.WrapMode.UNWRAP_AFTER); // Fixed amount
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicUniswapV2Swap(tokenIn, amountIn, BPS_NOT_USED, tokenOut, IParam.WrapMode.UNWRAP_AFTER); // Fixed amount
 
         // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = NATIVE;
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(address(router).balance, 0);
         assertEq(address(agent).balance, 0);
@@ -148,16 +159,19 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         amountIn = bound(amountIn, 1e1, 1e12);
         deal(address(tokenIn), user, amountIn);
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = dataERC20Permit2PullToken(tokenIn, amountIn.toUint160());
+
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicERC20Permit2PullToken(tokenIn, amountIn.toUint160());
-        logics[1] = _logicUniswapV2Swap(tokenIn, amountIn / 2, BPS_BASE, tokenOut, IParam.WrapMode.NONE);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicUniswapV2Swap(tokenIn, amountIn / 2, BPS_BASE, tokenOut, IParam.WrapMode.NONE);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenIn.balanceOf(address(agent)), 0);
@@ -179,13 +193,16 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         uint256 amountIn0Half = (amountIn0 * 5_000) / BPS_BASE;
         deal(address(tokenIn0), user, amountIn0);
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = dataERC20Permit2PullToken(tokenIn0, amountIn0.toUint160());
+
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](5);
-        logics[0] = logicERC20Permit2PullToken(tokenIn0, amountIn0.toUint160());
-        logics[1] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1, IParam.WrapMode.NONE); // Swap 50% amountIn0 to amountIn1
-        logics[2] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1); // Add liquidity with 50% amountIn0 and all amountIn1
-        logics[3] = _logicUniswapV2RemoveLiquidity(tokenOut, 0, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity
-        logics[4] = _logicUniswapV2Swap(tokenIn1, amountIn0Half, BPS_BASE, tokenIn0, IParam.WrapMode.NONE); // 100% balance of tokenIn
+        IParam.Logic[] memory logics = new IParam.Logic[](4);
+        logics[0] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1, IParam.WrapMode.NONE); // Swap 50% amountIn0 to amountIn1
+        logics[1] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1); // Add liquidity with 50% amountIn0 and all amountIn1
+        logics[2] = _logicUniswapV2RemoveLiquidity(tokenOut, 0, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity
+        logics[3] = _logicUniswapV2Swap(tokenIn1, amountIn0Half, BPS_BASE, tokenIn0, IParam.WrapMode.NONE); // 100% balance of tokenIn
 
         // Execute
         address[] memory tokensReturn = new address[](3);
@@ -193,7 +210,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         tokensReturn[1] = address(tokenIn1); // Push intermediate token to ensure clean up Agent
         tokensReturn[2] = address(tokenOut); // Push intermediate token to ensure clean up Agent
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(tokenIn0.balanceOf(address(router)), 0);
         assertEq(tokenIn0.balanceOf(address(agent)), 0);

@@ -22,12 +22,12 @@ library TypedDataHash {
 
     bytes32 internal constant _EXECUTION_DETAILS_TYPEHASH =
         keccak256(
-            'ExecutionDetails(Logic[] logics,address[] tokensReturn,uint256 referralCode,uint256 nonce,uint256 deadline)Input(address token,uint256 balanceBps,uint256 amountOrOffset)Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)'
+            'ExecutionDetails(bytes[] permit2Datas,Logic[] logics,address[] tokensReturn,uint256 referralCode,uint256 nonce,uint256 deadline)Input(address token,uint256 balanceBps,uint256 amountOrOffset)Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)'
         );
 
     bytes32 internal constant _EXECUTION_BATCH_DETAILS_TYPEHASH =
         keccak256(
-            'ExecutionBatchDetails(LogicBatch logicBatch,address[] tokensReturn,uint256 referralCode,uint256 nonce,uint256 deadline)Fee(address token,uint256 amount,bytes32 metadata)Input(address token,uint256 balanceBps,uint256 amountOrOffset)Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)LogicBatch(Logic[] logics,Fee[] fees,uint256 deadline)'
+            'ExecutionBatchDetails(bytes[] permit2Datas,LogicBatch logicBatch,address[] tokensReturn,uint256 referralCode,uint256 nonce,uint256 deadline)Fee(address token,uint256 amount,bytes32 metadata)Input(address token,uint256 balanceBps,uint256 amountOrOffset)Logic(address to,bytes data,Input[] inputs,uint8 wrapMode,address approveTo,address callback)LogicBatch(Logic[] logics,Fee[] fees,uint256 deadline)'
         );
 
     bytes32 internal constant _DELEGATION_DETAILS_TYPEHASH =
@@ -101,10 +101,19 @@ library TypedDataHash {
     }
 
     function _hash(IParam.ExecutionDetails calldata details) internal pure returns (bytes32) {
+        bytes[] calldata datas = details.permit2Datas;
+        uint256 datasLength = datas.length;
+        bytes32[] memory dataHashes = new bytes32[](datasLength);
+        for (uint256 i; i < datasLength; ) {
+            dataHashes[i] = keccak256(datas[i]);
+            unchecked {
+                ++i;
+            }
+        }
+
         IParam.Logic[] calldata logics = details.logics;
         uint256 logicsLength = logics.length;
         bytes32[] memory logicHashes = new bytes32[](logicsLength);
-
         for (uint256 i; i < logicsLength; ) {
             logicHashes[i] = _hash(logics[i]);
             unchecked {
@@ -116,6 +125,7 @@ library TypedDataHash {
             keccak256(
                 abi.encode(
                     _EXECUTION_DETAILS_TYPEHASH,
+                    keccak256(abi.encodePacked(dataHashes)),
                     keccak256(abi.encodePacked(logicHashes)),
                     keccak256(abi.encodePacked(details.tokensReturn)),
                     details.referralCode,
@@ -126,10 +136,21 @@ library TypedDataHash {
     }
 
     function _hash(IParam.ExecutionBatchDetails calldata details) internal pure returns (bytes32) {
+        bytes[] calldata datas = details.permit2Datas;
+        uint256 datasLength = datas.length;
+        bytes32[] memory dataHashes = new bytes32[](datasLength);
+        for (uint256 i; i < datasLength; ) {
+            dataHashes[i] = keccak256(datas[i]);
+            unchecked {
+                ++i;
+            }
+        }
+
         return
             keccak256(
                 abi.encode(
                     _EXECUTION_BATCH_DETAILS_TYPEHASH,
+                    keccak256(abi.encodePacked(dataHashes)),
                     _hash(details.logicBatch),
                     keccak256(abi.encodePacked(details.tokensReturn)),
                     details.referralCode,

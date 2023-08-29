@@ -26,6 +26,7 @@ contract DeployLocal is
         routerConfig = RouterConfig({
             deployedAddress: UNDEPLOYED,
             wrappedNative: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
+            permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
             owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
             pauser: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
             feeCollector: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266

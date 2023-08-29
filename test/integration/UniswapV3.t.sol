@@ -115,10 +115,17 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
     // Empty arrays
     address[] public tokensReturnEmpty;
     IParam.Input[] public inputsEmpty;
+    bytes[] public permit2DatasEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(
+            makeAddr('WrappedNative'),
+            permit2Addr,
+            address(this),
+            makeAddr('Pauser'),
+            makeAddr('FeeCollector')
+        );
         vm.prank(user);
         agent = IAgent(router.newAgent());
 
@@ -173,11 +180,14 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         );
         (tokenId, , , ) = abi.decode(returnData, (uint256, uint128, uint256, uint256));
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](2);
+        datas[0] = dataERC20Permit2PullToken(tokenIn0, amountIn0.toUint160());
+        datas[1] = dataERC20Permit2PullToken(tokenIn1, amountIn1.toUint160());
+
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicERC20Permit2PullToken(tokenIn0, amountIn0.toUint160());
-        logics[1] = logicERC20Permit2PullToken(tokenIn1, amountIn1.toUint160());
-        logics[2] = _logicUniswapV3MintLiquidityNFT(tokenIn0, tokenIn1, amountIn0, amountIn1, mintParams);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicUniswapV3MintLiquidityNFT(tokenIn0, tokenIn1, amountIn0, amountIn1, mintParams);
 
         address[] memory tokensReturn = new address[](2);
         tokensReturn[0] = address(tokenIn0);
@@ -185,7 +195,7 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn0.balanceOf(address(router)), 0);
@@ -244,11 +254,14 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         );
         (uint128 increasedLiquidity, , ) = abi.decode(returnData, (uint128, uint256, uint256));
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](2);
+        datas[0] = dataERC20Permit2PullToken(tokenIn0, amountIn0.toUint160());
+        datas[1] = dataERC20Permit2PullToken(tokenIn1, amountIn1.toUint160());
+
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
-        logics[0] = logicERC20Permit2PullToken(tokenIn0, amountIn0.toUint160());
-        logics[1] = logicERC20Permit2PullToken(tokenIn1, amountIn1.toUint160());
-        logics[2] = _logicUniswapV3IncreaseLiquidity(tokenIn0, tokenIn1, amountIn0, amountIn1, increaseParams);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicUniswapV3IncreaseLiquidity(tokenIn0, tokenIn1, amountIn0, amountIn1, increaseParams);
 
         address[] memory tokensReturn = new address[](2);
         tokensReturn[0] = address(tokenIn0);
@@ -256,7 +269,7 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         (, , , , , , , uint128 newLiquidity, , , , ) = NON_FUNGIBLE_POSITION_MANAGER.positions(tokenId);
@@ -327,7 +340,7 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
 
         // Execute remove liquidity action
         vm.prank(user);
-        router.execute(logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
 
         // Verify remove liquidity
         (
@@ -377,7 +390,7 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         userToken0Before = tokenIn0.balanceOf(user);
         userToken1Before = tokenIn1.balanceOf(user);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify result of collect action
         assertEq(tokenIn0.balanceOf(address(router)), 0);

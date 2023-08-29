@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {ERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
+import {IAllowanceTransfer} from 'permit2/interfaces/IAllowanceTransfer.sol';
 import {Agent} from 'src/Agent.sol';
 import {AgentImplementation, IAgent} from 'src/AgentImplementation.sol';
 import {Router, IRouter} from 'src/Router.sol';
@@ -20,6 +21,7 @@ contract AgentTest is Test {
     address public user;
     address public recipient;
     address public router;
+    address public permit2;
     IAgent public agent;
     address public mockWrappedNative;
     IERC20 public mockERC20;
@@ -31,6 +33,7 @@ contract AgentTest is Test {
     IParam.Fee[] public feesEmpty;
     IParam.Input[] public inputsEmpty;
     IParam.Logic[] public logicsEmpty;
+    bytes[] public permit2DatasEmpty;
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
@@ -38,10 +41,11 @@ contract AgentTest is Test {
         user = makeAddr('User');
         recipient = makeAddr('Recipient');
         router = makeAddr('Router');
+        permit2 = makeAddr('Permit2');
 
         mockWrappedNative = address(new MockWrappedNative());
         vm.prank(router);
-        agent = IAgent(address(new Agent(address(new AgentImplementation(mockWrappedNative)))));
+        agent = IAgent(address(new Agent(address(new AgentImplementation(mockWrappedNative, permit2)))));
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockCallback = new MockCallback();
         mockFallback = address(new MockFallback());
@@ -69,9 +73,86 @@ contract AgentTest is Test {
     function testCannotExecuteByNotRouter() external {
         vm.startPrank(user);
         vm.expectRevert(IAgent.NotRouter.selector);
-        agent.execute(logicsEmpty, tokensReturnEmpty);
+        agent.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
         vm.expectRevert(IAgent.NotRouter.selector);
-        agent.executeWithSignerFee(logicsEmpty, feesEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(permit2DatasEmpty, logicsEmpty, feesEmpty, tokensReturnEmpty);
+        vm.stopPrank();
+    }
+
+    function testCannotDoInvalidFunctionInPermit2() external {
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = abi.encodeCall(IAllowanceTransfer.invalidateNonces, (address(0), address(0), 1));
+        vm.startPrank(router);
+        vm.expectRevert(
+            abi.encodeWithSelector(IAgent.InvalidPermit2Data.selector, IAllowanceTransfer.invalidateNonces.selector)
+        );
+        agent.execute(datas, logicsEmpty, tokensReturnEmpty);
+        vm.expectRevert(
+            abi.encodeWithSelector(IAgent.InvalidPermit2Data.selector, IAllowanceTransfer.invalidateNonces.selector)
+        );
+        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, tokensReturnEmpty);
+        vm.stopPrank();
+    }
+
+    function testCannotExecutePermit2InLogic() external {
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = IParam.Logic(permit2, '', inputsEmpty, IParam.WrapMode.NONE, address(0), address(0));
+        vm.startPrank(router);
+        vm.expectRevert(IAgent.InvalidPermitCall.selector);
+        agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
+        vm.expectRevert(IAgent.InvalidPermitCall.selector);
+        agent.executeWithSignerFee(permit2DatasEmpty, logics, feesEmpty, tokensReturnEmpty);
+        vm.stopPrank();
+    }
+
+    function testDoPermit2TransferFrom() external {
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = abi.encodeWithSelector(0x36c78516, address(0), address(1), 1, address(mockERC20));
+        vm.startPrank(router);
+        // Mock the call to permit2
+        vm.etch(permit2, 'code');
+        vm.mockCall(permit2, 0, datas[0], '');
+        // Mock the call to router getting fee rate and fee collector
+        vm.etch(router, 'code');
+        vm.mockCall(router, 0, abi.encodeCall(IRouter.feeRate, ()), abi.encode(0));
+        vm.mockCall(router, 0, abi.encodeCall(IRouter.feeCollector, ()), abi.encode(makeAddr('collector')));
+        agent.execute(datas, logicsEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, tokensReturnEmpty);
+        vm.stopPrank();
+    }
+
+    function testDoPermit2TransferFromBatch() external {
+        bytes[] memory datas = new bytes[](1);
+        IAllowanceTransfer.AllowanceTransferDetails[]
+            memory details = new IAllowanceTransfer.AllowanceTransferDetails[](1);
+        details[0] = IAllowanceTransfer.AllowanceTransferDetails(address(0), address(1), 1, address(mockERC20));
+        datas[0] = abi.encodeWithSelector(0x0d58b1db, details);
+        vm.startPrank(router);
+        // Mock the call to permit2
+        vm.etch(permit2, 'code');
+        vm.mockCall(permit2, 0, datas[0], '');
+        // Mock the call to router getting fee rate and fee collector
+        vm.etch(router, 'code');
+        vm.mockCall(router, 0, abi.encodeCall(IRouter.feeRate, ()), abi.encode(0));
+        vm.mockCall(router, 0, abi.encodeCall(IRouter.feeCollector, ()), abi.encode(makeAddr('collector')));
+        agent.execute(datas, logicsEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, tokensReturnEmpty);
+        vm.stopPrank();
+    }
+
+    function testDoPermit2Permit() external {
+        bytes[] memory datas = new bytes[](2);
+        datas[0] = abi.encodeWithSelector(0x2b67b570);
+        datas[1] = abi.encodeWithSelector(0x2a2d80d1);
+        vm.startPrank(router);
+        // Mock the call to permit2
+        vm.etch(permit2, 'code');
+        vm.mockCall(permit2, 0, datas[0], '');
+        vm.mockCall(permit2, 0, datas[1], '');
+        // Mock the call to router getting fee rate and fee collector
+        vm.etch(router, 'code');
+        agent.execute(datas, logicsEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, tokensReturnEmpty);
         vm.stopPrank();
     }
 
@@ -100,7 +181,7 @@ contract AgentTest is Test {
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty);
+        agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
     }
 
     function testCannotUnresetCallbackWithCharge() external {
@@ -115,7 +196,7 @@ contract AgentTest is Test {
         );
         vm.expectRevert(IAgent.UnresetCallbackWithCharge.selector);
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty);
+        agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
     }
 
     function testWrapBeforeFixedAmounts(uint128 amount1, uint128 amount2) external {
@@ -148,7 +229,7 @@ contract AgentTest is Test {
             emit Approval(address(agent), address(mockFallback), type(uint256).max);
         }
         vm.prank(router);
-        agent.execute{value: amount}(logics, tokensReturnEmpty);
+        agent.execute{value: amount}(permit2DatasEmpty, logics, tokensReturnEmpty);
         assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amount);
     }
 
@@ -185,7 +266,7 @@ contract AgentTest is Test {
             emit Approval(address(agent), address(mockFallback), type(uint256).max);
         }
         vm.prank(router);
-        agent.execute{value: amount}(logics, tokensReturnEmpty);
+        agent.execute{value: amount}(permit2DatasEmpty, logics, tokensReturnEmpty);
         assertApproxEqAbs(IERC20(mockWrappedNative).balanceOf(address(agent)), amount, 1); // 1 unit due to BPS_BASE / 2
     }
 
@@ -215,7 +296,7 @@ contract AgentTest is Test {
             address(0) // callback
         );
         vm.prank(router);
-        agent.execute{value: amount1}(logics, tokensReturnEmpty);
+        agent.execute{value: amount1}(permit2DatasEmpty, logics, tokensReturnEmpty);
         assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amount1);
         assertEq(IERC20(mockERC20).balanceOf(address(agent)), amount2);
     }
@@ -242,7 +323,7 @@ contract AgentTest is Test {
         );
 
         vm.prank(router);
-        agent.execute{value: amount}(logics, tokensReturnEmpty);
+        agent.execute{value: amount}(permit2DatasEmpty, logics, tokensReturnEmpty);
         assertEq((address(agent).balance), amount);
         assertEq(IERC20(mockWrappedNative).balanceOf(address(agent)), amountBefore);
     }
@@ -259,7 +340,7 @@ contract AgentTest is Test {
 
         // Execute
         vm.prank(router);
-        agent.execute{value: amountIn}(logics, tokensReturnEmpty);
+        agent.execute{value: amountIn}(permit2DatasEmpty, logics, tokensReturnEmpty);
 
         uint256 recipientAmount = amountIn;
         if (balanceBps != BPS_NOT_USED) recipientAmount = (amountIn * balanceBps) / BPS_BASE;
@@ -311,7 +392,7 @@ contract AgentTest is Test {
         vm.expectEmit(true, true, true, true, address(mockERC20));
         emit Approval(address(agent), address(mockFallback), type(uint256).max);
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty);
+        agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
 
         // Execute again, mock approve to guarantee that approval is not called
         vm.mockCall(
@@ -321,7 +402,7 @@ contract AgentTest is Test {
             abi.encode(false)
         );
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty);
+        agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
     }
 
     function testApproveToIsSet(uint256 amountIn, address approveTo) external {
@@ -349,7 +430,7 @@ contract AgentTest is Test {
         vm.expectEmit(true, true, true, true, address(mockERC20));
         emit Approval(address(agent), approveTo, type(uint256).max);
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty);
+        agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
 
         // Execute again, mock approve to guarantee that approval is not called
         vm.mockCall(
@@ -359,6 +440,6 @@ contract AgentTest is Test {
             abi.encode(false)
         );
         vm.prank(router);
-        agent.execute(logics, tokensReturnEmpty);
+        agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
     }
 }

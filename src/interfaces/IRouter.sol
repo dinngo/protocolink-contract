@@ -54,6 +54,8 @@ interface IRouter {
 
     error InvalidNonce();
 
+    error InvalidRate();
+
     error AgentAlreadyCreated();
 
     error ExcessiveInvalidation();
@@ -82,6 +84,8 @@ interface IRouter {
 
     function getCurrentUserAgent() external view returns (address, address);
 
+    function feeRate() external view returns (uint256);
+
     function calcAgent(address user) external view returns (address);
 
     function addSigner(address signer) external;
@@ -99,6 +103,7 @@ interface IRouter {
     function unpause() external;
 
     function execute(
+        bytes[] calldata permit2Datas,
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
@@ -106,6 +111,7 @@ interface IRouter {
 
     function executeFor(
         address user,
+        bytes[] calldata permit2Datas,
         IParam.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
@@ -118,6 +124,7 @@ interface IRouter {
     ) external payable;
 
     function executeWithSignerFee(
+        bytes[] calldata permit2Datas,
         IParam.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
@@ -127,6 +134,7 @@ interface IRouter {
 
     function executeForWithSignerFee(
         address user,
+        bytes[] calldata permit2Datas,
         IParam.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,

@@ -11,7 +11,7 @@ interface IMockAgent is IAgent {
 }
 
 contract MockAgentImplementation is IMockAgent, AgentImplementation {
-    constructor(address wrappedNative_) AgentImplementation(wrappedNative_) {}
+    constructor(address wrappedNative_, address permit2_) AgentImplementation(wrappedNative_, permit2_) {}
 
     function INIT_CALLBACK_WITH_CHARGE() external pure returns (bytes32) {
         return _INIT_CALLBACK_WITH_CHARGE;

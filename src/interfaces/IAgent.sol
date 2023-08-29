@@ -18,15 +18,26 @@ interface IAgent {
 
     error UnresetCallbackWithCharge();
 
+    error InvalidPermit2Data(bytes4 selector);
+
+    error InvalidPermitCall();
+
     function router() external returns (address);
 
     function wrappedNative() external returns (address);
 
+    function permit2() external returns (address);
+
     function initialize() external;
 
-    function execute(IParam.Logic[] calldata logics, address[] calldata tokensReturn) external payable;
+    function execute(
+        bytes[] calldata permit2Datas,
+        IParam.Logic[] calldata logics,
+        address[] calldata tokensReturn
+    ) external payable;
 
     function executeWithSignerFee(
+        bytes[] calldata permit2Datas,
         IParam.Logic[] calldata logics,
         IParam.Fee[] calldata fees,
         address[] calldata tokensReturn

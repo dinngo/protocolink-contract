@@ -25,10 +25,17 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
     uint256 public userPrivateKey;
     IRouter public router;
     IAgent public agent;
+    bytes[] public permit2DatasEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(
+            makeAddr('WrappedNative'),
+            permit2Addr,
+            address(this),
+            makeAddr('Pauser'),
+            makeAddr('FeeCollector')
+        );
         vm.prank(user);
         agent = IAgent(router.newAgent());
 
@@ -47,16 +54,19 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
         IERC20 tokenOut = IERC20(address(yVault));
         deal(address(tokenIn), user, amountIn);
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = dataERC20Permit2PullToken(tokenIn, uint160(amountIn));
+
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicERC20Permit2PullToken(tokenIn, uint160(amountIn));
-        logics[1] = _logicYearn(tokenIn, amountIn, BPS_BASE);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicYearn(tokenIn, amountIn, BPS_BASE);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenIn.balanceOf(address(agent)), 0);

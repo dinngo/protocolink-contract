@@ -27,10 +27,17 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
 
     // Empty arrays
     IParam.Input[] public inputsEmpty;
+    bytes[] public permit2DatasEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(makeAddr('WrappedNative'), address(this), makeAddr('Pauser'), makeAddr('FeeCollector'));
+        router = new Router(
+            makeAddr('WrappedNative'),
+            permit2Addr,
+            address(this),
+            makeAddr('Pauser'),
+            makeAddr('FeeCollector')
+        );
         vm.prank(user);
         agent = IAgent(router.newAgent());
         market = new MockERC1155Market(USDC);
@@ -56,16 +63,19 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         uint256 amountIn = amount * market.amount();
         deal(address(tokenIn), user, amountIn);
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = dataERC20Permit2PullToken(tokenIn, amountIn.toUint160());
+
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicERC20Permit2PullToken(tokenIn, amountIn.toUint160());
-        logics[1] = _logicERC1155MarketTokenToNFT(tokenIn, amountIn, tokenId, amount, user);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicERC1155MarketTokenToNFT(tokenIn, amountIn, tokenId, amount, user);
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenIn);
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
@@ -97,7 +107,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         // Execute
         uint256 tokenBefore = tokenIn.balanceOf(user);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
@@ -114,16 +124,19 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         uint256 amountIn = amount * market.amount();
         deal(address(tokenIn), user, amountIn);
 
+        // Encode permit2Datas
+        bytes[] memory datas = new bytes[](1);
+        datas[0] = dataERC20Permit2PullToken(tokenIn, amountIn.toUint160());
+
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = logicERC20Permit2PullToken(tokenIn, amountIn.toUint160());
-        logics[1] = _logicERC1155MarketTokenToNFTBatch(tokenIn, amountIn, tokenId, amount, user);
+        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        logics[0] = _logicERC1155MarketTokenToNFTBatch(tokenIn, amountIn, tokenId, amount, user);
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenIn);
 
         // Execute
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
@@ -155,7 +168,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         // Execute
         uint256 tokenBefore = tokenIn.balanceOf(user);
         vm.prank(user);
-        router.execute(logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);

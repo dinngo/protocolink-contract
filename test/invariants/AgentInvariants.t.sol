@@ -22,7 +22,7 @@ contract AgentInvariants is Test {
         router = makeAddr('Router');
 
         vm.prank(router);
-        agentImp = address(new MockAgentImplementation(makeAddr('WrappedNative')));
+        agentImp = address(new MockAgentImplementation(makeAddr('WrappedNative'), makeAddr('Permit2')));
         agent = IMockAgent(address(new Agent(agentImp)));
         mockCallback = address(new MockCallback());
         mockFallback = address(new MockFallback());
