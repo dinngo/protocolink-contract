@@ -37,6 +37,9 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     /// @dev Flag for identifying when basis points calculation is not applied
     uint256 internal constant _BPS_NOT_USED = 0;
 
+    /// @dev Dust for evaluating token returns
+    uint256 internal constant _DUST = 10;
+
     /// @dev Flag for identifying no replacement of the amount by setting the most significant bit to 1 (1<<255)
     uint256 internal constant _OFFSET_NOT_USED = 0x8000000000000000000000000000000000000000000000000000000000000000;
 
@@ -321,11 +324,15 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
             address user = IRouter(router).currentUser();
             for (uint256 i; i < tokensReturnLength; ) {
                 address token = tokensReturn[i];
-                if (token == _NATIVE && address(this).balance > 0) {
-                    payable(user).sendValue(address(this).balance);
+                if (token == _NATIVE) {
+                    if (address(this).balance > 0) {
+                        payable(user).sendValue(address(this).balance);
+                    }
                 } else {
                     uint256 balance = IERC20(token).balanceOf(address(this));
-                    IERC20(token).safeTransfer(user, balance);
+                    if (balance > _DUST) {
+                        IERC20(token).safeTransfer(user, balance);
+                    }
                 }
 
                 unchecked {
