@@ -8,6 +8,8 @@ import {Router} from 'src/Router.sol';
 import {DeployBase} from './DeployBase.s.sol';
 
 abstract contract DeployRouter is DeployBase {
+    address public constant SIGNER = 0xffFf5a88840FF1f168E163ACD771DFb292164cFA;
+
     struct RouterConfig {
         address deployedAddress;
         // deploy params
@@ -27,7 +29,7 @@ abstract contract DeployRouter is DeployBase {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('protocolink.router.v2');
+            bytes32 salt = keccak256('protocolink.router.v1');
             bytes memory creationCode = abi.encodePacked(
                 type(Router).creationCode,
                 abi.encode(cfg.wrappedNative, cfg.permit2, cfg.owner, cfg.pauser, cfg.feeCollector)
@@ -36,6 +38,12 @@ abstract contract DeployRouter is DeployBase {
             console2.log('Router Deployed:', deployedAddress);
             Router router = Router(deployedAddress);
             console2.log('Router Owner:', router.owner());
+            router.addSigner(SIGNER);
+            if (router.signers(SIGNER)) {
+                console2.log('Router Signer:', SIGNER);
+            } else {
+                console2.log('Router Signer is invalid');
+            }
         } else {
             console2.log('Router Exists. Skip deployment of Router:', deployedAddress);
         }
