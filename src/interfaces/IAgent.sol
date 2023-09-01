@@ -22,6 +22,8 @@ interface IAgent {
 
     error InvalidPermitCall();
 
+    function isCharging() external view returns (bool);
+
     function router() external returns (address);
 
     function wrappedNative() external returns (address);

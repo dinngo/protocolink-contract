@@ -78,7 +78,7 @@ contract AaveV2IntegrationTest is Test {
         );
         vm.prank(user);
         agent = IAgent(router.newAgent());
-        flashLoanCallback = new AaveV2FlashLoanCallback(address(router), address(AAVE_V2_PROVIDER));
+        flashLoanCallback = new AaveV2FlashLoanCallback(address(router), address(AAVE_V2_PROVIDER), 0);
 
         // User approved agent aave v2 delegation
         vm.startPrank(user);

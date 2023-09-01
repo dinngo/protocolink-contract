@@ -50,6 +50,11 @@ contract AgentTest is Test {
         mockCallback = new MockCallback();
         mockFallback = address(new MockFallback());
 
+        // Mock fee charging related
+        vm.etch(router, 'code');
+        vm.mockCall(router, 0, abi.encodeCall(IRouter.feeRate, ()), abi.encode(0));
+        vm.mockCall(router, 0, abi.encodeCall(IRouter.feeCollector, ()), abi.encode(makeAddr('collector')));
+
         vm.label(address(agent), 'Agent');
         vm.label(address(mockWrappedNative), 'mWrappedNative');
         vm.label(address(mockERC20), 'mERC20');
@@ -112,10 +117,6 @@ contract AgentTest is Test {
         // Mock the call to permit2
         vm.etch(permit2, 'code');
         vm.mockCall(permit2, 0, datas[0], '');
-        // Mock the call to router getting fee rate and fee collector
-        vm.etch(router, 'code');
-        vm.mockCall(router, 0, abi.encodeCall(IRouter.feeRate, ()), abi.encode(0));
-        vm.mockCall(router, 0, abi.encodeCall(IRouter.feeCollector, ()), abi.encode(makeAddr('collector')));
         agent.execute(datas, logicsEmpty, tokensReturnEmpty);
         agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, tokensReturnEmpty);
         vm.stopPrank();
@@ -131,10 +132,6 @@ contract AgentTest is Test {
         // Mock the call to permit2
         vm.etch(permit2, 'code');
         vm.mockCall(permit2, 0, datas[0], '');
-        // Mock the call to router getting fee rate and fee collector
-        vm.etch(router, 'code');
-        vm.mockCall(router, 0, abi.encodeCall(IRouter.feeRate, ()), abi.encode(0));
-        vm.mockCall(router, 0, abi.encodeCall(IRouter.feeCollector, ()), abi.encode(makeAddr('collector')));
         agent.execute(datas, logicsEmpty, tokensReturnEmpty);
         agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, tokensReturnEmpty);
         vm.stopPrank();

@@ -30,12 +30,14 @@ contract DeployPolygon is
 
         aaveV3FlashLoanCallbackConfig = AaveV3FlashLoanCallbackConfig({
             deployedAddress: 0xe1356560B683cA54e7D7e9e81b05319E9140a977,
-            aaveV3Provider: 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb
+            aaveV3Provider: 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb,
+            feeRate: 5
         });
 
         balancerV2FlashLoanCallbackConfig = BalancerV2FlashLoanCallbackConfig({
             deployedAddress: 0x03EdE4da71B8c404f7a2d61b8Ad367edEFc90Af8,
-            balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8
+            balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8,
+            feeRate: 5
         });
     }
 
