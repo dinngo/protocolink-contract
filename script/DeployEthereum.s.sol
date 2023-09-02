@@ -22,7 +22,7 @@ contract DeployEthereum is
         });
 
         routerConfig = RouterConfig({
-            deployedAddress: UNDEPLOYED,
+            deployedAddress: 0x4E744c3E6973D34ee130B7E668Abc14CD49ca16e,
             wrappedNative: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
             owner: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
@@ -31,19 +31,19 @@ contract DeployEthereum is
         });
 
         aaveV2FlashLoanCallbackConfig = AaveV2FlashLoanCallbackConfig({
-            deployedAddress: UNDEPLOYED,
+            deployedAddress: 0xD1CA91bE788372275FB0FfC876465Bc0a5A31F86,
             aaveV2Provider: 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5,
             feeRate: 5
         });
 
         aaveV3FlashLoanCallbackConfig = AaveV3FlashLoanCallbackConfig({
-            deployedAddress: UNDEPLOYED,
+            deployedAddress: 0x8f2Ed9cE5DF73210c5Fa21d0cFDFF98bB1027a1F,
             aaveV3Provider: 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e,
             feeRate: 5
         });
 
         balancerV2FlashLoanCallbackConfig = BalancerV2FlashLoanCallbackConfig({
-            deployedAddress: UNDEPLOYED,
+            deployedAddress: 0x13431cd779FD770D55701B96F2675dFF63BDD756,
             balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8,
             feeRate: 5
         });
