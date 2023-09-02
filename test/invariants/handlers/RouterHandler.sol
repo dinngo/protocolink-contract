@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {console2} from 'forge-std/Test.sol';
 import {Router} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IRouter.sol';
+import {DataType} from 'src/interfaces/IRouter.sol';
 import {TypedDataSignature} from '../../utils/TypedDataSignature.sol';
 
 contract RouterHandler is Test, TypedDataSignature {
@@ -29,8 +29,8 @@ contract RouterHandler is Test, TypedDataSignature {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
-    IParam.Logic[] public logicsEmpty;
+    DataType.Fee[] public feesEmpty;
+    DataType.Logic[] public logicsEmpty;
     bytes[] public permit2DatasEmpty;
 
     constructor(Router router_) {
@@ -98,7 +98,7 @@ contract RouterHandler is Test, TypedDataSignature {
     ) external useActor(actorSeed) recordAgent countCall('executeWithSignerFee') {
         vm.startPrank(currentActor);
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory sigature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
         router.executeWithSignerFee(
             permit2DatasEmpty,

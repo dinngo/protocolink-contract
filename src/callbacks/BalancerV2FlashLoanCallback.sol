@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IAgent} from '../interfaces/IAgent.sol';
-import {IParam} from '../interfaces/IParam.sol';
+import {DataType} from '../libraries/DataType.sol';
 import {IRouter} from '../interfaces/IRouter.sol';
 import {IBalancerV2FlashLoanCallback} from '../interfaces/callbacks/IBalancerV2FlashLoanCallback.sol';
 import {FeeLibrary} from '../libraries/FeeLibrary.sol';
@@ -14,7 +14,7 @@ import {CallbackFeeBase} from './CallbackFeeBase.sol';
 contract BalancerV2FlashLoanCallback is IBalancerV2FlashLoanCallback, CallbackFeeBase {
     using SafeERC20 for IERC20;
     using Address for address;
-    using FeeLibrary for IParam.Fee;
+    using FeeLibrary for DataType.Fee;
 
     address public immutable router;
     address public immutable balancerV2Vault;
@@ -63,7 +63,7 @@ contract BalancerV2FlashLoanCallback is IBalancerV2FlashLoanCallback, CallbackFe
             uint256 amount = amounts[i];
 
             if (charge) {
-                IParam.Fee memory fee = FeeLibrary.calculateFee(token, amount, feeRate, metadata);
+                DataType.Fee memory fee = FeeLibrary.calcFee(token, amount, feeRate, metadata);
                 fee.pay(feeCollector);
             }
 

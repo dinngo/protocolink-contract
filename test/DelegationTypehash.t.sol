@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {TypedDataSignature} from './utils/TypedDataSignature.sol';
 
 contract DelegationTypehash is Test, TypedDataSignature {
@@ -38,7 +38,7 @@ contract DelegationTypehash is Test, TypedDataSignature {
         bytes memory sig = bytes.concat(r, s, bytes1(v));
 
         // Create the delegation details with the same parameters as above
-        IParam.DelegationDetails memory details = IParam.DelegationDetails(
+        DataType.DelegationDetails memory details = DataType.DelegationDetails(
             0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB,
             1704069200,
             0,

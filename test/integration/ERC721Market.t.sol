@@ -7,7 +7,7 @@ import {IERC721} from 'openzeppelin-contracts/contracts/token/ERC721/ERC721.sol'
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {ERC20Permit2Utils} from '../utils/ERC20Permit2Utils.sol';
 import {ERC721Utils} from '../utils/ERC721Utils.sol';
 import {MockERC721Market} from '../mocks/MockERC721Market.sol';
@@ -26,7 +26,7 @@ contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
     MockERC721Market public market;
 
     // Empty arrays
-    IParam.Input[] public inputsEmpty;
+    DataType.Input[] public inputsEmpty;
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
@@ -67,7 +67,7 @@ contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
         datas[0] = dataERC20Permit2PullToken(tokenIn, amountIn.toUint160());
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicERC721MarketTokenToNFT(tokenIn, amountIn, tokenId, user);
 
         address[] memory tokensReturn = new address[](1);
@@ -96,7 +96,7 @@ contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
         vm.stopPrank();
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
+        DataType.Logic[] memory logics = new DataType.Logic[](3);
         logics[0] = logicERC721PullToken(address(nft), tokenId);
         logics[1] = _logicERC721Approval(nft, address(market));
         logics[2] = _logicERC721MarketNFTToToken(tokenId);
@@ -116,14 +116,14 @@ contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
         assertEq(nft.ownerOf(tokenId), address(market));
     }
 
-    function _logicERC721Approval(IERC721 token, address spender) internal view returns (IParam.Logic memory) {
+    function _logicERC721Approval(IERC721 token, address spender) internal view returns (DataType.Logic memory) {
         bytes memory data = abi.encodeWithSelector(IERC721.setApprovalForAll.selector, spender, true);
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(token), // to
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -134,36 +134,36 @@ contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
         uint256 amountIn,
         uint256 tokenId,
         address recipient
-    ) public view returns (IParam.Logic memory) {
+    ) public view returns (DataType.Logic memory) {
         // Encode data
         bytes memory data = abi.encodeWithSelector(market.tokenToNft.selector, tokenId, recipient);
 
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amountIn;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(market), // to
                 data,
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
     }
 
-    function _logicERC721MarketNFTToToken(uint256 tokenId) public view returns (IParam.Logic memory) {
+    function _logicERC721MarketNFTToToken(uint256 tokenId) public view returns (DataType.Logic memory) {
         // Encode data
         bytes memory data = abi.encodeWithSelector(market.nftToToken.selector, tokenId);
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(market), // to
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

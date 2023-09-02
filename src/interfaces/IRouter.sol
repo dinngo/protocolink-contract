@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IAgent} from './IAgent.sol';
-import {IParam} from './IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 
 interface IRouter {
     event SignerAdded(address indexed signer);
@@ -104,7 +104,7 @@ interface IRouter {
 
     function execute(
         bytes[] calldata permit2Datas,
-        IParam.Logic[] calldata logics,
+        DataType.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable;
@@ -112,20 +112,20 @@ interface IRouter {
     function executeFor(
         address user,
         bytes[] calldata permit2Datas,
-        IParam.Logic[] calldata logics,
+        DataType.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable;
 
     function executeBySig(
-        IParam.ExecutionDetails calldata details,
+        DataType.ExecutionDetails calldata details,
         address user,
         bytes calldata signature
     ) external payable;
 
     function executeWithSignerFee(
         bytes[] calldata permit2Datas,
-        IParam.LogicBatch calldata logicBatch,
+        DataType.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
         address[] calldata tokensReturn,
@@ -135,7 +135,7 @@ interface IRouter {
     function executeForWithSignerFee(
         address user,
         bytes[] calldata permit2Datas,
-        IParam.LogicBatch calldata logicBatch,
+        DataType.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
         address[] calldata tokensReturn,
@@ -143,7 +143,7 @@ interface IRouter {
     ) external payable;
 
     function executeBySigWithSignerFee(
-        IParam.ExecutionBatchDetails calldata details,
+        DataType.ExecutionBatchDetails calldata details,
         address user,
         bytes calldata userSignature,
         address signer,
@@ -159,7 +159,7 @@ interface IRouter {
     function allow(address delegatee, uint128 expiry) external;
 
     function allowBySig(
-        IParam.DelegationDetails calldata details,
+        DataType.DelegationDetails calldata details,
         address delegator,
         bytes calldata signature
     ) external;

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {ERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
 import {TypedDataSignature} from './utils/TypedDataSignature.sol';
 
@@ -28,10 +28,10 @@ contract RouterTest is Test, TypedDataSignature {
 
     // Empty types
     address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
-    IParam.Input[] public inputsEmpty;
-    IParam.Logic[] public logicsEmpty;
-    IParam.LogicBatch public logicBatchEmpty;
+    DataType.Fee[] public feesEmpty;
+    DataType.Input[] public inputsEmpty;
+    DataType.Logic[] public logicsEmpty;
+    DataType.LogicBatch public logicBatchEmpty;
     bytes[] public permit2DatasEmpty;
 
     event SignerAdded(address indexed signer);
@@ -141,7 +141,7 @@ contract RouterTest is Test, TypedDataSignature {
         // Ensure correct EIP-712 encodeData
         uint256 deadline = block.timestamp + 3600;
         uint256 nonce = 0;
-        IParam.ExecutionDetails memory details = IParam.ExecutionDetails(
+        DataType.ExecutionDetails memory details = DataType.ExecutionDetails(
             permit2DatasEmpty,
             logicsEmpty,
             tokensReturnEmpty,
@@ -163,7 +163,7 @@ contract RouterTest is Test, TypedDataSignature {
         // Ensure correct EIP-712 encodeData
         uint256 deadline = block.timestamp + 3600;
         uint256 nonce = 0;
-        IParam.ExecutionDetails memory details = IParam.ExecutionDetails(
+        DataType.ExecutionDetails memory details = DataType.ExecutionDetails(
             permit2DatasEmpty,
             logicsEmpty,
             tokensReturnEmpty,
@@ -206,7 +206,7 @@ contract RouterTest is Test, TypedDataSignature {
     function testExecuteWithSignerFee() external {
         router.addSigner(signer);
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectEmit(true, true, true, true, address(router));
@@ -246,12 +246,12 @@ contract RouterTest is Test, TypedDataSignature {
     }
 
     function testCannotExecuteReentrance() external {
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        logics[0] = DataType.Logic(
             address(router), // to
             abi.encodeCall(IRouter.execute, (permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL)),
             inputsEmpty,
-            IParam.WrapMode.NONE,
+            DataType.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -262,7 +262,7 @@ contract RouterTest is Test, TypedDataSignature {
 
     function testCannotExecuteSignatureExpired() external {
         uint256 deadline = block.timestamp - 1; // Expired
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.SignatureExpired.selector, deadline));
@@ -280,7 +280,7 @@ contract RouterTest is Test, TypedDataSignature {
     function testCannotExecuteInvalidSigner() external {
         // Don't add signer
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.InvalidSigner.selector, signer));
@@ -300,11 +300,11 @@ contract RouterTest is Test, TypedDataSignature {
 
         // Sign correct deadline and logicBatch
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         // Tamper deadline
-        logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline + 1);
+        logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline + 1);
         vm.prank(user);
         vm.expectRevert(IRouter.InvalidSignature.selector);
         router.executeWithSignerFee(
@@ -317,8 +317,8 @@ contract RouterTest is Test, TypedDataSignature {
         );
 
         // Tamper logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logicBatch = IParam.LogicBatch(logics, feesEmpty, deadline);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        logicBatch = DataType.LogicBatch(logics, feesEmpty, deadline);
         vm.prank(user);
         vm.expectRevert(IRouter.InvalidSignature.selector);
         router.executeWithSignerFee(
@@ -334,12 +334,12 @@ contract RouterTest is Test, TypedDataSignature {
     function testExecuteBySigWithSignerFee() external {
         router.addSigner(signer);
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
         // Ensure correct EIP-712 encodeData
         deadline = block.timestamp + 3600;
         uint256 nonce = 0;
-        IParam.ExecutionBatchDetails memory details = IParam.ExecutionBatchDetails(
+        DataType.ExecutionBatchDetails memory details = DataType.ExecutionBatchDetails(
             permit2DatasEmpty,
             logicBatch,
             tokensReturnEmpty,
@@ -359,12 +359,12 @@ contract RouterTest is Test, TypedDataSignature {
     function testExecuteBySigWithSignerFeeWithIncorrectUserSignature() external {
         router.addSigner(signer);
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
         // Ensure correct EIP-712 encodeData
         deadline = block.timestamp + 3600;
         uint256 nonce = 0;
-        IParam.ExecutionBatchDetails memory details = IParam.ExecutionBatchDetails(
+        DataType.ExecutionBatchDetails memory details = DataType.ExecutionBatchDetails(
             permit2DatasEmpty,
             logicBatch,
             tokensReturnEmpty,
@@ -503,7 +503,7 @@ contract RouterTest is Test, TypedDataSignature {
         uint256 deadline = block.timestamp + 3600;
         uint128 expiry = uint128(deadline) + 3600;
         uint128 nonce = 0;
-        IParam.DelegationDetails memory details = IParam.DelegationDetails(delegatee, expiry, nonce, deadline);
+        DataType.DelegationDetails memory details = DataType.DelegationDetails(delegatee, expiry, nonce, deadline);
         bytes memory signature = getTypedDataSignature(details, router.domainSeparator(), userPrivateKey);
         vm.expectEmit(true, true, true, true, address(router));
         emit Delegated(user, delegatee, expiry);
@@ -517,7 +517,7 @@ contract RouterTest is Test, TypedDataSignature {
         uint256 deadline = block.timestamp + 3600;
         uint128 expiry = uint128(deadline) + 3600;
         uint128 nonce = 1;
-        IParam.DelegationDetails memory details = IParam.DelegationDetails(delegatee, expiry, nonce, deadline);
+        DataType.DelegationDetails memory details = DataType.DelegationDetails(delegatee, expiry, nonce, deadline);
         bytes memory signature = getTypedDataSignature(details, router.domainSeparator(), userPrivateKey);
         vm.expectRevert(IRouter.InvalidNonce.selector);
         router.allowBySig(details, user, signature);
@@ -582,7 +582,7 @@ contract RouterTest is Test, TypedDataSignature {
         router.allow(delegatee, expiry);
         router.addSigner(signer);
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectEmit(true, true, true, true, address(router));
@@ -606,7 +606,7 @@ contract RouterTest is Test, TypedDataSignature {
         router.allow(delegatee, expiry);
         router.addSigner(signer);
         uint256 deadline = block.timestamp;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.prank(delegatee);

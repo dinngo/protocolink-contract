@@ -5,7 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {Router} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {FeeLibrary} from 'src/libraries/FeeLibrary.sol';
 import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
@@ -14,7 +14,7 @@ import {TypedDataSignature} from 'test/utils/TypedDataSignature.sol';
 contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature {
     using SafeCast160 for uint256;
 
-    event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
+    event Charged(address indexed token, uint256 amount, bytes32 metadata);
 
     bytes4 public constant PERMIT2_TRANSFER_FROM_SELECTOR =
         bytes4(keccak256(bytes('transferFrom(address,address,uint160,address)')));
@@ -32,7 +32,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
     Router public router;
     IAgent public userAgent;
     address public permit2FeeCalculator;
-    IParam.Logic[] public logicsEmpty;
+    DataType.Logic[] public logicsEmpty;
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
@@ -64,7 +64,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
 
         // Encode permit2Datas
         bytes[] memory datas = new bytes[](1);
-        uint256 amountWithFee = FeeLibrary.calculateAmountWithFee(amount, feeRate);
+        uint256 amountWithFee = FeeLibrary.calcAmountWithFee(amount, feeRate);
         datas[0] = dataERC20Permit2PullToken(IERC20(USDC), amountWithFee.toUint160());
 
         // Prepare assert data
@@ -80,7 +80,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
         tokensReturn[0] = USDC;
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(userAgent));
-            emit FeeCharged(USDC, expectedFee, META_DATA);
+            emit Charged(USDC, expectedFee, META_DATA);
         }
         vm.prank(user);
         router.execute(datas, logicsEmpty, tokensReturn, SIGNER_REFERRAL);
@@ -107,11 +107,11 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
         // Encode permit2Datas
         bytes[] memory datas = new bytes[](1);
 
-        uint256 amountFee = FeeLibrary.calculateFeeFromAmount(amount, feeRate);
+        uint256 amountFee = FeeLibrary.calcFeeFromAmount(amount, feeRate);
 
         datas[0] = dataERC20Permit2PullToken(IERC20(USDC), amount.toUint160());
-        IParam.Fee[] memory fees = new IParam.Fee[](1);
-        fees[0] = IParam.Fee(USDC, amountFee, META_DATA);
+        DataType.Fee[] memory fees = new DataType.Fee[](1);
+        fees[0] = DataType.Fee(USDC, amountFee, META_DATA);
 
         // Prepare assert data
         uint256 expectedNewAmount = amount;
@@ -126,9 +126,9 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
         tokensReturn[0] = USDC;
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(userAgent));
-            emit FeeCharged(USDC, expectedFee, META_DATA);
+            emit Charged(USDC, expectedFee, META_DATA);
         }
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logicsEmpty, fees, block.timestamp + 5);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, fees, block.timestamp + 5);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
         vm.prank(user);
         router.executeWithSignerFee(datas, logicBatch, signer, signature, tokensReturn, SIGNER_REFERRAL);

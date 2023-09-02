@@ -5,7 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {Router} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {BalancerV2FlashLoanCallback, IBalancerV2FlashLoanCallback} from 'src/callbacks/BalancerV2FlashLoanCallback.sol';
 import {FeeLibrary} from 'src/libraries/FeeLibrary.sol';
@@ -13,7 +13,7 @@ import {FeeLibrary} from 'src/libraries/FeeLibrary.sol';
 contract BalancerFlashLoanFeeCalculatorTest is Test {
     using SafeCast160 for uint256;
 
-    event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
+    event Charged(address indexed token, uint256 amount, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -44,7 +44,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Input[] public inputsEmpty;
+    DataType.Input[] public inputsEmpty;
     bytes[] public datasEmpty;
 
     function setUp() external {
@@ -77,7 +77,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
         amount = bound(amount, 0, (IERC20(USDC).balanceOf(BALANCER_V2_VAULT) * (BPS_BASE - FEE_RATE)) / BPS_BASE);
 
         // Encode flash loan userData
-        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
+        DataType.Logic[] memory flashLoanLogics = new DataType.Logic[](1);
         flashLoanLogics[0] = _logicTransferFlashLoanAmount(address(flashLoanCallback), USDC, amount);
         bytes memory userData = abi.encode(flashLoanLogics);
 
@@ -88,19 +88,19 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
 
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicBalancerV2FlashLoan(tokens, amounts, userData);
 
         _distributeToken(tokens, amounts);
 
         // Prepare assert data
-        uint256 expectedFee = FeeLibrary.calculateFeeFromAmount(amount, FEE_RATE);
+        uint256 expectedFee = FeeLibrary.calcFeeFromAmount(amount, FEE_RATE);
         uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
 
         // Execute
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(flashLoanCallback));
-            emit FeeCharged(USDC, expectedFee, BALANCER_META_DATA);
+            emit Charged(USDC, expectedFee, BALANCER_META_DATA);
         }
         vm.prank(user);
         router.execute(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
@@ -116,13 +116,13 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
         nativeAmount = bound(nativeAmount, 0, 5000 ether);
 
         // Encode flash loan userData
-        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](2);
+        DataType.Logic[] memory flashLoanLogics = new DataType.Logic[](2);
         flashLoanLogics[0] = _logicTransferFlashLoanAmount(address(flashLoanCallback), USDC, amount);
         flashLoanLogics[1] = _logicSendNativeToken(user2, nativeAmount);
         bytes memory userData = abi.encode(flashLoanLogics);
 
         // Get new logics and msg.value amount
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         {
             // Encode logic
             address[] memory tokens = new address[](1);
@@ -138,7 +138,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
         }
 
         // Prepare assert data
-        uint256 expectedFee = FeeLibrary.calculateFeeFromAmount(amount, FEE_RATE);
+        uint256 expectedFee = FeeLibrary.calcFeeFromAmount(amount, FEE_RATE);
         uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
         uint256 feeCollectorNativeBalanceBefore = feeCollector.balance;
         uint256 user2NativeBalanceBefore = user2.balance;
@@ -147,7 +147,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
             // Execute
             if (expectedFee > 0) {
                 vm.expectEmit(true, true, true, true, address(flashLoanCallback));
-                emit FeeCharged(USDC, expectedFee, BALANCER_META_DATA);
+                emit Charged(USDC, expectedFee, BALANCER_META_DATA);
             }
             vm.prank(user);
             router.execute{value: nativeAmount}(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
@@ -164,9 +164,9 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
         address[] memory tokens,
         uint256[] memory amounts,
         bytes memory userData
-    ) public view returns (IParam.Logic memory) {
+    ) public view returns (DataType.Logic memory) {
         return
-            IParam.Logic(
+            DataType.Logic(
                 BALANCER_V2_VAULT, // to
                 abi.encodeWithSelector(
                     BALANCER_FLASHLOAN_SELECTOR,
@@ -176,25 +176,25 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
                     userData
                 ),
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(flashLoanCallback) // callback
             );
     }
 
-    function _logicSendNativeToken(address to, uint256 amount) internal pure returns (IParam.Logic memory) {
+    function _logicSendNativeToken(address to, uint256 amount) internal pure returns (DataType.Logic memory) {
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amount;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 to,
                 new bytes(0),
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -204,14 +204,14 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
         address to,
         address token,
         uint256 amount
-    ) internal view returns (IParam.Logic memory) {
-        uint256 amountWithFee = FeeLibrary.calculateAmountWithFee(amount, FEE_RATE);
+    ) internal view returns (DataType.Logic memory) {
+        uint256 amountWithFee = FeeLibrary.calcAmountWithFee(amount, FEE_RATE);
         return
-            IParam.Logic(
+            DataType.Logic(
                 token,
                 abi.encodeWithSelector(IERC20.transfer.selector, to, amountWithFee),
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -220,7 +220,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
     function _distributeToken(address[] memory tokens, uint256[] memory amounts) internal {
         for (uint256 i = 0; i < tokens.length; ++i) {
             // Airdrop router flash loan fee to agent
-            uint256 routerFee = FeeLibrary.calculateFeeFromAmount(amounts[i], FEE_RATE);
+            uint256 routerFee = FeeLibrary.calcFeeFromAmount(amounts[i], FEE_RATE);
 
             deal(tokens[i], address(userAgent), routerFee);
         }

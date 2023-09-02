@@ -5,7 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {IDSProxy} from 'src/interfaces/maker/IDSProxy.sol';
 import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
 import {MakerCommonUtils, IMakerManager, IMakerVat, IDSProxyRegistry} from 'test/utils/MakerCommonUtils.sol';
@@ -33,7 +33,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Input[] public inputsEmpty;
+    DataType.Input[] public inputsEmpty;
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
@@ -137,7 +137,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         (, uint256 collateralBefore) = _getCdpInfo(ethCdp);
 
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicLockETH(ethCdp, lockETHAmount);
 
         // Execute
@@ -159,7 +159,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         uint256 userEthBalanceBefore = user.balance;
 
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicFreeETH(userAgentDSProxy, ethCdp, freeETHAmount);
 
         // Execute
@@ -182,7 +182,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         _allowCdp(user, userDSProxy, ethCdp, user2AgentDSProxy);
 
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicFreeETH(user2AgentDSProxy, ethCdp, freeETHAmount);
 
         // Execute
@@ -201,7 +201,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         uint256 freeETHAmount = 1 ether;
 
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicFreeETH(user2AgentDSProxy, ethCdp, freeETHAmount);
 
         // Execute
@@ -224,7 +224,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         datas[0] = dataERC20Permit2PullToken(IERC20(GEM), lockGemAmount.toUint160());
 
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
+        DataType.Logic[] memory logics = new DataType.Logic[](2);
         logics[0] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, GEM, lockGemAmount);
         logics[1] = _logicLockGem(gemCdp, lockGemAmount);
 
@@ -249,7 +249,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         uint256 userEthBalanceBefore = IERC20(GEM).balanceOf(user);
 
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicFreeGem(gemCdp, freeGemAmount);
 
         // Execute
@@ -277,7 +277,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         datas[0] = dataERC20Permit2PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
 
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
+        DataType.Logic[] memory logics = new DataType.Logic[](2);
         logics[0] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
         logics[1] = _logicWipe(gemCdp, wipeAmount);
 
@@ -307,7 +307,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         datas[0] = dataERC20Permit2PullToken(IERC20(DAI_TOKEN), wipeAmount.toUint160());
 
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
+        DataType.Logic[] memory logics = new DataType.Logic[](2);
         logics[0] = _logicAgentERC20ApprovalToDSProxy(user2AgentDSProxy, DAI_TOKEN, wipeAmount);
         logics[1] = _logicWipeAll(gemCdp);
 
@@ -333,7 +333,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         uint256 userDaiBalanceBefore = IERC20(DAI_TOKEN).balanceOf(user);
 
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicDraw(ethCdp, drawDaiAmount);
 
         // Execute
@@ -358,13 +358,13 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         return (debt, ink);
     }
 
-    function _logicBuildAgentDSProxy() internal view returns (IParam.Logic[] memory) {
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
+    function _logicBuildAgentDSProxy() internal view returns (DataType.Logic[] memory) {
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        logics[0] = DataType.Logic(
             PROXY_REGISTRY,
             abi.encodeWithSelector(IDSProxyRegistry.build.selector),
             inputsEmpty,
-            IParam.WrapMode.NONE,
+            DataType.WrapMode.NONE,
             address(0),
             address(0) // callback
         );
@@ -376,19 +376,19 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         address dsProxy,
         address token,
         uint256 amount
-    ) internal view returns (IParam.Logic memory) {
+    ) internal view returns (DataType.Logic memory) {
         return
-            IParam.Logic(
+            DataType.Logic(
                 token,
                 abi.encodeWithSelector(IERC20.approve.selector, dsProxy, amount),
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
     }
 
-    function _logicLockETH(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+    function _logicLockETH(uint256 cdp, uint256 amount) internal view returns (DataType.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -402,23 +402,23 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         );
 
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amount;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 user2AgentDSProxy,
                 data,
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
     }
 
-    function _logicFreeETH(address dsProxy, uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+    function _logicFreeETH(address dsProxy, uint256 cdp, uint256 amount) internal view returns (DataType.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -433,17 +433,17 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         );
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 dsProxy,
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
     }
 
-    function _logicLockGem(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+    function _logicLockGem(uint256 cdp, uint256 amount) internal view returns (DataType.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -459,17 +459,17 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         );
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 user2AgentDSProxy,
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
     }
 
-    function _logicFreeGem(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+    function _logicFreeGem(uint256 cdp, uint256 amount) internal view returns (DataType.Logic memory) {
         // Prepare datas
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -484,17 +484,17 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         );
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 userAgentDSProxy,
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
     }
 
-    function _logicWipe(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+    function _logicWipe(uint256 cdp, uint256 amount) internal view returns (DataType.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -509,17 +509,17 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         );
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 user2AgentDSProxy,
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
     }
 
-    function _logicWipeAll(uint256 cdp) internal view returns (IParam.Logic memory) {
+    function _logicWipeAll(uint256 cdp) internal view returns (DataType.Logic memory) {
         // Prepare data
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -533,17 +533,17 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         );
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 user2AgentDSProxy,
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
     }
 
-    function _logicDraw(uint256 cdp, uint256 amount) internal view returns (IParam.Logic memory) {
+    function _logicDraw(uint256 cdp, uint256 amount) internal view returns (DataType.Logic memory) {
         // Prepare datas
         bytes memory data = abi.encodeWithSelector(
             IDSProxy.execute.selector,
@@ -559,11 +559,11 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         );
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 userAgentDSProxy,
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

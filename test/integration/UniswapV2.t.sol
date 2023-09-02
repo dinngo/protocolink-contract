@@ -6,7 +6,7 @@ import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {ERC20Permit2Utils} from '../utils/ERC20Permit2Utils.sol';
 
 interface IUniswapV2Factory {
@@ -106,8 +106,8 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         deal(user, amountIn);
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicUniswapV2Swap(tokenIn, amountIn, BPS_NOT_USED, tokenOut, IParam.WrapMode.WRAP_BEFORE); // Fixed amount
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        logics[0] = _logicUniswapV2Swap(tokenIn, amountIn, BPS_NOT_USED, tokenOut, DataType.WrapMode.WRAP_BEFORE); // Fixed amount
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -139,8 +139,8 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         datas[0] = dataERC20Permit2PullToken(tokenIn, amountIn.toUint160());
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicUniswapV2Swap(tokenIn, amountIn, BPS_NOT_USED, tokenOut, IParam.WrapMode.UNWRAP_AFTER); // Fixed amount
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        logics[0] = _logicUniswapV2Swap(tokenIn, amountIn, BPS_NOT_USED, tokenOut, DataType.WrapMode.UNWRAP_AFTER); // Fixed amount
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -168,8 +168,8 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         datas[0] = dataERC20Permit2PullToken(tokenIn, amountIn.toUint160());
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = _logicUniswapV2Swap(tokenIn, amountIn / 2, BPS_BASE, tokenOut, IParam.WrapMode.NONE);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        logics[0] = _logicUniswapV2Swap(tokenIn, amountIn / 2, BPS_BASE, tokenOut, DataType.WrapMode.NONE);
 
         // Execute
         address[] memory tokensReturn = new address[](1);
@@ -205,11 +205,11 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         datas[0] = dataERC20Permit2PullToken(tokenIn0, amountIn0.toUint160());
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](4);
-        logics[0] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1, IParam.WrapMode.NONE); // Swap 50% amountIn0 to amountIn1
+        DataType.Logic[] memory logics = new DataType.Logic[](4);
+        logics[0] = _logicUniswapV2Swap(tokenIn0, amountIn0Half, BPS_BASE / 2, tokenIn1, DataType.WrapMode.NONE); // Swap 50% amountIn0 to amountIn1
         logics[1] = _logicUniswapV2AddLiquidity(tokenIn0, amountIn0Half, 0, tokenIn1); // Add liquidity with 50% amountIn0 and all amountIn1
         logics[2] = _logicUniswapV2RemoveLiquidity(tokenOut, 0, tokenIn0, amountIn0Half, tokenIn1); // Remove all liquidity
-        logics[3] = _logicUniswapV2Swap(tokenIn1, amountIn0Half, BPS_BASE, tokenIn0, IParam.WrapMode.NONE); // 100% balance of tokenIn
+        logics[3] = _logicUniswapV2Swap(tokenIn1, amountIn0Half, BPS_BASE, tokenIn0, DataType.WrapMode.NONE); // 100% balance of tokenIn
 
         // Execute
         address[] memory tokensReturn = new address[](3);
@@ -233,8 +233,8 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         uint256 amountIn,
         uint256 balanceBps,
         IERC20 tokenOut,
-        IParam.WrapMode wrapMode
-    ) public view returns (IParam.Logic memory) {
+        DataType.WrapMode wrapMode
+    ) public view returns (DataType.Logic memory) {
         // Encode data
         address[] memory path = new address[](2);
         path[0] = address(tokenIn);
@@ -251,15 +251,15 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         );
 
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
-        inputs[0] = IParam.Input(
+        DataType.Input[] memory inputs = new DataType.Input[](1);
+        inputs[0] = DataType.Input(
             address(tokenIn),
             balanceBps,
             (balanceBps == BPS_NOT_USED) ? amountIn : 0x0 // 0x0 is the amount offset in data
         );
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
@@ -274,7 +274,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         uint256 amountIn0,
         uint256 amountIn1,
         IERC20 tokenIn1
-    ) public view returns (IParam.Logic memory) {
+    ) public view returns (DataType.Logic memory) {
         // At least adds 98% token0 to liquidity
         uint256 amountIn0Min = (amountIn0 * 9_800) / BPS_BASE;
 
@@ -292,7 +292,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         );
 
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](2);
+        DataType.Input[] memory inputs = new DataType.Input[](2);
         inputs[0].token = address(tokenIn0);
         inputs[1].token = address(tokenIn1);
         inputs[0].balanceBps = BPS_BASE;
@@ -303,11 +303,11 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         else inputs[1].amountOrOffset = 0x60;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -319,7 +319,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         IERC20 tokenOut0,
         uint256 amountOut0,
         IERC20 tokenOut1
-    ) public view returns (IParam.Logic memory) {
+    ) public view returns (DataType.Logic memory) {
         // At least returns 98% token0 from liquidity
         uint256 amountOut0Min = (amountOut0 * 9_800) / BPS_BASE;
 
@@ -336,18 +336,18 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
         );
 
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].balanceBps = BPS_BASE;
         if (inputs[0].balanceBps == BPS_NOT_USED) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0x40;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(uniswapRouter02), // to
                 data,
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

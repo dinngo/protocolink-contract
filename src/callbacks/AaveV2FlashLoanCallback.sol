@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IAgent} from '../interfaces/IAgent.sol';
-import {IParam} from '../interfaces/IParam.sol';
+import {DataType} from '../libraries/DataType.sol';
 import {IRouter} from '../interfaces/IRouter.sol';
 import {IAaveV2FlashLoanCallback} from '../interfaces/callbacks/IAaveV2FlashLoanCallback.sol';
 import {IAaveV2Provider} from '../interfaces/aaveV2/IAaveV2Provider.sol';
@@ -16,7 +16,7 @@ import {CallbackFeeBase} from './CallbackFeeBase.sol';
 contract AaveV2FlashLoanCallback is IAaveV2FlashLoanCallback, CallbackFeeBase {
     using SafeERC20 for IERC20;
     using Address for address;
-    using FeeLibrary for IParam.Fee;
+    using FeeLibrary for DataType.Fee;
 
     address public immutable router;
     address public immutable aaveV2Provider;
@@ -72,7 +72,7 @@ contract AaveV2FlashLoanCallback is IAaveV2FlashLoanCallback, CallbackFeeBase {
             uint256 amountOwing = amount + premiums[i];
 
             if (charge) {
-                IParam.Fee memory fee = FeeLibrary.calculateFee(asset, amount, feeRate, metadata);
+                DataType.Fee memory fee = FeeLibrary.calcFee(asset, amount, feeRate, metadata);
                 fee.pay(feeCollector);
             }
 
@@ -80,7 +80,7 @@ contract AaveV2FlashLoanCallback is IAaveV2FlashLoanCallback, CallbackFeeBase {
             if (IERC20(asset).balanceOf(address(this)) != initBalances[i] + amountOwing) revert InvalidBalance(asset);
 
             // Save gas by only the first user does approve. It's safe since this callback don't hold any asset
-            ApproveHelper._approveMax(asset, pool, amountOwing);
+            ApproveHelper.approveMax(asset, pool, amountOwing);
 
             unchecked {
                 ++i;

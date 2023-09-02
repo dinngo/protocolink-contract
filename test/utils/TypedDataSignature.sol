@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {MockTypedDataHash} from '../mocks/MockTypedDataHash.sol';
 
 contract TypedDataSignature is Test {
@@ -13,35 +13,35 @@ contract TypedDataSignature is Test {
     }
 
     function getHashedTypedData(
-        IParam.LogicBatch memory logicBatch,
+        DataType.LogicBatch memory logicBatch,
         bytes32 domainSeparator
     ) internal view returns (bytes32) {
         return keccak256(abi.encodePacked('\x19\x01', domainSeparator, mockTypedDataHash.hash(logicBatch)));
     }
 
     function getHashedTypedData(
-        IParam.ExecutionDetails memory details,
+        DataType.ExecutionDetails memory details,
         bytes32 domainSeparator
     ) internal view returns (bytes32) {
         return keccak256(abi.encodePacked('\x19\x01', domainSeparator, mockTypedDataHash.hash(details)));
     }
 
     function getHashedTypedData(
-        IParam.ExecutionBatchDetails memory details,
+        DataType.ExecutionBatchDetails memory details,
         bytes32 domainSeparator
     ) internal view returns (bytes32) {
         return keccak256(abi.encodePacked('\x19\x01', domainSeparator, mockTypedDataHash.hash(details)));
     }
 
     function getHashedTypedData(
-        IParam.DelegationDetails memory details,
+        DataType.DelegationDetails memory details,
         bytes32 domainSeparator
     ) internal view returns (bytes32) {
         return keccak256(abi.encodePacked('\x19\x01', domainSeparator, mockTypedDataHash.hash(details)));
     }
 
     function getTypedDataSignature(
-        IParam.LogicBatch memory logicBatch,
+        DataType.LogicBatch memory logicBatch,
         bytes32 domainSeparator,
         uint256 privateKey
     ) internal view returns (bytes memory) {
@@ -50,7 +50,7 @@ contract TypedDataSignature is Test {
     }
 
     function getTypedDataSignature(
-        IParam.ExecutionDetails memory details,
+        DataType.ExecutionDetails memory details,
         bytes32 domainSeparator,
         uint256 privateKey
     ) internal view returns (bytes memory) {
@@ -59,7 +59,7 @@ contract TypedDataSignature is Test {
     }
 
     function getTypedDataSignature(
-        IParam.ExecutionBatchDetails memory details,
+        DataType.ExecutionBatchDetails memory details,
         bytes32 domainSeparator,
         uint256 privateKey
     ) internal view returns (bytes memory) {
@@ -68,7 +68,7 @@ contract TypedDataSignature is Test {
     }
 
     function getTypedDataSignature(
-        IParam.DelegationDetails memory details,
+        DataType.DelegationDetails memory details,
         bytes32 domainSeparator,
         uint256 privateKey
     ) internal view returns (bytes memory) {

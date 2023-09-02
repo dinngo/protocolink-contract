@@ -6,7 +6,7 @@ import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC
 import {MakerUtility, IMakerUtility} from 'src/utilities/MakerUtility.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
 import {MakerCommonUtils, IMakerManager, IMakerVat, IDSProxyRegistry} from 'test/utils/MakerCommonUtils.sol';
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
@@ -26,7 +26,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     address public makerUtilityDSProxy;
 
     // Empty arrays
-    IParam.Input[] public inputsEmpty;
+    DataType.Input[] public inputsEmpty;
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
@@ -74,7 +74,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         daiDrawAmount = bound(daiDrawAmount, daiDrawMin, daiDrawMax);
 
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicOpenLockETHAndDraw(ethLockAmount, daiDrawAmount);
 
         // Get param before execute
@@ -120,7 +120,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         datas[0] = dataERC20Permit2PullToken(IERC20(GEM), tokenLockAmount.toUint160());
 
         // Encode logic
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
+        DataType.Logic[] memory logics = new DataType.Logic[](2);
         logics[0] = _logicTransferERC20ToMakerUtility(GEM, tokenLockAmount);
         logics[1] = _logicOpenLockGemAndDraw(tokenLockAmount, daiDrawAmount);
 
@@ -171,7 +171,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         return daiDrawMax > daiDrawMin ? daiDrawMax : daiDrawMin;
     }
 
-    function _logicOpenLockETHAndDraw(uint256 value, uint256 amountOutMin) public view returns (IParam.Logic memory) {
+    function _logicOpenLockETHAndDraw(uint256 value, uint256 amountOutMin) public view returns (DataType.Logic memory) {
         // Data for openLockETHAndDraw
         bytes memory data = abi.encodeWithSelector(
             IMakerUtility.openLockETHAndDraw.selector,
@@ -183,17 +183,17 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         );
 
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = value;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(makerUtility),
                 data,
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -202,19 +202,19 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     function _logicTransferERC20ToMakerUtility(
         address token,
         uint256 amount
-    ) internal view returns (IParam.Logic memory) {
+    ) internal view returns (DataType.Logic memory) {
         return
-            IParam.Logic(
+            DataType.Logic(
                 token,
                 abi.encodeWithSelector(IERC20.transfer.selector, makerUtility, amount),
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
     }
 
-    function _logicOpenLockGemAndDraw(uint256 value, uint256 amountOutMin) public view returns (IParam.Logic memory) {
+    function _logicOpenLockGemAndDraw(uint256 value, uint256 amountOutMin) public view returns (DataType.Logic memory) {
         bytes memory data = abi.encodeWithSelector(
             IMakerUtility.openLockGemAndDraw.selector,
             GEM_JOIN_TOKEN,
@@ -225,11 +225,11 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         );
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(makerUtility),
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {IWrappedNative} from 'src/interfaces/IWrappedNative.sol';
 
 // Test wrapped native
@@ -47,7 +47,7 @@ contract WrappedNativeTest is Test {
         deal(user, amountIn + 1 ether);
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicWrappedNativeDeposit(amountIn, BPS_BASE / 2); // 50% amount
 
         // Execute
@@ -69,20 +69,20 @@ contract WrappedNativeTest is Test {
     function _logicWrappedNativeDeposit(
         uint256 amountIn,
         uint256 balanceBps
-    ) public pure returns (IParam.Logic memory) {
+    ) public pure returns (DataType.Logic memory) {
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].balanceBps = balanceBps;
         if (inputs[0].balanceBps == BPS_NOT_USED) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = OFFSET_NOT_USED; // data don't have amount parameter
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(WRAPPED_NATIVE), // to
                 abi.encodeWithSelector(IWrappedNative.deposit.selector),
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

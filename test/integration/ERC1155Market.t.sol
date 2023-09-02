@@ -7,7 +7,7 @@ import {IERC1155} from 'openzeppelin-contracts/contracts/token/ERC1155/ERC1155.s
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {ERC20Permit2Utils} from '../utils/ERC20Permit2Utils.sol';
 import {ERC1155Utils} from '../utils/ERC1155Utils.sol';
 import {MockERC1155Market} from '../mocks/MockERC1155Market.sol';
@@ -26,7 +26,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
     MockERC1155Market public market;
 
     // Empty arrays
-    IParam.Input[] public inputsEmpty;
+    DataType.Input[] public inputsEmpty;
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
@@ -68,7 +68,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         datas[0] = dataERC20Permit2PullToken(tokenIn, amountIn.toUint160());
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicERC1155MarketTokenToNFT(tokenIn, amountIn, tokenId, amount, user);
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenIn);
@@ -97,7 +97,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         vm.stopPrank();
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
+        DataType.Logic[] memory logics = new DataType.Logic[](3);
         logics[0] = logicERC1155PullToken(address(nft), tokenId, amount);
         logics[1] = _logicERC1155Approval(nft, address(market));
         logics[2] = _logicERC1155MarketNFTToToken(tokenId, amount);
@@ -129,7 +129,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         datas[0] = dataERC20Permit2PullToken(tokenIn, amountIn.toUint160());
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicERC1155MarketTokenToNFTBatch(tokenIn, amountIn, tokenId, amount, user);
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenIn);
@@ -158,7 +158,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         vm.stopPrank();
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](3);
+        DataType.Logic[] memory logics = new DataType.Logic[](3);
         logics[0] = logicERC1155PullToken(address(nft), tokenId, amount);
         logics[1] = _logicERC1155Approval(nft, address(market));
         logics[2] = _logicERC1155MarketNFTBatchToToken(tokenId, amount);
@@ -177,14 +177,14 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         assertEq(nft.balanceOf(address(market), tokenId), amount);
     }
 
-    function _logicERC1155Approval(IERC1155 token, address spender) internal view returns (IParam.Logic memory) {
+    function _logicERC1155Approval(IERC1155 token, address spender) internal view returns (DataType.Logic memory) {
         bytes memory data = abi.encodeWithSelector(IERC1155.setApprovalForAll.selector, spender, true);
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(token), // to
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -196,22 +196,22 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         uint256 tokenId,
         uint256 amount,
         address recipient
-    ) public view returns (IParam.Logic memory) {
+    ) public view returns (DataType.Logic memory) {
         // Encode data
         bytes memory data = abi.encodeWithSelector(market.tokenToNft.selector, tokenId, amount, recipient);
 
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amountIn;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(market), // to
                 data,
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -223,7 +223,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         uint256 tokenId,
         uint256 amount,
         address recipient
-    ) public view returns (IParam.Logic memory) {
+    ) public view returns (DataType.Logic memory) {
         // Encode data
         uint256[] memory tokenIds = new uint256[](1);
         uint256[] memory amounts = new uint256[](1);
@@ -232,32 +232,35 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         bytes memory data = abi.encodeWithSelector(market.tokenToNftBatch.selector, tokenIds, amounts, recipient);
 
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amountIn;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(market), // to
                 data,
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
     }
 
-    function _logicERC1155MarketNFTToToken(uint256 tokenId, uint256 amount) public view returns (IParam.Logic memory) {
+    function _logicERC1155MarketNFTToToken(
+        uint256 tokenId,
+        uint256 amount
+    ) public view returns (DataType.Logic memory) {
         // Encode data
 
         bytes memory data = abi.encodeWithSelector(market.nftToToken.selector, tokenId, amount);
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(market), // to
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -266,7 +269,7 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
     function _logicERC1155MarketNFTBatchToToken(
         uint256 tokenId,
         uint256 amount
-    ) public view returns (IParam.Logic memory) {
+    ) public view returns (DataType.Logic memory) {
         // Encode data
         uint256[] memory tokenIds = new uint256[](1);
         uint256[] memory amounts = new uint256[](1);
@@ -274,11 +277,11 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
         amounts[0] = amount;
         bytes memory data = abi.encodeWithSelector(market.nftBatchToToken.selector, tokenIds, amounts);
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(market), // to
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
