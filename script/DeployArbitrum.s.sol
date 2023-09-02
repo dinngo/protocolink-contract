@@ -20,7 +20,7 @@ contract DeployArbitrum is
         });
 
         routerConfig = RouterConfig({
-            deployedAddress: UNDEPLOYED,
+            deployedAddress: 0x4E744c3E6973D34ee130B7E668Abc14CD49ca16e,
             wrappedNative: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
             owner: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
@@ -29,13 +29,13 @@ contract DeployArbitrum is
         });
 
         aaveV3FlashLoanCallbackConfig = AaveV3FlashLoanCallbackConfig({
-            deployedAddress: UNDEPLOYED,
+            deployedAddress: 0x8f2Ed9cE5DF73210c5Fa21d0cFDFF98bB1027a1F,
             aaveV3Provider: 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb,
             feeRate: 5
         });
 
         balancerV2FlashLoanCallbackConfig = BalancerV2FlashLoanCallbackConfig({
-            deployedAddress: UNDEPLOYED,
+            deployedAddress: 0x13431cd779FD770D55701B96F2675dFF63BDD756,
             balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8,
             feeRate: 5
         });
