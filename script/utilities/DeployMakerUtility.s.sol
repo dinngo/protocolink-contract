@@ -10,7 +10,7 @@ import {DeployBase} from 'script/DeployBase.s.sol';
 abstract contract DeployMakerUtility is DeployBase {
     struct MakerUtilityConfig {
         address deployedAddress;
-        // deploy params
+        // constructor params
         address proxyRegistry;
         address cdpManager;
         address proxyActions;

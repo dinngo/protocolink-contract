@@ -10,7 +10,7 @@ import {DeployBase} from 'script/DeployBase.s.sol';
 abstract contract DeployBalancerV2FlashLoanCallback is DeployBase {
     struct BalancerV2FlashLoanCallbackConfig {
         address deployedAddress;
-        // deploy params
+        // constructor params
         address balancerV2Vault;
         uint256 feeRate;
     }

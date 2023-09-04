@@ -27,7 +27,8 @@ contract DeployEthereum is
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
             owner: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
             pauser: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
-            feeCollector: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd
+            feeCollector: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
+            feeRate: 20
         });
 
         aaveV2FlashLoanCallbackConfig = AaveV2FlashLoanCallbackConfig({

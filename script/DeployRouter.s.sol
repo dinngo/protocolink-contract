@@ -12,12 +12,14 @@ abstract contract DeployRouter is DeployBase {
 
     struct RouterConfig {
         address deployedAddress;
-        // deploy params
+        // constructor params
         address wrappedNative;
         address permit2;
         address owner;
         address pauser;
         address feeCollector;
+        // extra params
+        uint256 feeRate;
     }
 
     RouterConfig internal routerConfig;
@@ -38,11 +40,15 @@ abstract contract DeployRouter is DeployBase {
             console2.log('Router Deployed:', deployedAddress);
             Router router = Router(deployedAddress);
             console2.log('Router Owner:', router.owner());
+
+            // Set and check signer
             router.addSigner(SIGNER);
-            if (router.signers(SIGNER)) {
-                console2.log('Router Signer:', SIGNER);
-            } else {
-                console2.log('Router Signer is invalid');
+            require(router.signers(SIGNER), 'Router signer is invalid');
+
+            // Set and check fee rate
+            if (cfg.feeRate > 0) {
+                router.setFeeRate(cfg.feeRate);
+                require(router.feeRate() == cfg.feeRate, 'Router fee rate is invalid');
             }
         } else {
             console2.log('Router Exists. Skip deployment of Router:', deployedAddress);
