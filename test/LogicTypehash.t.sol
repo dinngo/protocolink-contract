@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {TypedDataSignature} from './utils/TypedDataSignature.sol';
 
 contract LogicTypehash is Test, TypedDataSignature {
@@ -38,32 +38,32 @@ contract LogicTypehash is Test, TypedDataSignature {
         bytes memory sig = bytes.concat(r, s, bytes1(v));
 
         // Create the logicBatch with the same parameters as above
-        IParam.Input[] memory inputs = new IParam.Input[](2);
-        inputs[0] = IParam.Input(
+        DataType.Input[] memory inputs = new DataType.Input[](2);
+        inputs[0] = DataType.Input(
             address(1), // token
             type(uint256).max, // balanceBps
             1 // amountOrOffset
         );
-        inputs[1] = IParam.Input(
+        inputs[1] = DataType.Input(
             address(2), // token
             10000, // balanceBps
             0x20 // amountOrOffset
         );
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = IParam.Logic(
+        DataType.Logic[] memory logics = new DataType.Logic[](2);
+        logics[0] = DataType.Logic(
             address(3), // to
             '0123456789abcdef',
             inputs,
-            IParam.WrapMode.WRAP_BEFORE,
+            DataType.WrapMode.WRAP_BEFORE,
             address(4), // approveTo
             address(5) // callback
         );
         logics[1] = logics[0]; // Duplicate logic
-        IParam.Fee[] memory fees = new IParam.Fee[](2);
-        fees[0] = IParam.Fee(address(6), 1, bytes32(abi.encodePacked('metadata')));
+        DataType.Fee[] memory fees = new DataType.Fee[](2);
+        fees[0] = DataType.Fee(address(6), 1, bytes32(abi.encodePacked('metadata')));
         fees[1] = fees[0]; // Duplicate fee
         uint256 deadline = 1704067200;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logics, fees, deadline);
 
         // Verify the locally generated signature using the private key is the same as the external sig
         assertEq(getTypedDataSignature(logicBatch, _buildDomainSeparator(), PRIVATE_KEY), sig);

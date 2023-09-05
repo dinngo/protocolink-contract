@@ -5,7 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {ERC20Permit2Utils} from '../utils/ERC20Permit2Utils.sol';
 
 interface IYVault {
@@ -60,7 +60,7 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
         datas[0] = dataERC20Permit2PullToken(tokenIn, uint160(amountIn));
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicYearn(tokenIn, amountIn, BPS_BASE);
 
         // Execute
@@ -83,20 +83,20 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
         IERC20 tokenIn,
         uint256 amountIn,
         uint256 balanceBps
-    ) public pure returns (IParam.Logic memory) {
+    ) public pure returns (DataType.Logic memory) {
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = address(tokenIn);
         inputs[0].balanceBps = balanceBps;
         if (inputs[0].balanceBps == BPS_NOT_USED) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = 0;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(yVault), // to
                 abi.encodeWithSelector(yVault.deposit.selector, 0), // amount will be replaced with balance
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

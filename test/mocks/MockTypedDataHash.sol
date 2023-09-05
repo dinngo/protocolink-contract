@@ -1,28 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {TypedDataHash} from 'src/libraries/TypedDataHash.sol';
 
 contract MockTypedDataHash {
-    using TypedDataHash for IParam.LogicBatch;
-    using TypedDataHash for IParam.ExecutionDetails;
-    using TypedDataHash for IParam.ExecutionBatchDetails;
-    using TypedDataHash for IParam.DelegationDetails;
+    using TypedDataHash for DataType.LogicBatch;
+    using TypedDataHash for DataType.ExecutionDetails;
+    using TypedDataHash for DataType.ExecutionBatchDetails;
+    using TypedDataHash for DataType.DelegationDetails;
 
-    function hash(IParam.LogicBatch calldata logicBatch) external pure returns (bytes32) {
-        return logicBatch._hash();
+    function hash(DataType.LogicBatch calldata logicBatch) external pure returns (bytes32) {
+        return logicBatch.hash();
     }
 
-    function hash(IParam.ExecutionDetails calldata details) external pure returns (bytes32) {
-        return details._hash();
+    function hash(DataType.ExecutionDetails calldata details) external pure returns (bytes32) {
+        return details.hash();
     }
 
-    function hash(IParam.ExecutionBatchDetails calldata details) external pure returns (bytes32) {
-        return details._hash();
+    function hash(DataType.ExecutionBatchDetails calldata details) external pure returns (bytes32) {
+        return details.hash();
     }
 
-    function hash(IParam.DelegationDetails calldata details) external pure returns (bytes32) {
-        return details._hash();
+    function hash(DataType.DelegationDetails calldata details) external pure returns (bytes32) {
+        return details.hash();
     }
 }

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {ERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {AaveV3FlashLoanCallback, IAaveV3FlashLoanCallback, IAaveV3Provider} from 'src/callbacks/AaveV3FlashLoanCallback.sol';
 
 contract AaveV3FlashLoanCallbackTest is Test {
@@ -18,7 +18,7 @@ contract AaveV3FlashLoanCallbackTest is Test {
     IERC20 public mockERC20;
 
     // Empty arrays
-    IParam.Input[] public inputsEmpty;
+    DataType.Input[] public inputsEmpty;
 
     function setUp() external {
         user = makeAddr('User');
@@ -69,12 +69,12 @@ contract AaveV3FlashLoanCallbackTest is Test {
         deal(assets[0], agent, premiumExcess);
 
         // Encode a logic which transfers asset + excess premium to callback
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        logics[0] = DataType.Logic(
             address(assets[0]), // to
             abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[0] + premiumExcess),
             inputsEmpty,
-            IParam.WrapMode.NONE,
+            DataType.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );

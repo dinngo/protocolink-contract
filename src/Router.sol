@@ -6,7 +6,7 @@ import {EIP712} from 'openzeppelin-contracts/contracts/utils/cryptography/EIP712
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
 import {IAgent, AgentImplementation} from './AgentImplementation.sol';
 import {Agent} from './Agent.sol';
-import {IParam} from './interfaces/IParam.sol';
+import {DataType} from './libraries/DataType.sol';
 import {IRouter} from './interfaces/IRouter.sol';
 import {TypedDataHash} from './libraries/TypedDataHash.sol';
 import {Delegation} from './libraries/Delegation.sol';
@@ -14,11 +14,11 @@ import {Delegation} from './libraries/Delegation.sol';
 /// @title Entry point for Protocolink
 contract Router is IRouter, Ownable, EIP712 {
     using SafeERC20 for IERC20;
-    using TypedDataHash for IParam.LogicBatch;
-    using TypedDataHash for IParam.ExecutionDetails;
-    using TypedDataHash for IParam.ExecutionBatchDetails;
-    using TypedDataHash for IParam.DelegationDetails;
-    using Delegation for IParam.PackedDelegation;
+    using TypedDataHash for DataType.LogicBatch;
+    using TypedDataHash for DataType.ExecutionDetails;
+    using TypedDataHash for DataType.ExecutionBatchDetails;
+    using TypedDataHash for DataType.DelegationDetails;
+    using Delegation for DataType.PackedDelegation;
     using SignatureChecker for address;
 
     /// @dev Flag for identifying the paused state used in `currentUser` for reducing cold read gas cost
@@ -37,7 +37,7 @@ contract Router is IRouter, Ownable, EIP712 {
     mapping(address user => IAgent agent) public agents;
 
     /// @notice Mapping for user with each delegatee and expiry
-    mapping(address user => mapping(address delegatee => IParam.PackedDelegation delegation)) public delegations;
+    mapping(address user => mapping(address delegatee => DataType.PackedDelegation delegation)) public delegations;
 
     /// @notice Mapping for user with execution signature nonce
     mapping(address user => uint256 nonce) public executionNonces;
@@ -86,16 +86,107 @@ contract Router is IRouter, Ownable, EIP712 {
         transferOwnership(owner_);
     }
 
-    /// @notice Get owner address
-    /// @return The owner address
-    function owner() public view override(IRouter, Ownable) returns (address) {
-        return super.owner();
+    ///////////////////////////////////////////////////////////////////////////////////////
+    /// Router related
+    ///////////////////////////////////////////////////////////////////////////////////////
+
+    /// @notice Pause `execute` and `executeWithSignerFee` by pauser
+    function pause() external onlyPauser {
+        if (currentUser == _PAUSED) revert AlreadyPaused();
+        currentUser = _PAUSED;
+        emit Paused();
+    }
+
+    /// @notice Unpause `execute` and `executeWithSignerFee` by pauser
+    function unpause() external onlyPauser {
+        if (currentUser != _PAUSED) revert NotPaused();
+        currentUser = _INIT_CURRENT_USER;
+        emit Unpaused();
+    }
+
+    /// @notice Rescue ERC-20 tokens in case of stuck tokens by owner
+    /// @param token The token address
+    /// @param receiver The receiver address
+    /// @param amount The amount of tokens to be rescued
+    function rescue(address token, address receiver, uint256 amount) external onlyOwner {
+        IERC20(token).safeTransfer(receiver, amount);
+    }
+
+    /// @notice Add a signer whose signature can pass the validation in `executeWithSignerFee` by owner
+    /// @param signer The signer address to be added
+    function addSigner(address signer) external onlyOwner {
+        signers[signer] = true;
+        emit SignerAdded(signer);
+    }
+
+    /// @notice Remove a signer by owner
+    /// @param signer The signer address to be removed
+    function removeSigner(address signer) external onlyOwner {
+        delete signers[signer];
+        emit SignerRemoved(signer);
+    }
+
+    /// @notice Set a new fee rate by owner
+    /// @param feeRate_ The new fee rate in basis points
+    function setFeeRate(uint256 feeRate_) external onlyOwner {
+        if (feeRate_ >= _BPS_BASE) revert InvalidRate();
+        feeRate = feeRate_;
+    }
+
+    /// @notice Set the fee collector address that collects fees from each user's agent by owner
+    /// @param feeCollector_ The fee collector address
+    function setFeeCollector(address feeCollector_) public onlyOwner {
+        if (feeCollector_ == address(0)) revert InvalidFeeCollector();
+        feeCollector = feeCollector_;
+        emit FeeCollectorSet(feeCollector_);
+    }
+
+    /// @notice Set the pauser address that can pause `execute` and `executeWithSignerFee` by owner
+    /// @param pauser_ The pauser address
+    function setPauser(address pauser_) public onlyOwner {
+        if (pauser_ == address(0)) revert InvalidNewPauser();
+        pauser = pauser_;
+        emit PauserSet(pauser_);
     }
 
     /// @notice Get domain separator used for EIP-712
     /// @return The domain separator of Protocolink
     function domainSeparator() external view returns (bytes32) {
         return _domainSeparatorV4();
+    }
+
+    /// @notice Get owner address
+    /// @return The owner address
+    function owner() public view override(IRouter, Ownable) returns (address) {
+        return super.owner();
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    /// Agent related
+    ///////////////////////////////////////////////////////////////////////////////////////
+
+    /// @notice Create an agent for `msg.sender`
+    /// @return The newly created agent address
+    function newAgent() external returns (address) {
+        return newAgent(msg.sender);
+    }
+
+    /// @notice Create an agent for the user
+    /// @param user The user address
+    /// @return The newly created agent address
+    function newAgent(address user) public returns (address) {
+        if (address(agents[user]) != address(0)) {
+            revert AgentAlreadyCreated();
+        } else {
+            return _newAgent(user);
+        }
+    }
+
+    function _newAgent(address user) internal returns (address) {
+        IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20(user))}(agentImplementation)));
+        agents[user] = agent;
+        emit AgentCreated(address(agent), user);
+        return address(agent);
     }
 
     /// @notice Get agent address of a user
@@ -134,41 +225,9 @@ contract Router is IRouter, Ownable, EIP712 {
         return result;
     }
 
-    /// @notice Add a signer whose signature can pass the validation in `executeWithSignerFee` by owner
-    /// @param signer The signer address to be added
-    function addSigner(address signer) external onlyOwner {
-        signers[signer] = true;
-        emit SignerAdded(signer);
-    }
-
-    /// @notice Remove a signer by owner
-    /// @param signer The signer address to be removed
-    function removeSigner(address signer) external onlyOwner {
-        delete signers[signer];
-        emit SignerRemoved(signer);
-    }
-
-    /// @notice Rescue ERC-20 tokens in case of stuck tokens by owner
-    /// @param token The token address
-    /// @param receiver The receiver address
-    /// @param amount The amount of tokens to be rescued
-    function rescue(address token, address receiver, uint256 amount) external onlyOwner {
-        IERC20(token).safeTransfer(receiver, amount);
-    }
-
-    /// @notice Pause `execute` and `executeWithSignerFee` by pauser
-    function pause() external onlyPauser {
-        if (currentUser == _PAUSED) revert AlreadyPaused();
-        currentUser = _PAUSED;
-        emit Paused();
-    }
-
-    /// @notice Unpause `execute` and `executeWithSignerFee` by pauser
-    function unpause() external onlyPauser {
-        if (currentUser != _PAUSED) revert NotPaused();
-        currentUser = _INIT_CURRENT_USER;
-        emit Unpaused();
-    }
+    ///////////////////////////////////////////////////////////////////////////////////////
+    /// Execution related
+    ///////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice Execute arbitrary logics through the current user's agent. Creates an agent for user if not created.
     ///         Fees are charged in the user's agent during the execution of msg.value, permit2 and flash loans.
@@ -178,7 +237,7 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @param referralCode Referral code
     function execute(
         bytes[] calldata permit2Datas,
-        IParam.Logic[] calldata logics,
+        DataType.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable whenReady(msg.sender) {
@@ -195,7 +254,7 @@ contract Router is IRouter, Ownable, EIP712 {
     function executeFor(
         address user,
         bytes[] calldata permit2Datas,
-        IParam.Logic[] calldata logics,
+        DataType.Logic[] calldata logics,
         address[] calldata tokensReturn,
         uint256 referralCode
     ) external payable whenReady(user) {
@@ -209,7 +268,7 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @param user The user address
     /// @param signature The user's signature bytes
     function executeBySig(
-        IParam.ExecutionDetails calldata details,
+        DataType.ExecutionDetails calldata details,
         address user,
         bytes calldata signature
     ) external payable whenReady(user) {
@@ -218,28 +277,11 @@ contract Router is IRouter, Ownable, EIP712 {
             uint256 nonce = details.nonce;
             // Verify deadline, signature and nonce
             if (block.timestamp > deadline) revert SignatureExpired(deadline);
-            if (!user.isValidSignatureNow(_hashTypedDataV4(details._hash()), signature)) revert InvalidSignature();
+            if (!user.isValidSignatureNow(_hashTypedDataV4(details.hash()), signature)) revert InvalidSignature();
             if (executionNonces[user] != nonce) revert InvalidNonce();
             ++executionNonces[user];
         }
         _execute(user, details.permit2Datas, details.logics, details.tokensReturn, details.referralCode);
-    }
-
-    function _execute(
-        address user,
-        bytes[] calldata permit2Datas,
-        IParam.Logic[] calldata logics,
-        address[] calldata tokensReturn,
-        uint256 referralCode
-    ) internal {
-        IAgent agent = agents[user];
-
-        if (address(agent) == address(0)) {
-            agent = IAgent(_newAgent(user));
-        }
-
-        emit Execute(user, address(agent), referralCode);
-        agent.execute{value: msg.value}(permit2Datas, logics, tokensReturn);
     }
 
     /// @notice Execute arbitrary logics through the current user's agent using a signer's signature. Creates an agent
@@ -254,7 +296,7 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @param referralCode Referral code
     function executeWithSignerFee(
         bytes[] calldata permit2Datas,
-        IParam.LogicBatch calldata logicBatch,
+        DataType.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
         address[] calldata tokensReturn,
@@ -278,7 +320,7 @@ contract Router is IRouter, Ownable, EIP712 {
     function executeForWithSignerFee(
         address user,
         bytes[] calldata permit2Datas,
-        IParam.LogicBatch calldata logicBatch,
+        DataType.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
         address[] calldata tokensReturn,
@@ -298,19 +340,19 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @param signer The signer address
     /// @param signerSignature The signer's signature bytes
     function executeBySigWithSignerFee(
-        IParam.ExecutionBatchDetails calldata details,
+        DataType.ExecutionBatchDetails calldata details,
         address user,
         bytes calldata userSignature,
         address signer,
         bytes calldata signerSignature
     ) external payable whenReady(user) {
-        IParam.LogicBatch calldata logicBatch = details.logicBatch;
+        DataType.LogicBatch calldata logicBatch = details.logicBatch;
         {
             uint256 deadline = details.deadline;
             uint256 nonce = details.nonce;
             // Verify deadline, signature and nonce
             if (block.timestamp > deadline) revert SignatureExpired(deadline);
-            if (!user.isValidSignatureNow(_hashTypedDataV4(details._hash()), userSignature)) revert InvalidSignature();
+            if (!user.isValidSignatureNow(_hashTypedDataV4(details.hash()), userSignature)) revert InvalidSignature();
             if (executionNonces[user] != nonce) revert InvalidNonce();
             ++executionNonces[user];
         }
@@ -318,26 +360,27 @@ contract Router is IRouter, Ownable, EIP712 {
         _executeWithSignerFee(user, details.permit2Datas, logicBatch, details.tokensReturn, details.referralCode);
     }
 
-    function _isValidDelegateeFor(address user) internal view returns (bool) {
-        return block.timestamp <= uint256(delegations[user][msg.sender].expiry);
-    }
+    function _execute(
+        address user,
+        bytes[] calldata permit2Datas,
+        DataType.Logic[] calldata logics,
+        address[] calldata tokensReturn,
+        uint256 referralCode
+    ) internal {
+        IAgent agent = agents[user];
 
-    function _verifySignerFee(
-        IParam.LogicBatch calldata logicBatch,
-        address signer,
-        bytes calldata signature
-    ) internal view {
-        // Verify deadline, signer and signature
-        uint256 deadline = logicBatch.deadline;
-        if (block.timestamp > deadline) revert SignatureExpired(deadline);
-        if (!signers[signer]) revert InvalidSigner(signer);
-        if (!signer.isValidSignatureNow(_hashTypedDataV4(logicBatch._hash()), signature)) revert InvalidSignature();
+        if (address(agent) == address(0)) {
+            agent = IAgent(_newAgent(user));
+        }
+
+        emit Execute(user, address(agent), referralCode);
+        agent.execute{value: msg.value}(permit2Datas, logics, tokensReturn);
     }
 
     function _executeWithSignerFee(
         address user,
         bytes[] calldata permit2Datas,
-        IParam.LogicBatch calldata logicBatch,
+        DataType.LogicBatch calldata logicBatch,
         address[] calldata tokensReturn,
         uint256 referralCode
     ) internal {
@@ -351,45 +394,25 @@ contract Router is IRouter, Ownable, EIP712 {
         agent.executeWithSignerFee{value: msg.value}(permit2Datas, logicBatch.logics, logicBatch.fees, tokensReturn);
     }
 
-    /// @notice Invalidate nonces for an execution
-    /// @param newNonce The new nonce to set. Invalidates all nonces less than it
-    /// @dev Can't invalidate more than 2**16 nonces per transaction
-    function invalidateExecutionNonces(uint256 newNonce) external {
-        uint256 oldNonce = executionNonces[msg.sender];
-        if (newNonce <= oldNonce) revert InvalidNonce();
-        // Limit the amount of nonces that can be invalidated in one transaction.
-        unchecked {
-            uint256 delta = newNonce - oldNonce;
-            if (delta > type(uint16).max) revert ExcessiveInvalidation();
-        }
-
-        executionNonces[msg.sender] = newNonce;
-        emit ExecutionNonceInvalidation(msg.sender, newNonce, oldNonce);
+    function _isValidDelegateeFor(address user) internal view returns (bool) {
+        return block.timestamp <= uint256(delegations[user][msg.sender].expiry);
     }
 
-    /// @notice Create an agent for `msg.sender`
-    /// @return The newly created agent address
-    function newAgent() external returns (address) {
-        return newAgent(msg.sender);
+    function _verifySignerFee(
+        DataType.LogicBatch calldata logicBatch,
+        address signer,
+        bytes calldata signature
+    ) internal view {
+        // Verify deadline, signer and signature
+        uint256 deadline = logicBatch.deadline;
+        if (block.timestamp > deadline) revert SignatureExpired(deadline);
+        if (!signers[signer]) revert InvalidSigner(signer);
+        if (!signer.isValidSignatureNow(_hashTypedDataV4(logicBatch.hash()), signature)) revert InvalidSignature();
     }
 
-    /// @notice Create an agent for the user
-    /// @param user The user address
-    /// @return The newly created agent address
-    function newAgent(address user) public returns (address) {
-        if (address(agents[user]) != address(0)) {
-            revert AgentAlreadyCreated();
-        } else {
-            return _newAgent(user);
-        }
-    }
-
-    function _newAgent(address user) internal returns (address) {
-        IAgent agent = IAgent(address(new Agent{salt: bytes32(bytes20(user))}(agentImplementation)));
-        agents[user] = agent;
-        emit AgentCreated(address(agent), user);
-        return address(agent);
-    }
+    ///////////////////////////////////////////////////////////////////////////////////////
+    /// Delegation management
+    ///////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice Allow another address to execute on user's behalf
     /// @param delegatee The address to be delegated
@@ -404,7 +427,7 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @param delegator The delegator address
     /// @param signature The delegator's signature bytes
     function allowBySig(
-        IParam.DelegationDetails calldata details,
+        DataType.DelegationDetails calldata details,
         address delegator,
         bytes calldata signature
     ) external {
@@ -414,8 +437,8 @@ contract Router is IRouter, Ownable, EIP712 {
         uint256 deadline = details.deadline;
         // Verify deadline, signature and nonce
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
-        if (!delegator.isValidSignatureNow(_hashTypedDataV4(details._hash()), signature)) revert InvalidSignature();
-        IParam.PackedDelegation storage delegation = delegations[delegator][delegatee];
+        if (!delegator.isValidSignatureNow(_hashTypedDataV4(details.hash()), signature)) revert InvalidSignature();
+        DataType.PackedDelegation storage delegation = delegations[delegator][delegatee];
         if (delegation.nonce != nonce) revert InvalidNonce();
         delegation.updateAll(expiry, nonce);
         emit Delegated(delegator, delegatee, expiry);
@@ -427,6 +450,10 @@ contract Router is IRouter, Ownable, EIP712 {
         allow(delegatee, 0);
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    /// Signature nonce management
+    ///////////////////////////////////////////////////////////////////////////////////////
+
     /// @notice Invalidate nonces for a delegatee
     /// @param delegatee The delegatee to invalidate nonces for
     /// @param newNonce The new nonce to set. Invalidates all nonces less than it
@@ -436,34 +463,25 @@ contract Router is IRouter, Ownable, EIP712 {
         if (newNonce <= oldNonce) revert InvalidNonce();
         // Limit the amount of nonces that can be invalidated in one transaction.
         unchecked {
-            uint128 delta = newNonce - oldNonce;
-            if (delta > type(uint16).max) revert ExcessiveInvalidation();
+            if (newNonce - oldNonce > type(uint16).max) revert ExcessiveInvalidation();
         }
 
         delegations[msg.sender][delegatee].nonce = newNonce;
         emit DelegationNonceInvalidation(msg.sender, delegatee, newNonce, oldNonce);
     }
 
-    /// @notice Set the fee collector address that collects fees from each user's agent by owner
-    /// @param feeCollector_ The fee collector address
-    function setFeeCollector(address feeCollector_) public onlyOwner {
-        if (feeCollector_ == address(0)) revert InvalidFeeCollector();
-        feeCollector = feeCollector_;
-        emit FeeCollectorSet(feeCollector_);
-    }
+    /// @notice Invalidate nonces for an execution
+    /// @param newNonce The new nonce to set. Invalidates all nonces less than it
+    /// @dev Can't invalidate more than 2**16 nonces per transaction
+    function invalidateExecutionNonces(uint256 newNonce) external {
+        uint256 oldNonce = executionNonces[msg.sender];
+        if (newNonce <= oldNonce) revert InvalidNonce();
+        // Limit the amount of nonces that can be invalidated in one transaction.
+        unchecked {
+            if (newNonce - oldNonce > type(uint16).max) revert ExcessiveInvalidation();
+        }
 
-    /// @notice Set the pauser address that can pause `execute` and `executeWithSignerFee` by owner
-    /// @param pauser_ The pauser address
-    function setPauser(address pauser_) public onlyOwner {
-        if (pauser_ == address(0)) revert InvalidNewPauser();
-        pauser = pauser_;
-        emit PauserSet(pauser_);
-    }
-
-    /// @notice Set a new fee rate by owner
-    /// @param feeRate_ The new fee rate in basis points
-    function setFeeRate(uint256 feeRate_) external onlyOwner {
-        if (feeRate_ >= _BPS_BASE) revert InvalidRate();
-        feeRate = feeRate_;
+        executionNonces[msg.sender] = newNonce;
+        emit ExecutionNonceInvalidation(msg.sender, newNonce, oldNonce);
     }
 }

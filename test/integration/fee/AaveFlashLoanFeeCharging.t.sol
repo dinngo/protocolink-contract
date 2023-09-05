@@ -7,7 +7,7 @@ import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {Router} from 'src/Router.sol';
 import {AaveV2FlashLoanCallback, IAaveV2FlashLoanCallback} from 'src/callbacks/AaveV2FlashLoanCallback.sol';
 import {AaveV3FlashLoanCallback, IAaveV3FlashLoanCallback} from 'src/callbacks/AaveV3FlashLoanCallback.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {IAaveV2Provider} from 'src/interfaces/aaveV2/IAaveV2Provider.sol';
 import {IAaveV3Provider} from 'src/interfaces/aaveV3/IAaveV3Provider.sol';
@@ -26,7 +26,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         VARIABLE
     }
 
-    event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
+    event Charged(address indexed token, uint256 amount, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant AAVE_V2_PROVIDER = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
@@ -57,7 +57,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Input[] public inputsEmpty;
+    DataType.Input[] public inputsEmpty;
     bytes[] public datasEmpty;
 
     function setUp() external {
@@ -90,7 +90,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         amount = bound(amount, 100_000, (IERC20(USDC).balanceOf(AUSDC_V2) * (BPS_BASE - FEE_RATE)) / BPS_BASE);
 
         // Encode flash loan params
-        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
+        DataType.Logic[] memory flashLoanLogics = new DataType.Logic[](1);
         flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(address(flashLoanCallbackV2), USDC, amount, isAaveV2);
         bytes memory params = abi.encode(flashLoanLogics);
 
@@ -101,19 +101,19 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
 
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicAaveFlashLoan(v2Pool, address(flashLoanCallbackV2), tokens, amounts, params);
 
         _distributeToken(tokens, amounts, isAaveV2);
 
         // Prepare assert data
-        uint256 expectedFee = FeeLibrary.calculateFeeFromAmount(amount, FEE_RATE);
+        uint256 expectedFee = FeeLibrary.calcFeeFromAmount(amount, FEE_RATE);
         uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
 
         // Execute
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(flashLoanCallbackV2));
-            emit FeeCharged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
+            emit Charged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
         }
         vm.prank(user);
         router.execute(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
@@ -132,7 +132,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         // Encode flash loan params
         bytes memory params;
         {
-            IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](2);
+            DataType.Logic[] memory flashLoanLogics = new DataType.Logic[](2);
             flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(
                 address(flashLoanCallbackV2),
                 USDC,
@@ -143,7 +143,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
             params = abi.encode(flashLoanLogics);
         }
 
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         {
             // Encode logic
             address[] memory tokens = new address[](1);
@@ -160,7 +160,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         }
 
         // Prepare assert data
-        uint256 expectedFee = FeeLibrary.calculateFeeFromAmount(amount, FEE_RATE);
+        uint256 expectedFee = FeeLibrary.calcFeeFromAmount(amount, FEE_RATE);
         uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
         uint256 feeCollectorNativeBalanceBefore = feeCollector.balance;
         uint256 user2NativeBalanceBefore = user2.balance;
@@ -169,7 +169,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
             // Execute
             if (expectedFee > 0) {
                 vm.expectEmit(true, true, true, true, address(flashLoanCallbackV2));
-                emit FeeCharged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
+                emit Charged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
             }
             vm.prank(user);
             router.execute{value: nativeAmount}(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
@@ -187,7 +187,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         amount = bound(amount, 0, (IERC20(USDC).balanceOf(AUSDC_V3) * (BPS_BASE - FEE_RATE)) / BPS_BASE);
 
         // Encode flash loan params
-        IParam.Logic[] memory flashLoanLogics = new IParam.Logic[](1);
+        DataType.Logic[] memory flashLoanLogics = new DataType.Logic[](1);
         flashLoanLogics[0] = _logicTransferFlashLoanAmountAndFee(address(flashLoanCallbackV3), USDC, amount, isAaveV2);
         bytes memory params = abi.encode(flashLoanLogics);
 
@@ -198,19 +198,19 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
 
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicAaveFlashLoan(v3Pool, address(flashLoanCallbackV3), tokens, amounts, params);
 
         _distributeToken(tokens, amounts, isAaveV2);
 
         // Prepare assert data
-        uint256 expectedFee = FeeLibrary.calculateFeeFromAmount(amount, FEE_RATE);
+        uint256 expectedFee = FeeLibrary.calcFeeFromAmount(amount, FEE_RATE);
         uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
 
         // Execute
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(flashLoanCallbackV3));
-            emit FeeCharged(USDC, expectedFee, V3_FLASHLOAN_META_DATA);
+            emit Charged(USDC, expectedFee, V3_FLASHLOAN_META_DATA);
         }
         vm.prank(user);
         router.execute(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
@@ -226,12 +226,12 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         address[] memory tokens,
         uint256[] memory amounts,
         bytes memory params
-    ) internal view returns (IParam.Logic memory) {
+    ) internal view returns (DataType.Logic memory) {
         uint256[] memory modes = new uint256[](1);
         modes[0] = uint256(InterestRateMode.NONE);
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 to,
                 abi.encodeWithSelector(
                     AAVE_FLASHLOAN_SELECTOR,
@@ -244,25 +244,25 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
                     0 // referralCode
                 ),
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 callback
             );
     }
 
-    function _logicSendNativeToken(address to, uint256 amount) internal pure returns (IParam.Logic memory) {
+    function _logicSendNativeToken(address to, uint256 amount) internal pure returns (DataType.Logic memory) {
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amount;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 to,
                 new bytes(0),
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -273,15 +273,15 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         address token,
         uint256 amount,
         bool isAaveV2
-    ) internal view returns (IParam.Logic memory) {
+    ) internal view returns (DataType.Logic memory) {
         uint256 aaveFee = _getAaveFlashLoanFee(amount, isAaveV2);
-        uint256 amountWithFee = FeeLibrary.calculateAmountWithFee(amount, FEE_RATE);
+        uint256 amountWithFee = FeeLibrary.calcAmountWithFee(amount, FEE_RATE);
         return
-            IParam.Logic(
+            DataType.Logic(
                 token,
                 abi.encodeWithSelector(IERC20.transfer.selector, to, amountWithFee + aaveFee),
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -291,7 +291,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         for (uint256 i = 0; i < tokens.length; ++i) {
             // Airdrop aave flash loan fee and router flash loan fee to agent
             uint256 aaveFee = _getAaveFlashLoanFee(amounts[i], isAaveV2);
-            uint256 routerFee = FeeLibrary.calculateFeeFromAmount(amounts[i], FEE_RATE);
+            uint256 routerFee = FeeLibrary.calcFeeFromAmount(amounts[i], FEE_RATE);
 
             deal(tokens[i], address(userAgent), aaveFee + routerFee);
         }

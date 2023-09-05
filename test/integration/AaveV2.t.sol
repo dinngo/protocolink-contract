@@ -5,7 +5,7 @@ import {Test} from 'forge-std/Test.sol';
 import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {IAaveV2Provider} from 'src/interfaces/aaveV2/IAaveV2Provider.sol';
 import {AaveV2FlashLoanCallback, IAaveV2FlashLoanCallback} from 'src/callbacks/AaveV2FlashLoanCallback.sol';
 
@@ -64,7 +64,7 @@ contract AaveV2IntegrationTest is Test {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Input[] public inputsEmpty;
+    DataType.Input[] public inputsEmpty;
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
@@ -110,7 +110,7 @@ contract AaveV2IntegrationTest is Test {
         vm.stopPrank();
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicAaveV2Borrow(borrowedToken, borrowedAmount, uint256(InterestRateMode.VARIABLE));
 
         // Execute
@@ -140,7 +140,7 @@ contract AaveV2IntegrationTest is Test {
         modes[0] = uint256(InterestRateMode.NONE);
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicAaveV2FlashLoan(tokens, amounts, modes);
 
         // Execute
@@ -157,9 +157,9 @@ contract AaveV2IntegrationTest is Test {
         IERC20 token,
         uint256 amount,
         uint256 interestRateMode
-    ) public view returns (IParam.Logic memory) {
+    ) public view returns (DataType.Logic memory) {
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(pool), // to
                 abi.encodeWithSelector(
                     IAaveV2Pool.borrow.selector,
@@ -170,7 +170,7 @@ contract AaveV2IntegrationTest is Test {
                     user
                 ),
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -180,7 +180,7 @@ contract AaveV2IntegrationTest is Test {
         address[] memory tokens,
         uint256[] memory amounts,
         uint256[] memory modes
-    ) public returns (IParam.Logic memory) {
+    ) public returns (DataType.Logic memory) {
         // Encode logic
         address receiverAddress = address(flashLoanCallback);
         address onBehalfOf = address(0);
@@ -188,7 +188,7 @@ contract AaveV2IntegrationTest is Test {
         uint16 referralCode = 0;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(pool), // to
                 abi.encodeWithSelector(
                     IAaveV2Pool.flashLoan.selector,
@@ -201,7 +201,7 @@ contract AaveV2IntegrationTest is Test {
                     referralCode
                 ),
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(flashLoanCallback) // callback
             );
@@ -209,18 +209,18 @@ contract AaveV2IntegrationTest is Test {
 
     function _encodeExecute(address[] memory tokens, uint256[] memory amounts) public returns (bytes memory) {
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](tokens.length);
+        DataType.Logic[] memory logics = new DataType.Logic[](tokens.length);
         for (uint256 i = 0; i < tokens.length; ++i) {
             // Airdrop fee to Agent
             uint256 fee = (amounts[i] * 9) / 10000;
             deal(address(tokens[i]), address(agent), fee);
 
             // Encode transfering token + fee to the flash loan callback
-            logics[i] = IParam.Logic(
+            logics[i] = DataType.Logic(
                 address(tokens[i]), // to
                 abi.encodeWithSelector(IERC20.transfer.selector, address(flashLoanCallback), amounts[i] + fee),
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

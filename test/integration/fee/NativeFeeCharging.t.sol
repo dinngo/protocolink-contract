@@ -3,12 +3,12 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {Router} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {FeeLibrary} from 'src/libraries/FeeLibrary.sol';
 
 contract NativeFeeCalculatorTest is Test {
-    event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
+    event Charged(address indexed token, uint256 amount, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant ANY_TO_ADDRESS = address(0);
@@ -53,8 +53,8 @@ contract NativeFeeCalculatorTest is Test {
         router.setFeeRate(feeRate);
 
         // Encode logic
-        uint256 newValue = FeeLibrary.calculateAmountWithFee(value, feeRate);
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        uint256 newValue = FeeLibrary.calcAmountWithFee(value, feeRate);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicSendNative(value);
 
         // Get new logics and msgValue
@@ -63,12 +63,12 @@ contract NativeFeeCalculatorTest is Test {
         // Prepare assert data
         uint256 receiverBalanceBefore = receiver.balance;
         uint256 feeCollectorBalanceBefore = feeCollector.balance;
-        uint256 expectedFee = FeeLibrary.calculateFeeFromAmount(value, feeRate);
+        uint256 expectedFee = FeeLibrary.calcFeeFromAmount(value, feeRate);
 
         // Execute
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(userAgent));
-            emit FeeCharged(NATIVE, expectedFee, META_DATA);
+            emit Charged(NATIVE, expectedFee, META_DATA);
         }
         vm.prank(user);
         router.execute{value: newValue}(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
@@ -80,19 +80,19 @@ contract NativeFeeCalculatorTest is Test {
         assertEq(feeCollector.balance - feeCollectorBalanceBefore, expectedFee);
     }
 
-    function _logicSendNative(uint256 amount) internal view returns (IParam.Logic memory) {
+    function _logicSendNative(uint256 amount) internal view returns (DataType.Logic memory) {
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].balanceBps = BPS_NOT_USED;
         inputs[0].amountOrOffset = amount;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 receiver,
                 EMPTY_LOGIC_DATA,
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

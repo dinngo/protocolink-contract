@@ -6,7 +6,7 @@ import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ut
 import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {ERC20Permit2Utils} from '../utils/ERC20Permit2Utils.sol';
 import {ERC721Utils} from '../utils/ERC721Utils.sol';
 
@@ -114,7 +114,7 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Input[] public inputsEmpty;
+    DataType.Input[] public inputsEmpty;
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
@@ -186,7 +186,7 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         datas[1] = dataERC20Permit2PullToken(tokenIn1, amountIn1.toUint160());
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicUniswapV3MintLiquidityNFT(tokenIn0, tokenIn1, amountIn0, amountIn1, mintParams);
 
         address[] memory tokensReturn = new address[](2);
@@ -260,7 +260,7 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         datas[1] = dataERC20Permit2PullToken(tokenIn1, amountIn1.toUint160());
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicUniswapV3IncreaseLiquidity(tokenIn0, tokenIn1, amountIn0, amountIn1, increaseParams);
 
         address[] memory tokensReturn = new address[](2);
@@ -327,7 +327,7 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         NON_FUNGIBLE_POSITION_MANAGER.setApprovalForAll(address(agent), true);
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicUniswapV3DecreaseLiquidity(decreaseParams);
 
         // Get Estimate result
@@ -408,12 +408,12 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         uint256 amountIn0,
         uint256 amountIn1,
         INonfungiblePositionManager.MintParams memory params
-    ) public pure returns (IParam.Logic memory) {
+    ) public pure returns (DataType.Logic memory) {
         // Encode data
         bytes memory data = abi.encodeWithSelector(NON_FUNGIBLE_POSITION_MANAGER.mint.selector, params);
 
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](2);
+        DataType.Input[] memory inputs = new DataType.Input[](2);
         inputs[0].token = address(token0);
         inputs[1].token = address(token1);
         inputs[0].balanceBps = BPS_NOT_USED;
@@ -422,11 +422,11 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         inputs[1].amountOrOffset = amountIn1;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -438,12 +438,12 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         uint256 amountIn0,
         uint256 amountIn1,
         INonfungiblePositionManager.IncreaseLiquidityParams memory params
-    ) public pure returns (IParam.Logic memory) {
+    ) public pure returns (DataType.Logic memory) {
         // Encode data
         bytes memory data = abi.encodeWithSelector(NON_FUNGIBLE_POSITION_MANAGER.increaseLiquidity.selector, params);
 
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](2);
+        DataType.Input[] memory inputs = new DataType.Input[](2);
         inputs[0].token = address(token0);
         inputs[1].token = address(token1);
         inputs[0].balanceBps = BPS_NOT_USED;
@@ -452,11 +452,11 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         inputs[1].amountOrOffset = amountIn1;
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -464,15 +464,15 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
 
     function _logicUniswapV3DecreaseLiquidity(
         INonfungiblePositionManager.DecreaseLiquidityParams memory params
-    ) public view returns (IParam.Logic memory) {
+    ) public view returns (DataType.Logic memory) {
         // Encode data
         bytes memory data = abi.encodeWithSelector(NON_FUNGIBLE_POSITION_MANAGER.decreaseLiquidity.selector, params);
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -480,15 +480,15 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
 
     function _logicUniswapV3Collect(
         INonfungiblePositionManager.CollectParams memory params
-    ) public view returns (IParam.Logic memory) {
+    ) public view returns (DataType.Logic memory) {
         // Encode data
         bytes memory data = abi.encodeWithSelector(NON_FUNGIBLE_POSITION_MANAGER.collect.selector, params);
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(NON_FUNGIBLE_POSITION_MANAGER), // to
                 data,
                 inputsEmpty,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );

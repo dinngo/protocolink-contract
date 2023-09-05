@@ -7,7 +7,7 @@ import {IAllowanceTransfer} from 'permit2/interfaces/IAllowanceTransfer.sol';
 import {Agent} from 'src/Agent.sol';
 import {AgentImplementation, IAgent} from 'src/AgentImplementation.sol';
 import {Router, IRouter} from 'src/Router.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {ICallback, MockCallback} from './mocks/MockCallback.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
 import {MockWrappedNative, IWrappedNative} from './mocks/MockWrappedNative.sol';
@@ -30,9 +30,9 @@ contract AgentTest is Test {
 
     // Empty arrays
     address[] public tokensReturnEmpty;
-    IParam.Fee[] public feesEmpty;
-    IParam.Input[] public inputsEmpty;
-    IParam.Logic[] public logicsEmpty;
+    DataType.Fee[] public feesEmpty;
+    DataType.Input[] public inputsEmpty;
+    DataType.Logic[] public logicsEmpty;
     bytes[] public permit2DatasEmpty;
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
@@ -100,8 +100,8 @@ contract AgentTest is Test {
     }
 
     function testCannotExecutePermit2InLogic() external {
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(permit2, '', inputsEmpty, IParam.WrapMode.NONE, address(0), address(0));
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        logics[0] = DataType.Logic(permit2, '', inputsEmpty, DataType.WrapMode.NONE, address(0), address(0));
         vm.startPrank(router);
         vm.expectRevert(IAgent.InvalidPermitCall.selector);
         agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
@@ -160,19 +160,19 @@ contract AgentTest is Test {
     }
 
     function testCannotBeInvalidBps() external {
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         // Revert if balanceBps = BPS_BASE + 1
-        inputs[0] = IParam.Input(
+        inputs[0] = DataType.Input(
             address(0),
             BPS_BASE + 1, // balanceBps
             0 // amountOrOffset
         );
-        logics[0] = IParam.Logic(
+        logics[0] = DataType.Logic(
             address(0), // to
             '',
             inputs,
-            IParam.WrapMode.NONE,
+            DataType.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -182,12 +182,12 @@ contract AgentTest is Test {
     }
 
     function testCannotUnresetCallbackWithCharge() external {
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        logics[0] = IParam.Logic(
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        logics[0] = DataType.Logic(
             address(mockFallback), // to
             '',
             inputsEmpty,
-            IParam.WrapMode.NONE,
+            DataType.WrapMode.NONE,
             address(0), // approveTo
             address(mockCallback) // callback
         );
@@ -199,25 +199,25 @@ contract AgentTest is Test {
     function testWrapBeforeFixedAmounts(uint128 amount1, uint128 amount2) external {
         uint256 amount = uint256(amount1) + uint256(amount2);
         deal(router, amount);
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        IParam.Input[] memory inputs = new IParam.Input[](2);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](2);
 
         // Fixed amounts
-        inputs[0] = IParam.Input(
+        inputs[0] = DataType.Input(
             mockWrappedNative, // token
             BPS_NOT_USED, // balanceBps
             amount1 // amountOrOffset
         );
-        inputs[1] = IParam.Input(
+        inputs[1] = DataType.Input(
             mockWrappedNative, // token
             BPS_NOT_USED, // balanceBps
             amount2 // amountOrOffset
         );
-        logics[0] = IParam.Logic(
+        logics[0] = DataType.Logic(
             address(mockFallback), // to
             '',
             inputs,
-            IParam.WrapMode.WRAP_BEFORE,
+            DataType.WrapMode.WRAP_BEFORE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -234,25 +234,25 @@ contract AgentTest is Test {
         amount = bound(amount, 0, type(uint256).max / BPS_BASE); // Prevent overflow when calculates the replaced amount
         bps = bound(bps, 1, BPS_BASE - 1);
         deal(router, amount);
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        IParam.Input[] memory inputs = new IParam.Input[](2);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](2);
 
         // Replaced amounts
-        inputs[0] = IParam.Input(
+        inputs[0] = DataType.Input(
             mockWrappedNative, // token
             bps, // balanceBps
             OFFSET_NOT_USED // amountOrOffset
         );
-        inputs[1] = IParam.Input(
+        inputs[1] = DataType.Input(
             mockWrappedNative, // token
             BPS_BASE - bps, // balanceBps
             OFFSET_NOT_USED // amountOrOffset
         );
-        logics[0] = IParam.Logic(
+        logics[0] = DataType.Logic(
             address(mockFallback), // to
             '',
             inputs,
-            IParam.WrapMode.WRAP_BEFORE,
+            DataType.WrapMode.WRAP_BEFORE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -270,25 +270,25 @@ contract AgentTest is Test {
     function testWrapBeforeWithToken(uint256 amount1, uint256 amount2) external {
         deal(router, amount1);
         deal(address(mockERC20), address(agent), amount2);
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        IParam.Input[] memory inputs = new IParam.Input[](2);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](2);
 
         // The inputs contain native and ERC-20
-        inputs[0] = IParam.Input(
+        inputs[0] = DataType.Input(
             mockWrappedNative, // token
             BPS_NOT_USED, // balanceBps
             amount1 // amountOrOffset
         );
-        inputs[1] = IParam.Input(
+        inputs[1] = DataType.Input(
             address(mockERC20), // token
             BPS_NOT_USED, // balanceBps
             amount2 // amountOrOffset
         );
-        logics[0] = IParam.Logic(
+        logics[0] = DataType.Logic(
             address(mockFallback), // to
             '',
             inputs,
-            IParam.WrapMode.WRAP_BEFORE,
+            DataType.WrapMode.WRAP_BEFORE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -301,20 +301,20 @@ contract AgentTest is Test {
     function testUnwrapAfter(uint128 amount, uint128 amountBefore) external {
         deal(router, amount);
         deal(mockWrappedNative, address(agent), amountBefore); // Ensure agent handles differences
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
 
         // Wrap native and immediately unwrap after
-        inputs[0] = IParam.Input(
+        inputs[0] = DataType.Input(
             NATIVE, // token
             BPS_NOT_USED, // balanceBps
             amount // amountOrOffset
         );
-        logics[0] = IParam.Logic(
+        logics[0] = DataType.Logic(
             address(mockWrappedNative), // to
             abi.encodeWithSelector(IWrappedNative.deposit.selector),
             inputs,
-            IParam.WrapMode.UNWRAP_AFTER,
+            DataType.WrapMode.UNWRAP_AFTER,
             address(0), // approveTo
             address(0) // callback
         );
@@ -332,7 +332,7 @@ contract AgentTest is Test {
         deal(router, amountIn);
 
         // Encode logics
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = _logicSendNative(amountIn, balanceBps);
 
         // Execute
@@ -346,20 +346,20 @@ contract AgentTest is Test {
         assertEq(address(agent).balance, amountIn - recipientAmount);
     }
 
-    function _logicSendNative(uint256 amountIn, uint256 balanceBps) internal view returns (IParam.Logic memory) {
+    function _logicSendNative(uint256 amountIn, uint256 balanceBps) internal view returns (DataType.Logic memory) {
         // Encode inputs
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
         inputs[0].token = NATIVE;
         inputs[0].balanceBps = balanceBps;
         if (inputs[0].balanceBps == BPS_NOT_USED) inputs[0].amountOrOffset = amountIn;
         else inputs[0].amountOrOffset = OFFSET_NOT_USED; // data is not provided
 
         return
-            IParam.Logic(
+            DataType.Logic(
                 address(recipient), // to
                 '',
                 inputs,
-                IParam.WrapMode.NONE,
+                DataType.WrapMode.NONE,
                 address(0), // approveTo
                 address(0) // callback
             );
@@ -368,19 +368,19 @@ contract AgentTest is Test {
     function testApproveToIsDefault(uint256 amountIn) external {
         vm.assume(amountIn > 0);
 
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
 
-        inputs[0] = IParam.Input(
+        inputs[0] = DataType.Input(
             address(mockERC20),
             BPS_NOT_USED, // balanceBps
             amountIn // amountOrOffset
         );
-        logics[0] = IParam.Logic(
+        logics[0] = DataType.Logic(
             address(mockFallback), // to
             '',
             inputs,
-            IParam.WrapMode.NONE,
+            DataType.WrapMode.NONE,
             address(0), // approveTo
             address(0) // callback
         );
@@ -406,19 +406,19 @@ contract AgentTest is Test {
         vm.assume(amountIn > 0);
         vm.assume(approveTo != address(0) && approveTo != mockFallback && approveTo != address(mockERC20));
 
-        IParam.Logic[] memory logics = new IParam.Logic[](1);
-        IParam.Input[] memory inputs = new IParam.Input[](1);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
 
-        inputs[0] = IParam.Input(
+        inputs[0] = DataType.Input(
             address(mockERC20),
             BPS_NOT_USED, // balanceBps
             amountIn // amountOrOffset
         );
-        logics[0] = IParam.Logic(
+        logics[0] = DataType.Logic(
             address(mockFallback), // to
             '',
             inputs,
-            IParam.WrapMode.NONE,
+            DataType.WrapMode.NONE,
             approveTo, // approveTo
             address(0) // callback
         );

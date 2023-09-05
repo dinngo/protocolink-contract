@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from 'forge-std/Test.sol';
 import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
 import {IAllowanceTransfer} from 'permit2/interfaces/IAllowanceTransfer.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {TypedDataSignature} from './utils/TypedDataSignature.sol';
 
 contract ExecutionTypehash is Test, TypedDataSignature {
@@ -41,23 +41,23 @@ contract ExecutionTypehash is Test, TypedDataSignature {
         // Create the execution with the same parameters as above
         bytes[] memory permit2Datas = new bytes[](1);
         permit2Datas[0] = abi.encodeWithSelector(0x36c78516, SIGNER, verifyingContract, 1, address(2));
-        IParam.Input[] memory inputs = new IParam.Input[](2);
-        inputs[0] = IParam.Input(
+        DataType.Input[] memory inputs = new DataType.Input[](2);
+        inputs[0] = DataType.Input(
             address(1), // token
             type(uint256).max, // balanceBps
             1 // amountOrOffset
         );
-        inputs[1] = IParam.Input(
+        inputs[1] = DataType.Input(
             address(2), // token
             10000, // balanceBps
             0x20 // amountOrOffset
         );
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = IParam.Logic(
+        DataType.Logic[] memory logics = new DataType.Logic[](2);
+        logics[0] = DataType.Logic(
             address(3), // to
             '0123456789abcdef',
             inputs,
-            IParam.WrapMode.WRAP_BEFORE,
+            DataType.WrapMode.WRAP_BEFORE,
             address(4), // approveTo
             address(5) // callback
         );
@@ -68,7 +68,7 @@ contract ExecutionTypehash is Test, TypedDataSignature {
         uint256 referralCode = 8;
         uint256 nonce = 9;
         uint256 deadline = 1704067200;
-        IParam.ExecutionDetails memory details = IParam.ExecutionDetails(
+        DataType.ExecutionDetails memory details = DataType.ExecutionDetails(
             permit2Datas,
             logics,
             tokensReturn,
@@ -96,38 +96,38 @@ contract ExecutionTypehash is Test, TypedDataSignature {
         // Create the execution with the same parameters as above
         bytes[] memory permit2Datas = new bytes[](1);
         permit2Datas[0] = abi.encodeWithSelector(0x36c78516, SIGNER, verifyingContract, 1, address(2));
-        IParam.Input[] memory inputs = new IParam.Input[](2);
-        inputs[0] = IParam.Input(
+        DataType.Input[] memory inputs = new DataType.Input[](2);
+        inputs[0] = DataType.Input(
             address(1), // token
             type(uint256).max, // balanceBps
             1 // amountOrOffset
         );
-        inputs[1] = IParam.Input(
+        inputs[1] = DataType.Input(
             address(2), // token
             10000, // balanceBps
             0x20 // amountOrOffset
         );
-        IParam.Logic[] memory logics = new IParam.Logic[](2);
-        logics[0] = IParam.Logic(
+        DataType.Logic[] memory logics = new DataType.Logic[](2);
+        logics[0] = DataType.Logic(
             address(3), // to
             '0123456789abcdef',
             inputs,
-            IParam.WrapMode.WRAP_BEFORE,
+            DataType.WrapMode.WRAP_BEFORE,
             address(4), // approveTo
             address(5) // callback
         );
         logics[1] = logics[0]; // Duplicate logic
-        IParam.Fee[] memory fees = new IParam.Fee[](2);
-        fees[0] = IParam.Fee(address(6), 1, bytes32(abi.encodePacked('metadata')));
+        DataType.Fee[] memory fees = new DataType.Fee[](2);
+        fees[0] = DataType.Fee(address(6), 1, bytes32(abi.encodePacked('metadata')));
         fees[1] = fees[0]; // Duplicate fee
         uint256 deadline = 1704067200;
-        IParam.LogicBatch memory logicBatch = IParam.LogicBatch(logics, fees, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logics, fees, deadline);
         address[] memory tokensReturn = new address[](2);
         tokensReturn[0] = address(6);
         tokensReturn[1] = address(7);
         uint256 referralCode = 8;
         uint256 nonce = 9;
-        IParam.ExecutionBatchDetails memory details = IParam.ExecutionBatchDetails(
+        DataType.ExecutionBatchDetails memory details = DataType.ExecutionBatchDetails(
             permit2Datas,
             logicBatch,
             tokensReturn,

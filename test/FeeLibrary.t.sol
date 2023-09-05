@@ -4,13 +4,13 @@ pragma solidity ^0.8.0;
 import {SafeCast} from 'openzeppelin-contracts/contracts/utils/math/SafeCast.sol';
 import {Test} from 'forge-std/Test.sol';
 import {ERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
-import {IParam} from 'src/interfaces/IParam.sol';
+import {DataType} from 'src/libraries/DataType.sol';
 import {FeeLibrary} from 'src/libraries/FeeLibrary.sol';
 import {MockFeeLibrary} from './mocks/MockFeeLibrary.sol';
 import 'forge-std/console.sol';
 
 contract FeeLibraryTest is Test {
-    using FeeLibrary for IParam.Fee;
+    using FeeLibrary for DataType.Fee;
     using SafeCast for uint256;
 
     IERC20 public mockERC20;
@@ -20,7 +20,7 @@ contract FeeLibraryTest is Test {
     bytes32 public metadata = bytes32(bytes('metadata'));
     MockFeeLibrary public mock;
 
-    event FeeCharged(address indexed token, uint256 amount, bytes32 metadata);
+    event Charged(address indexed token, uint256 amount, bytes32 metadata);
 
     function setUp() public {
         mockERC20 = new ERC20('mockERC20', 'mock');
@@ -34,9 +34,9 @@ contract FeeLibraryTest is Test {
     function testPayNative(uint256 amount) public {
         amount = bound(amount, 1, 5000 ether);
         deal(address(mock), amount);
-        IParam.Fee memory fee = IParam.Fee(FeeLibrary.NATIVE, amount, metadata);
+        DataType.Fee memory fee = DataType.Fee(FeeLibrary.NATIVE, amount, metadata);
         vm.expectEmit(true, true, true, true, address(mock));
-        emit FeeCharged(FeeLibrary.NATIVE, amount, metadata);
+        emit Charged(FeeLibrary.NATIVE, amount, metadata);
         mock.pay(fee, feeCollector);
         assertEq(feeCollector.balance, amount);
     }
@@ -44,9 +44,9 @@ contract FeeLibraryTest is Test {
     function testPayERC20(uint256 amount) public {
         amount = bound(amount, 1, 5000e18);
         deal(address(mockERC20), address(mock), amount);
-        IParam.Fee memory fee = IParam.Fee(address(mockERC20), amount, metadata);
+        DataType.Fee memory fee = DataType.Fee(address(mockERC20), amount, metadata);
         vm.expectEmit(true, true, true, true, address(mock));
-        emit FeeCharged(address(mockERC20), amount, metadata);
+        emit Charged(address(mockERC20), amount, metadata);
         mock.pay(fee, feeCollector);
         assertEq(mockERC20.balanceOf(feeCollector), amount);
     }
@@ -54,7 +54,7 @@ contract FeeLibraryTest is Test {
     function testPayFromERC20(uint256 amount) public {
         amount = bound(amount, 1, 5000e18);
         deal(address(mockERC20), address(mock), amount);
-        IParam.Fee memory fee = IParam.Fee(address(mockERC20), amount, metadata);
+        DataType.Fee memory fee = DataType.Fee(address(mockERC20), amount, metadata);
         // Mock call to permit2
         vm.etch(permit2, 'code');
         vm.mockCall(
@@ -64,7 +64,7 @@ contract FeeLibraryTest is Test {
             ''
         );
         vm.expectEmit(true, true, true, true, address(mock));
-        emit FeeCharged(address(mockERC20), amount, metadata);
+        emit Charged(address(mockERC20), amount, metadata);
         mock.payFrom(fee, user, feeCollector, permit2);
     }
 }
