@@ -26,7 +26,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         VARIABLE
     }
 
-    event Charged(address indexed token, uint256 amount, bytes32 metadata);
+    event Charged(address indexed token, uint256 amount, address indexed collector, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant AAVE_V2_PROVIDER = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
@@ -42,14 +42,14 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
     uint256 public constant FEE_RATE = 5;
     bytes32 public constant V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flash-loan'));
     bytes32 public constant V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flash-loan'));
-    uint256 public constant SIGNER_REFERRAL = 1;
 
     address v2Pool = IAaveV2Provider(AAVE_V2_PROVIDER).getLendingPool();
     address v3Pool = IAaveV3Provider(AAVE_V3_PROVIDER).getPool();
 
     address public user;
     address public user2;
-    address public feeCollector;
+    address public defaultCollector;
+    bytes32 public defaultReferral;
     Router public router;
     IAgent public userAgent;
     IAaveV2FlashLoanCallback public flashLoanCallbackV2;
@@ -62,11 +62,12 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
-        feeCollector = makeAddr('FeeCollector');
+        defaultCollector = makeAddr('FeeCollector');
+        defaultReferral = bytes32(bytes20(defaultCollector)) | bytes32(uint256(BPS_BASE));
         address pauser = makeAddr('Pauser');
 
         // Deploy contracts
-        router = new Router(makeAddr('WrappedNative'), PERMIT2_ADDRESS, address(this), pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), PERMIT2_ADDRESS, address(this), pauser, defaultCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
         flashLoanCallbackV2 = new AaveV2FlashLoanCallback(address(router), AAVE_V2_PROVIDER, FEE_RATE);
@@ -74,7 +75,7 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');
-        vm.label(feeCollector, 'FeeCollector');
+        vm.label(defaultCollector, 'FeeCollector');
         vm.label(v2Pool, 'AaveV2Pool');
         vm.label(v3Pool, 'AaveV3Pool');
         vm.label(AAVE_V2_PROVIDER, 'AaveV2Provider');
@@ -108,19 +109,19 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
 
         // Prepare assert data
         uint256 expectedFee = FeeLibrary.calcFeeFromAmount(amount, FEE_RATE);
-        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
+        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(defaultCollector);
 
         // Execute
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(flashLoanCallbackV2));
-            emit Charged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
+            emit Charged(USDC, expectedFee, defaultCollector, V2_FLASHLOAN_META_DATA);
         }
         vm.prank(user);
-        router.execute(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(datasEmpty, logics, tokensReturnEmpty);
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
         assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
-        assertEq(IERC20(USDC).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
+        assertEq(IERC20(USDC).balanceOf(defaultCollector) - feeCollectorBalanceBefore, expectedFee);
     }
 
     /// This test will do flash loan + send native token(inside flash loan)
@@ -161,24 +162,24 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
 
         // Prepare assert data
         uint256 expectedFee = FeeLibrary.calcFeeFromAmount(amount, FEE_RATE);
-        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
-        uint256 feeCollectorNativeBalanceBefore = feeCollector.balance;
+        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(defaultCollector);
+        uint256 feeCollectorNativeBalanceBefore = defaultCollector.balance;
         uint256 user2NativeBalanceBefore = user2.balance;
 
         {
             // Execute
             if (expectedFee > 0) {
                 vm.expectEmit(true, true, true, true, address(flashLoanCallbackV2));
-                emit Charged(USDC, expectedFee, V2_FLASHLOAN_META_DATA);
+                emit Charged(USDC, expectedFee, defaultCollector, V2_FLASHLOAN_META_DATA);
             }
             vm.prank(user);
-            router.execute{value: nativeAmount}(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
+            router.execute{value: nativeAmount}(datasEmpty, logics, tokensReturnEmpty);
         }
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
         assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
-        assertEq(IERC20(USDC).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
-        assertEq(feeCollector.balance, feeCollectorNativeBalanceBefore);
+        assertEq(IERC20(USDC).balanceOf(defaultCollector) - feeCollectorBalanceBefore, expectedFee);
+        assertEq(defaultCollector.balance, feeCollectorNativeBalanceBefore);
         assertEq(user2.balance - user2NativeBalanceBefore, nativeAmount);
     }
 
@@ -205,19 +206,19 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
 
         // Prepare assert data
         uint256 expectedFee = FeeLibrary.calcFeeFromAmount(amount, FEE_RATE);
-        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
+        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(defaultCollector);
 
         // Execute
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(flashLoanCallbackV3));
-            emit Charged(USDC, expectedFee, V3_FLASHLOAN_META_DATA);
+            emit Charged(USDC, expectedFee, defaultCollector, V3_FLASHLOAN_META_DATA);
         }
         vm.prank(user);
-        router.execute(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(datasEmpty, logics, tokensReturnEmpty);
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
         assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
-        assertEq(IERC20(USDC).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
+        assertEq(IERC20(USDC).balanceOf(defaultCollector) - feeCollectorBalanceBefore, expectedFee);
     }
 
     function _logicAaveFlashLoan(

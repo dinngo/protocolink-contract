@@ -34,6 +34,7 @@ contract AgentTest is Test {
     DataType.Input[] public inputsEmpty;
     DataType.Logic[] public logicsEmpty;
     bytes[] public permit2DatasEmpty;
+    bytes32[] public referralsEmpty;
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
@@ -53,7 +54,7 @@ contract AgentTest is Test {
         // Mock fee charging related
         vm.etch(router, 'code');
         vm.mockCall(router, 0, abi.encodeCall(IRouter.feeRate, ()), abi.encode(0));
-        vm.mockCall(router, 0, abi.encodeCall(IRouter.feeCollector, ()), abi.encode(makeAddr('collector')));
+        vm.mockCall(router, 0, abi.encodeCall(IRouter.defaultReferral, ()), abi.encode(makeAddr('collector')));
 
         vm.label(address(agent), 'Agent');
         vm.label(address(mockWrappedNative), 'mWrappedNative');
@@ -80,7 +81,7 @@ contract AgentTest is Test {
         vm.expectRevert(IAgent.NotRouter.selector);
         agent.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
         vm.expectRevert(IAgent.NotRouter.selector);
-        agent.executeWithSignerFee(permit2DatasEmpty, logicsEmpty, feesEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(permit2DatasEmpty, logicsEmpty, feesEmpty, referralsEmpty, tokensReturnEmpty);
         vm.stopPrank();
     }
 
@@ -95,7 +96,7 @@ contract AgentTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(IAgent.InvalidPermit2Data.selector, IAllowanceTransfer.invalidateNonces.selector)
         );
-        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, referralsEmpty, tokensReturnEmpty);
         vm.stopPrank();
     }
 
@@ -106,7 +107,7 @@ contract AgentTest is Test {
         vm.expectRevert(IAgent.InvalidPermitCall.selector);
         agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
         vm.expectRevert(IAgent.InvalidPermitCall.selector);
-        agent.executeWithSignerFee(permit2DatasEmpty, logics, feesEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(permit2DatasEmpty, logics, feesEmpty, referralsEmpty, tokensReturnEmpty);
         vm.stopPrank();
     }
 
@@ -118,7 +119,7 @@ contract AgentTest is Test {
         vm.etch(permit2, 'code');
         vm.mockCall(permit2, 0, datas[0], '');
         agent.execute(datas, logicsEmpty, tokensReturnEmpty);
-        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, referralsEmpty, tokensReturnEmpty);
         vm.stopPrank();
     }
 
@@ -133,7 +134,7 @@ contract AgentTest is Test {
         vm.etch(permit2, 'code');
         vm.mockCall(permit2, 0, datas[0], '');
         agent.execute(datas, logicsEmpty, tokensReturnEmpty);
-        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, referralsEmpty, tokensReturnEmpty);
         vm.stopPrank();
     }
 
@@ -149,7 +150,7 @@ contract AgentTest is Test {
         // Mock the call to router getting fee rate and fee collector
         vm.etch(router, 'code');
         agent.execute(datas, logicsEmpty, tokensReturnEmpty);
-        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, tokensReturnEmpty);
+        agent.executeWithSignerFee(datas, logicsEmpty, feesEmpty, referralsEmpty, tokensReturnEmpty);
         vm.stopPrank();
     }
 

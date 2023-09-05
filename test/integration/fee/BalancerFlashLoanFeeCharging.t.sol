@@ -13,7 +13,7 @@ import {FeeLibrary} from 'src/libraries/FeeLibrary.sol';
 contract BalancerFlashLoanFeeCalculatorTest is Test {
     using SafeCast160 for uint256;
 
-    event Charged(address indexed token, uint256 amount, bytes32 metadata);
+    event Charged(address indexed token, uint256 amount, address indexed collector, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -30,12 +30,12 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
     uint256 public constant BPS_BASE = 10_000;
     uint256 public constant FEE_RATE = 5;
     bytes32 public constant BALANCER_META_DATA = bytes32(bytes('balancer-v2:flash-loan'));
-    uint256 public constant SIGNER_REFERRAL = 1;
 
     address public user;
     address public user2;
     IAgent public userAgent;
-    address public feeCollector;
+    address public defaultCollector;
+    bytes32 public defaultReferral;
     address public flashLoanFeeCalculator;
     address public nativeFeeCalculator;
     address public permit2FeeCalculator;
@@ -50,7 +50,8 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
     function setUp() external {
         user = makeAddr('User');
         user2 = makeAddr('User2');
-        feeCollector = makeAddr('FeeCollector');
+        defaultCollector = makeAddr('FeeCollector');
+        defaultReferral = bytes32(bytes20(defaultCollector)) | bytes32(uint256(BPS_BASE));
 
         // Deploy contracts
         router = new Router(
@@ -58,7 +59,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
             PERMIT2_ADDRESS,
             address(this),
             makeAddr('Pauser'),
-            feeCollector
+            defaultCollector
         );
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
@@ -66,7 +67,7 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');
-        vm.label(feeCollector, 'FeeCollector');
+        vm.label(defaultCollector, 'FeeCollector');
         vm.label(PERMIT2_ADDRESS, 'Permit2');
         vm.label(address(flashLoanCallback), 'BalancerV2FlashLoanCallback');
         vm.label(BALANCER_V2_VAULT, 'BalancerV2Vault');
@@ -95,19 +96,19 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
 
         // Prepare assert data
         uint256 expectedFee = FeeLibrary.calcFeeFromAmount(amount, FEE_RATE);
-        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
+        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(defaultCollector);
 
         // Execute
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(flashLoanCallback));
-            emit Charged(USDC, expectedFee, BALANCER_META_DATA);
+            emit Charged(USDC, expectedFee, defaultCollector, BALANCER_META_DATA);
         }
         vm.prank(user);
-        router.execute(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(datasEmpty, logics, tokensReturnEmpty);
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
         assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
-        assertEq(IERC20(USDC).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
+        assertEq(IERC20(USDC).balanceOf(defaultCollector) - feeCollectorBalanceBefore, expectedFee);
     }
 
     /// This test will do flash loan + send native token(inside flash loan)
@@ -139,24 +140,24 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
 
         // Prepare assert data
         uint256 expectedFee = FeeLibrary.calcFeeFromAmount(amount, FEE_RATE);
-        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(feeCollector);
-        uint256 feeCollectorNativeBalanceBefore = feeCollector.balance;
+        uint256 feeCollectorBalanceBefore = IERC20(USDC).balanceOf(defaultCollector);
+        uint256 feeCollectorNativeBalanceBefore = defaultCollector.balance;
         uint256 user2NativeBalanceBefore = user2.balance;
 
         {
             // Execute
             if (expectedFee > 0) {
                 vm.expectEmit(true, true, true, true, address(flashLoanCallback));
-                emit Charged(USDC, expectedFee, BALANCER_META_DATA);
+                emit Charged(USDC, expectedFee, defaultCollector, BALANCER_META_DATA);
             }
             vm.prank(user);
-            router.execute{value: nativeAmount}(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
+            router.execute{value: nativeAmount}(datasEmpty, logics, tokensReturnEmpty);
         }
 
         assertEq(IERC20(USDC).balanceOf(address(router)), 0);
         assertEq(IERC20(USDC).balanceOf(address(userAgent)), 0);
-        assertEq(IERC20(USDC).balanceOf(feeCollector) - feeCollectorBalanceBefore, expectedFee);
-        assertEq(feeCollector.balance, feeCollectorNativeBalanceBefore);
+        assertEq(IERC20(USDC).balanceOf(defaultCollector) - feeCollectorBalanceBefore, expectedFee);
+        assertEq(defaultCollector.balance, feeCollectorNativeBalanceBefore);
         assertEq(user2.balance - user2NativeBalanceBefore, nativeAmount);
     }
 

@@ -32,9 +32,9 @@ contract LogicTypehash is Test, TypedDataSignature {
     function testLogicBatchTypehash() external {
         // Signed a logicBatch using metamask to obtain an external sig
         // https://github.com/dinngo/test-dapp/tree/for-protocolink-contract
-        bytes32 r = 0x751bae6d4ca977f4dcc4315a2ae1cf3d9c1fcf1db4827e320479035141776aaf;
-        bytes32 s = 0x37889effa9a20dabfc1ebb9199c19f12346d519a5893e4046e798a32cb18980d;
-        uint8 v = 0x1b;
+        bytes32 r = 0x17596488ceb1bc0451bd9484dcb56783e4ef7007324c933a664b1f4f3a080ac7;
+        bytes32 s = 0x45b94050499753507fb2efe92ad0a2df0378b2c03bd50e65a350968d51c40884;
+        uint8 v = 0x1c;
         bytes memory sig = bytes.concat(r, s, bytes1(v));
 
         // Create the logicBatch with the same parameters as above
@@ -62,8 +62,10 @@ contract LogicTypehash is Test, TypedDataSignature {
         DataType.Fee[] memory fees = new DataType.Fee[](2);
         fees[0] = DataType.Fee(address(6), 1, bytes32(abi.encodePacked('metadata')));
         fees[1] = fees[0]; // Duplicate fee
+        bytes32[] memory referrals = new bytes32[](1);
+        referrals[0] = bytes32(uint256(8));
         uint256 deadline = 1704067200;
-        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logics, fees, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logics, fees, referrals, deadline);
 
         // Verify the locally generated signature using the private key is the same as the external sig
         assertEq(getTypedDataSignature(logicBatch, _buildDomainSeparator(), PRIVATE_KEY), sig);

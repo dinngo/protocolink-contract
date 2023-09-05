@@ -9,9 +9,11 @@ import {AaveV2FlashLoanCallback, IAaveV2FlashLoanCallback, IAaveV2Provider} from
 
 contract AaveV2FlashLoanCallbackTest is Test {
     IAaveV2Provider public constant aaveV2Provider = IAaveV2Provider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
+    uint256 public constant BPS_BASE = 10_000;
 
     address public user;
-    address public feeCollector;
+    address public defaultCollector;
+    bytes32 public defaultReferral;
     address public router;
     address public agent;
     IAaveV2FlashLoanCallback public flashLoanCallback;
@@ -22,7 +24,8 @@ contract AaveV2FlashLoanCallbackTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
-        feeCollector = makeAddr('feeCollector');
+        defaultCollector = makeAddr('defaultCollector');
+        defaultReferral = bytes32(bytes20(defaultCollector)) | bytes32(uint256(BPS_BASE));
         // Setup router and agent mock
         router = makeAddr('Router');
         vm.etch(router, 'code');
@@ -34,7 +37,8 @@ contract AaveV2FlashLoanCallbackTest is Test {
 
         // Return activated agent from router
         vm.mockCall(router, 0, abi.encodeWithSignature('getCurrentUserAgent()'), abi.encode(user, agent));
-        vm.mockCall(router, 0, abi.encodeWithSignature('feeCollector()'), abi.encode(feeCollector));
+        vm.mockCall(router, 0, abi.encodeWithSignature('defaultCollector()'), abi.encode(defaultCollector));
+        vm.mockCall(router, 0, abi.encodeWithSignature('defaultReferral()'), abi.encode(defaultReferral));
         vm.mockCall(agent, 0, abi.encodeWithSignature('isCharging()'), abi.encode(true));
         vm.label(address(flashLoanCallback), 'AaveV2FlashLoanCallback');
         vm.label(address(aaveV2Provider), 'AaveV2Provider');

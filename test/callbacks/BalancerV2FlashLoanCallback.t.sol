@@ -9,9 +9,11 @@ import {BalancerV2FlashLoanCallback, IBalancerV2FlashLoanCallback} from 'src/cal
 
 contract BalancerV2FlashLoanCallbackTest is Test {
     address public constant BALANCER_V2_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
+    uint256 public constant BPS_BASE = 10_000;
 
     address public user;
-    address public feeCollector;
+    address public defaultCollector;
+    bytes32 public defaultReferral;
     address public router;
     address public agent;
     IBalancerV2FlashLoanCallback public flashLoanCallback;
@@ -22,7 +24,8 @@ contract BalancerV2FlashLoanCallbackTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
-        feeCollector = makeAddr('feeCollector');
+        defaultCollector = makeAddr('defaultCollector');
+        defaultReferral = bytes32(bytes20(defaultCollector)) | bytes32(uint256(BPS_BASE));
         // Setup router and agent mock
         router = makeAddr('Router');
         vm.etch(router, 'code');
@@ -34,7 +37,8 @@ contract BalancerV2FlashLoanCallbackTest is Test {
 
         // Return activated agent from router
         vm.mockCall(router, 0, abi.encodeWithSignature('getCurrentUserAgent()'), abi.encode(user, agent));
-        vm.mockCall(router, 0, abi.encodeWithSignature('feeCollector()'), abi.encode(feeCollector));
+        vm.mockCall(router, 0, abi.encodeWithSignature('defaultCollector()'), abi.encode(defaultCollector));
+        vm.mockCall(router, 0, abi.encodeWithSignature('defaultReferral()'), abi.encode(defaultReferral));
         vm.mockCall(agent, 0, abi.encodeWithSignature('isCharging()'), abi.encode(true));
         vm.label(address(flashLoanCallback), 'BalancerV2FlashLoanCallback');
         vm.label(BALANCER_V2_VAULT, 'BalancerV2Vault');

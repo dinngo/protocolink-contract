@@ -33,9 +33,9 @@ contract ExecutionTypehash is Test, TypedDataSignature {
     function testExecutionTypehash() external {
         // Sign an execution using metamask to obtain an external sig
         // https://github.com/dinngo/test-dapp/tree/for-protocolink-contract
-        bytes32 r = 0x00f7564accec520663a722d7e545dbeaf029748215f2a177ba3729d760274f24;
-        bytes32 s = 0x454956f59b5c4eada12a5bf61bc3054ec6ca98782eebb65443edfef44cb06ca1;
-        uint8 v = 0x1b;
+        bytes32 r = 0x9d7af15d25008b86af31294cb197594644a063b6ab5a003a5fa44c30cec9dfce;
+        bytes32 s = 0x64337b3c36cda2928a07832a555679dfd5da27f7de20b320dfca14b05d5d039b;
+        uint8 v = 0x1c;
         bytes memory sig = bytes.concat(r, s, bytes1(v));
 
         // Create the execution with the same parameters as above
@@ -65,14 +65,12 @@ contract ExecutionTypehash is Test, TypedDataSignature {
         address[] memory tokensReturn = new address[](2);
         tokensReturn[0] = address(6);
         tokensReturn[1] = address(7);
-        uint256 referralCode = 8;
         uint256 nonce = 9;
         uint256 deadline = 1704067200;
         DataType.ExecutionDetails memory details = DataType.ExecutionDetails(
             permit2Datas,
             logics,
             tokensReturn,
-            referralCode,
             nonce,
             deadline
         );
@@ -88,8 +86,8 @@ contract ExecutionTypehash is Test, TypedDataSignature {
     function testExecutionBatchTypehash() external {
         // Sign an execution using metamask to obtain an external sig
         // https://github.com/dinngo/test-dapp/tree/for-protocolink-contract
-        bytes32 r = 0xf96a72163d9a9fa32c21aa2389b1ac4ba30417b9653f2ba0edcbcff3992967e0;
-        bytes32 s = 0x3f83a7e1451e0ac57e225c9f90a0d38cbacfffcb7eb84c50caa52bf305d6ab3d;
+        bytes32 r = 0x56c3c9b76519abeac06310197c7b71e377a0885e24302161b0e85d488c28cea7;
+        bytes32 s = 0x0ac88a739c8a7f7f685fb63ee1d8c56e570e8625b89879891d61341a9718935a;
         uint8 v = 0x1c;
         bytes memory sig = bytes.concat(r, s, bytes1(v));
 
@@ -120,18 +118,18 @@ contract ExecutionTypehash is Test, TypedDataSignature {
         DataType.Fee[] memory fees = new DataType.Fee[](2);
         fees[0] = DataType.Fee(address(6), 1, bytes32(abi.encodePacked('metadata')));
         fees[1] = fees[0]; // Duplicate fee
+        bytes32[] memory referrals = new bytes32[](1);
+        referrals[0] = bytes32(uint256(8));
         uint256 deadline = 1704067200;
-        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logics, fees, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logics, fees, referrals, deadline);
         address[] memory tokensReturn = new address[](2);
         tokensReturn[0] = address(6);
         tokensReturn[1] = address(7);
-        uint256 referralCode = 8;
         uint256 nonce = 9;
         DataType.ExecutionBatchDetails memory details = DataType.ExecutionBatchDetails(
             permit2Datas,
             logicBatch,
             tokensReturn,
-            referralCode,
             nonce,
             deadline
         );

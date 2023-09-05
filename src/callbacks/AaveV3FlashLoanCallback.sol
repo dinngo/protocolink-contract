@@ -65,15 +65,15 @@ contract AaveV3FlashLoanCallback is IAaveV3FlashLoanCallback, CallbackFeeBase {
         }
 
         // Approve assets for pulling from Aave Pool
-        address feeCollector = IRouter(router).feeCollector();
         for (uint256 i; i < assets.length; ) {
             address asset = assets[i];
             uint256 amount = amounts[i];
             uint256 amountOwing = amount + premiums[i];
 
             if (charge) {
+                bytes32 defaultReferral = IRouter(router).defaultReferral();
                 DataType.Fee memory fee = FeeLibrary.calcFee(asset, amount, feeRate, metadata);
-                fee.pay(feeCollector);
+                fee.pay(defaultReferral);
             }
 
             // Check balance is valid

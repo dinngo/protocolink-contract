@@ -67,7 +67,7 @@ contract YearnV2Test is Test, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(tokenOut);
         vm.prank(user);
-        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn);
 
         assertEq(tokenIn.balanceOf(address(router)), 0);
         assertEq(tokenIn.balanceOf(address(agent)), 0);

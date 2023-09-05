@@ -49,7 +49,6 @@ contract AaveV2IntegrationTest is Test {
     }
 
     uint16 internal constant _REFERRAL_CODE = 56;
-    uint256 public constant SIGNER_REFERRAL = 1;
     IAaveV2Provider public constant AAVE_V2_PROVIDER = IAaveV2Provider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address public constant AUSDC_V2 = 0xBcca60bB61934080951369a648Fb03DF4F96263C;
@@ -117,7 +116,7 @@ contract AaveV2IntegrationTest is Test {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(borrowedToken);
         vm.prank(user);
-        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn);
 
         assertEq(borrowedToken.balanceOf(address(router)), 0);
         assertEq(borrowedToken.balanceOf(address(agent)), 0);
@@ -145,7 +144,7 @@ contract AaveV2IntegrationTest is Test {
 
         // Execute
         vm.prank(user);
-        router.execute(permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
 
         assertEq(borrowedToken.balanceOf(address(router)), 0);
         assertEq(borrowedToken.balanceOf(address(agent)), 0);

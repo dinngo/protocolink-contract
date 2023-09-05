@@ -31,7 +31,6 @@ library DataType {
         bytes[] permit2Datas; // An array of databytes to be executed on permit2
         Logic[] logics; // An array of `Logic` structs to be executed
         address[] tokensReturn; // An array of token addresses to be returned to user
-        uint256 referralCode; // The referral code to be applied
         uint256 nonce; // The nonce of the data to be applied in the user signing process
         uint256 deadline; // The deadline of the signature
     }
@@ -47,6 +46,7 @@ library DataType {
     struct LogicBatch {
         Logic[] logics; // An array of `Logic` structs to be executed
         Fee[] fees; // An array of `Fee` structs to be charged
+        bytes32[] referrals; // An array of referrals to be applied when charging fees
         uint256 deadline; // The deadline for a signer's signature
     }
 
@@ -55,7 +55,6 @@ library DataType {
         bytes[] permit2Datas; // An array of databytes to be executed on permit2
         LogicBatch logicBatch; // The `LogicBatch` data to be executed
         address[] tokensReturn; // An array of token addresses to be returned to user
-        uint256 referralCode; // The referral code to be applied
         uint256 nonce; // The nonce of the data to be applied in the user signing process
         uint256 deadline; // The deadline of the signature
     }

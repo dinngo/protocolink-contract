@@ -29,7 +29,7 @@ contract DeployLocal is
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
             owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
             pauser: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
-            feeCollector: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
+            defaultCollector: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
             signer: 0xffFf5a88840FF1f168E163ACD771DFb292164cFA,
             feeRate: 20
         });

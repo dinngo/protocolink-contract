@@ -12,14 +12,15 @@ contract RouterTest is Test, TypedDataSignature {
     address public constant PAUSED = address(0);
     address public constant INIT_CURRENT_USER = address(1);
     uint256 public constant BPS_NOT_USED = 0;
-    uint256 public constant SIGNER_REFERRAL = 1;
     address public constant INVALID_PAUSER = address(0);
+    uint256 public constant BPS_BASE = 10_000;
 
     address public user;
     uint256 public userPrivateKey;
     address public delegatee;
     address public pauser;
-    address public feeCollector;
+    address public defaultCollector;
+    bytes32 public defaultReferral;
     address public signer;
     uint256 public signerPrivateKey;
     IRouter public router;
@@ -33,6 +34,7 @@ contract RouterTest is Test, TypedDataSignature {
     DataType.Logic[] public logicsEmpty;
     DataType.LogicBatch public logicBatchEmpty;
     bytes[] public permit2DatasEmpty;
+    bytes32[] public referralsEmpty;
 
     event SignerAdded(address indexed signer);
     event SignerRemoved(address indexed signer);
@@ -41,7 +43,7 @@ contract RouterTest is Test, TypedDataSignature {
     event Paused();
     event Unpaused();
     event AgentCreated(address indexed agent, address indexed user);
-    event Execute(address indexed user, address indexed agent, uint256 indexed referralCode);
+    event Executed(address indexed user, address indexed agent);
     event Delegated(address indexed delegator, address indexed delegatee, uint128 expiry);
     event DelegationNonceInvalidation(
         address indexed user,
@@ -55,9 +57,10 @@ contract RouterTest is Test, TypedDataSignature {
         (user, userPrivateKey) = makeAddrAndKey('User');
         delegatee = makeAddr('Delegatee');
         pauser = makeAddr('Pauser');
-        feeCollector = makeAddr('FeeCollector');
+        defaultCollector = makeAddr('FeeCollector');
+        defaultReferral = bytes32(bytes20(defaultCollector)) | bytes32(uint256(BPS_BASE));
         (signer, signerPrivateKey) = makeAddrAndKey('Signer');
-        router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this), pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this), pauser, defaultCollector);
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockTo = address(new MockFallback());
 
@@ -69,7 +72,7 @@ contract RouterTest is Test, TypedDataSignature {
         assertTrue(router.agentImplementation() != address(0));
         assertEq(router.currentUser(), INIT_CURRENT_USER);
         assertEq(router.pauser(), pauser);
-        assertEq(router.feeCollector(), feeCollector);
+        assertEq(router.defaultCollector(), defaultCollector);
         assertEq(router.owner(), address(this));
     }
 
@@ -105,7 +108,7 @@ contract RouterTest is Test, TypedDataSignature {
     function testNewUserExecute() external {
         assertEq(router.getAgent(user), address(0));
         vm.prank(user);
-        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
         assertFalse(router.getAgent(user) == address(0));
     }
 
@@ -114,8 +117,8 @@ contract RouterTest is Test, TypedDataSignature {
         router.newAgent();
         assertFalse(router.getAgent(user) == address(0));
         vm.expectEmit(true, true, true, true, address(router));
-        emit Execute(user, address(router.agents(user)), SIGNER_REFERRAL);
-        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        emit Executed(user, address(router.agents(user)));
+        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
         vm.stopPrank();
     }
 
@@ -124,7 +127,7 @@ contract RouterTest is Test, TypedDataSignature {
         router.newAgent();
         address agent = router.getAgent(user);
         vm.prank(user);
-        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
         (, agent) = router.getCurrentUserAgent();
         // The executing agent should be reset to 0
         assertEq(agent, address(0));
@@ -145,13 +148,12 @@ contract RouterTest is Test, TypedDataSignature {
             permit2DatasEmpty,
             logicsEmpty,
             tokensReturnEmpty,
-            SIGNER_REFERRAL,
             nonce,
             deadline
         );
         bytes memory signature = getTypedDataSignature(details, router.domainSeparator(), userPrivateKey);
         vm.expectEmit(true, true, true, true, address(router));
-        emit Execute(user, address(router.agents(user)), SIGNER_REFERRAL);
+        emit Executed(user, address(router.agents(user)));
         router.executeBySig(details, user, signature);
         uint256 newNonce = router.executionNonces(user);
         assertEq(newNonce, nonce + 1);
@@ -167,7 +169,6 @@ contract RouterTest is Test, TypedDataSignature {
             permit2DatasEmpty,
             logicsEmpty,
             tokensReturnEmpty,
-            SIGNER_REFERRAL,
             nonce,
             deadline
         );
@@ -206,21 +207,14 @@ contract RouterTest is Test, TypedDataSignature {
     function testExecuteWithSignerFee() external {
         router.addSigner(signer);
         uint256 deadline = block.timestamp;
-        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectEmit(true, true, true, true, address(router));
         address calcAgent = router.calcAgent(user);
-        emit Execute(user, calcAgent, SIGNER_REFERRAL);
+        emit Executed(user, calcAgent);
         vm.prank(user);
-        router.executeWithSignerFee(
-            permit2DatasEmpty,
-            logicBatch,
-            signer,
-            signature,
-            tokensReturnEmpty,
-            SIGNER_REFERRAL
-        );
+        router.executeWithSignerFee(permit2DatasEmpty, logicBatch, signer, signature, tokensReturnEmpty);
     }
 
     function testCannotExecuteWhenPaused() external {
@@ -230,18 +224,11 @@ contract RouterTest is Test, TypedDataSignature {
         vm.startPrank(user);
         // `execute` should revert when router is paused
         vm.expectRevert(IRouter.NotReady.selector);
-        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
 
         // `executeWithSignerFee` should revert when router is paused
         vm.expectRevert(IRouter.NotReady.selector);
-        router.executeWithSignerFee(
-            permit2DatasEmpty,
-            logicBatchEmpty,
-            signer,
-            new bytes(0),
-            tokensReturnEmpty,
-            SIGNER_REFERRAL
-        );
+        router.executeWithSignerFee(permit2DatasEmpty, logicBatchEmpty, signer, new bytes(0), tokensReturnEmpty);
         vm.stopPrank();
     }
 
@@ -249,7 +236,7 @@ contract RouterTest is Test, TypedDataSignature {
         DataType.Logic[] memory logics = new DataType.Logic[](1);
         logics[0] = DataType.Logic(
             address(router), // to
-            abi.encodeCall(IRouter.execute, (permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL)),
+            abi.encodeCall(IRouter.execute, (permit2DatasEmpty, logics, tokensReturnEmpty)),
             inputsEmpty,
             DataType.WrapMode.NONE,
             address(0), // approveTo
@@ -257,42 +244,28 @@ contract RouterTest is Test, TypedDataSignature {
         );
         vm.expectRevert(IRouter.NotReady.selector);
         vm.prank(user);
-        router.execute(permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
     }
 
     function testCannotExecuteSignatureExpired() external {
         uint256 deadline = block.timestamp - 1; // Expired
-        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.SignatureExpired.selector, deadline));
         vm.prank(user);
-        router.executeWithSignerFee(
-            permit2DatasEmpty,
-            logicBatch,
-            signer,
-            signature,
-            tokensReturnEmpty,
-            SIGNER_REFERRAL
-        );
+        router.executeWithSignerFee(permit2DatasEmpty, logicBatch, signer, signature, tokensReturnEmpty);
     }
 
     function testCannotExecuteInvalidSigner() external {
         // Don't add signer
         uint256 deadline = block.timestamp;
-        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectRevert(abi.encodeWithSelector(IRouter.InvalidSigner.selector, signer));
         vm.prank(user);
-        router.executeWithSignerFee(
-            permit2DatasEmpty,
-            logicBatch,
-            signer,
-            signature,
-            tokensReturnEmpty,
-            SIGNER_REFERRAL
-        );
+        router.executeWithSignerFee(permit2DatasEmpty, logicBatch, signer, signature, tokensReturnEmpty);
     }
 
     function testCannotExecuteInvalidSignature() external {
@@ -300,41 +273,27 @@ contract RouterTest is Test, TypedDataSignature {
 
         // Sign correct deadline and logicBatch
         uint256 deadline = block.timestamp;
-        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         // Tamper deadline
-        logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline + 1);
+        logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline + 1);
         vm.prank(user);
         vm.expectRevert(IRouter.InvalidSignature.selector);
-        router.executeWithSignerFee(
-            permit2DatasEmpty,
-            logicBatch,
-            signer,
-            signature,
-            tokensReturnEmpty,
-            SIGNER_REFERRAL
-        );
+        router.executeWithSignerFee(permit2DatasEmpty, logicBatch, signer, signature, tokensReturnEmpty);
 
         // Tamper logics
         DataType.Logic[] memory logics = new DataType.Logic[](1);
-        logicBatch = DataType.LogicBatch(logics, feesEmpty, deadline);
+        logicBatch = DataType.LogicBatch(logics, feesEmpty, referralsEmpty, deadline);
         vm.prank(user);
         vm.expectRevert(IRouter.InvalidSignature.selector);
-        router.executeWithSignerFee(
-            permit2DatasEmpty,
-            logicBatch,
-            signer,
-            signature,
-            tokensReturnEmpty,
-            SIGNER_REFERRAL
-        );
+        router.executeWithSignerFee(permit2DatasEmpty, logicBatch, signer, signature, tokensReturnEmpty);
     }
 
     function testExecuteBySigWithSignerFee() external {
         router.addSigner(signer);
         uint256 deadline = block.timestamp;
-        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
         bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
         // Ensure correct EIP-712 encodeData
         deadline = block.timestamp + 3600;
@@ -343,14 +302,13 @@ contract RouterTest is Test, TypedDataSignature {
             permit2DatasEmpty,
             logicBatch,
             tokensReturnEmpty,
-            SIGNER_REFERRAL,
             nonce,
             deadline
         );
         bytes memory userSignature = getTypedDataSignature(details, router.domainSeparator(), userPrivateKey);
         vm.expectEmit(true, true, true, true, address(router));
         address calcAgent = router.calcAgent(user);
-        emit Execute(user, calcAgent, SIGNER_REFERRAL);
+        emit Executed(user, calcAgent);
         router.executeBySigWithSignerFee(details, user, userSignature, signer, signerSignature);
         uint256 newNonce = router.executionNonces(user);
         assertEq(newNonce, nonce + 1);
@@ -359,7 +317,7 @@ contract RouterTest is Test, TypedDataSignature {
     function testExecuteBySigWithSignerFeeWithIncorrectUserSignature() external {
         router.addSigner(signer);
         uint256 deadline = block.timestamp;
-        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
         bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
         // Ensure correct EIP-712 encodeData
         deadline = block.timestamp + 3600;
@@ -368,7 +326,6 @@ contract RouterTest is Test, TypedDataSignature {
             permit2DatasEmpty,
             logicBatch,
             tokensReturnEmpty,
-            SIGNER_REFERRAL,
             nonce,
             deadline
         );
@@ -473,7 +430,7 @@ contract RouterTest is Test, TypedDataSignature {
         vm.expectEmit(true, true, true, true, address(router));
         emit FeeCollectorSet(feeCollector_);
         router.setFeeCollector(feeCollector_);
-        assertEq(router.feeCollector(), feeCollector_);
+        assertEq(router.defaultCollector(), feeCollector_);
     }
 
     function testCannotSetFeeCollectorByNonOwner() external {
@@ -562,7 +519,7 @@ contract RouterTest is Test, TypedDataSignature {
         vm.prank(user);
         router.allow(delegatee, expiry);
         vm.prank(delegatee);
-        router.executeFor(user, permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeFor(user, permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
         assertFalse(router.getAgent(user) == address(0));
     }
 
@@ -573,7 +530,7 @@ contract RouterTest is Test, TypedDataSignature {
         vm.prank(delegatee);
         vm.expectRevert(IRouter.InvalidDelegatee.selector);
         vm.warp(expiry + 1);
-        router.executeFor(user, permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.executeFor(user, permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
     }
 
     function testExecuteForWithSignerFeeBeforeExpiry() external {
@@ -582,22 +539,14 @@ contract RouterTest is Test, TypedDataSignature {
         router.allow(delegatee, expiry);
         router.addSigner(signer);
         uint256 deadline = block.timestamp;
-        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.expectEmit(true, true, true, true, address(router));
         address calcAgent = router.calcAgent(user);
-        emit Execute(user, calcAgent, SIGNER_REFERRAL);
+        emit Executed(user, calcAgent);
         vm.prank(delegatee);
-        router.executeForWithSignerFee(
-            user,
-            permit2DatasEmpty,
-            logicBatch,
-            signer,
-            signature,
-            tokensReturnEmpty,
-            SIGNER_REFERRAL
-        );
+        router.executeForWithSignerFee(user, permit2DatasEmpty, logicBatch, signer, signature, tokensReturnEmpty);
     }
 
     function testExecuteForWithSignerFeeAfterExpiry() external {
@@ -606,21 +555,13 @@ contract RouterTest is Test, TypedDataSignature {
         router.allow(delegatee, expiry);
         router.addSigner(signer);
         uint256 deadline = block.timestamp;
-        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
         bytes memory signature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
 
         vm.prank(delegatee);
         vm.expectRevert(IRouter.InvalidDelegatee.selector);
         vm.warp(expiry + 1);
-        router.executeForWithSignerFee(
-            user,
-            permit2DatasEmpty,
-            logicBatch,
-            signer,
-            signature,
-            tokensReturnEmpty,
-            SIGNER_REFERRAL
-        );
+        router.executeForWithSignerFee(user, permit2DatasEmpty, logicBatch, signer, signature, tokensReturnEmpty);
     }
 
     function testInvalidateExecutionNonces() external {

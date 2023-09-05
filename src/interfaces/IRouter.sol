@@ -19,7 +19,7 @@ interface IRouter {
 
     event Unpaused();
 
-    event Execute(address indexed user, address indexed agent, uint256 indexed referralCode);
+    event Executed(address indexed user, address indexed agent);
 
     event AgentCreated(address indexed agent, address indexed user);
 
@@ -72,7 +72,9 @@ interface IRouter {
 
     function currentUser() external view returns (address);
 
-    function feeCollector() external view returns (address);
+    function defaultReferral() external view returns (bytes32);
+
+    function defaultCollector() external view returns (address);
 
     function pauser() external view returns (address);
 
@@ -105,16 +107,14 @@ interface IRouter {
     function execute(
         bytes[] calldata permit2Datas,
         DataType.Logic[] calldata logics,
-        address[] calldata tokensReturn,
-        uint256 referralCode
+        address[] calldata tokensReturn
     ) external payable;
 
     function executeFor(
         address user,
         bytes[] calldata permit2Datas,
         DataType.Logic[] calldata logics,
-        address[] calldata tokensReturn,
-        uint256 referralCode
+        address[] calldata tokensReturn
     ) external payable;
 
     function executeBySig(
@@ -128,8 +128,7 @@ interface IRouter {
         DataType.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
-        address[] calldata tokensReturn,
-        uint256 referralCode
+        address[] calldata tokensReturn
     ) external payable;
 
     function executeForWithSignerFee(
@@ -138,8 +137,7 @@ interface IRouter {
         DataType.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature,
-        address[] calldata tokensReturn,
-        uint256 referralCode
+        address[] calldata tokensReturn
     ) external payable;
 
     function executeBySigWithSignerFee(

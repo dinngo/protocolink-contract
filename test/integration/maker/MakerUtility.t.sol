@@ -85,7 +85,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
-        router.execute{value: ethLockAmount}(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute{value: ethLockAmount}(permit2DatasEmpty, logics, tokensReturn);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(makerUtility)), 0);
@@ -132,7 +132,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
         address[] memory tokensReturn = new address[](1);
         tokensReturn[0] = address(DAI_TOKEN);
         vm.prank(user);
-        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn);
 
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(agent)), 0);
         assertEq(IERC20(DAI_TOKEN).balanceOf(address(makerUtility)), 0);

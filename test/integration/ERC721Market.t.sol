@@ -75,7 +75,7 @@ contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
 
         // Execute
         vm.prank(user);
-        router.execute(datas, logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(datas, logics, tokensReturn);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);
@@ -107,7 +107,7 @@ contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
         // Execute
         uint256 tokenBefore = tokenIn.balanceOf(user);
         vm.prank(user);
-        router.execute(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturn);
 
         // Verify
         assertEq(tokenIn.balanceOf(address(router)), 0);

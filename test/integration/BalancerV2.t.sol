@@ -18,7 +18,6 @@ interface IBalancerV2Vault {
 }
 
 contract BalancerV2IntegrationTest is Test {
-    uint256 public constant SIGNER_REFERRAL = 1;
     IBalancerV2Vault public constant balancerV2Vault = IBalancerV2Vault(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
@@ -65,7 +64,7 @@ contract BalancerV2IntegrationTest is Test {
 
         // Execute
         vm.prank(user);
-        router.execute(permit2DatasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
 
         address agent = router.getAgent(user);
         assertEq(token.balanceOf(address(router)), 0);
