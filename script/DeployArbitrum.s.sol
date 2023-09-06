@@ -26,6 +26,7 @@ contract DeployArbitrum is
             owner: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
             pauser: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
             feeCollector: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
+            signer: 0xffFf5a88840FF1f168E163ACD771DFb292164cFA,
             feeRate: 20
         });
 

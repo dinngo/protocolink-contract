@@ -8,8 +8,6 @@ import {Router} from 'src/Router.sol';
 import {DeployBase} from './DeployBase.s.sol';
 
 abstract contract DeployRouter is DeployBase {
-    address public constant SIGNER = 0xffFf5a88840FF1f168E163ACD771DFb292164cFA;
-
     struct RouterConfig {
         address deployedAddress;
         // constructor params
@@ -19,6 +17,7 @@ abstract contract DeployRouter is DeployBase {
         address pauser;
         address feeCollector;
         // extra params
+        address signer;
         uint256 feeRate;
     }
 
@@ -42,14 +41,14 @@ abstract contract DeployRouter is DeployBase {
             console2.log('Router Owner:', router.owner());
 
             // Set and check signer
-            router.addSigner(SIGNER);
-            require(router.signers(SIGNER), 'Router signer is invalid');
+            router.addSigner(cfg.signer);
+            require(router.signers(cfg.signer), 'Router signer is invalid');
 
             // Set and check fee rate
             if (cfg.feeRate > 0) {
                 router.setFeeRate(cfg.feeRate);
-                require(router.feeRate() == cfg.feeRate, 'Router fee rate is invalid');
             }
+            require(router.feeRate() == cfg.feeRate, 'Router fee rate is invalid');
         } else {
             console2.log('Router Exists. Skip deployment of Router:', deployedAddress);
         }
