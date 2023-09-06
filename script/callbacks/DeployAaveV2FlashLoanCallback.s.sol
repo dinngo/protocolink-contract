@@ -10,7 +10,7 @@ import {DeployBase} from 'script/DeployBase.s.sol';
 abstract contract DeployAaveV2FlashLoanCallback is DeployBase {
     struct AaveV2FlashLoanCallbackConfig {
         address deployedAddress;
-        // deploy params
+        // constructor params
         address aaveV2Provider;
         uint256 feeRate;
     }

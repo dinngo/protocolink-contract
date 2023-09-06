@@ -10,7 +10,7 @@ import {DeployBase} from 'script/DeployBase.s.sol';
 abstract contract DeployAaveV3FlashLoanCallback is DeployBase {
     struct AaveV3FlashLoanCallbackConfig {
         address deployedAddress;
-        // deploy params
+        // constructor params
         address aaveV3Provider;
         uint256 feeRate;
     }
@@ -30,7 +30,7 @@ abstract contract DeployAaveV3FlashLoanCallback is DeployBase {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('protocolink.aave.v3.flash.loan.callback.v2');
+            bytes32 salt = keccak256('protocolink.aave.v3.flash.loan.callback.v1');
             bytes memory creationCode = abi.encodePacked(
                 type(AaveV3FlashLoanCallback).creationCode,
                 abi.encode(router, cfg.aaveV3Provider, cfg.feeRate)

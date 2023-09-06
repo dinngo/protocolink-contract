@@ -10,12 +10,15 @@ import {DeployBase} from './DeployBase.s.sol';
 abstract contract DeployRouter is DeployBase {
     struct RouterConfig {
         address deployedAddress;
-        // deploy params
+        // constructor params
         address wrappedNative;
         address permit2;
         address owner;
         address pauser;
         address feeCollector;
+        // extra params
+        address signer;
+        uint256 feeRate;
     }
 
     RouterConfig internal routerConfig;
@@ -27,7 +30,7 @@ abstract contract DeployRouter is DeployBase {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('protocolink.router.v2');
+            bytes32 salt = keccak256('protocolink.router.v1');
             bytes memory creationCode = abi.encodePacked(
                 type(Router).creationCode,
                 abi.encode(cfg.wrappedNative, cfg.permit2, cfg.owner, cfg.pauser, cfg.feeCollector)
@@ -36,6 +39,16 @@ abstract contract DeployRouter is DeployBase {
             console2.log('Router Deployed:', deployedAddress);
             Router router = Router(deployedAddress);
             console2.log('Router Owner:', router.owner());
+
+            // Set and check signer
+            router.addSigner(cfg.signer);
+            require(router.signers(cfg.signer), 'Router signer is invalid');
+
+            // Set and check fee rate
+            if (cfg.feeRate > 0) {
+                router.setFeeRate(cfg.feeRate);
+            }
+            require(router.feeRate() == cfg.feeRate, 'Router fee rate is invalid');
         } else {
             console2.log('Router Exists. Skip deployment of Router:', deployedAddress);
         }

@@ -8,7 +8,7 @@ import {DeployBase} from './DeployBase.s.sol';
 abstract contract DeployCREATE3Factory is DeployBase {
     struct Create3FactoryConfig {
         address deployedAddress;
-        // deploy params
+        // constructor params
         address deployer;
     }
 

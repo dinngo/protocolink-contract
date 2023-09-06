@@ -10,7 +10,7 @@ import {DeployBase} from 'script/DeployBase.s.sol';
 abstract contract DeployBalancerV2FlashLoanCallback is DeployBase {
     struct BalancerV2FlashLoanCallbackConfig {
         address deployedAddress;
-        // deploy params
+        // constructor params
         address balancerV2Vault;
         uint256 feeRate;
     }
@@ -30,7 +30,7 @@ abstract contract DeployBalancerV2FlashLoanCallback is DeployBase {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('protocolink.balancer.v2.flash.loan.callback.v2');
+            bytes32 salt = keccak256('protocolink.balancer.v2.flash.loan.callback.v1');
             bytes memory creationCode = abi.encodePacked(
                 type(BalancerV2FlashLoanCallback).creationCode,
                 abi.encode(router, cfg.balancerV2Vault, cfg.feeRate)

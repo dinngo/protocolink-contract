@@ -7,7 +7,7 @@ import {DeployAaveV2FlashLoanCallback} from './callbacks/DeployAaveV2FlashLoanCa
 import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCallback.s.sol';
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
 
-contract DeployPolygon is
+contract DeployEthereum is
     DeployCREATE3Factory,
     DeployRouter,
     DeployAaveV2FlashLoanCallback,
@@ -23,7 +23,7 @@ contract DeployPolygon is
 
         routerConfig = RouterConfig({
             deployedAddress: 0x4E744c3E6973D34ee130B7E668Abc14CD49ca16e,
-            wrappedNative: 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270,
+            wrappedNative: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
             owner: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
             pauser: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
@@ -34,13 +34,13 @@ contract DeployPolygon is
 
         aaveV2FlashLoanCallbackConfig = AaveV2FlashLoanCallbackConfig({
             deployedAddress: 0xD1CA91bE788372275FB0FfC876465Bc0a5A31F86,
-            aaveV2Provider: 0xd05e3E715d945B59290df0ae8eF85c1BdB684744,
+            aaveV2Provider: 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5,
             feeRate: 5
         });
 
         aaveV3FlashLoanCallbackConfig = AaveV3FlashLoanCallbackConfig({
             deployedAddress: 0x8f2Ed9cE5DF73210c5Fa21d0cFDFF98bB1027a1F,
-            aaveV3Provider: 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb,
+            aaveV3Provider: 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e,
             feeRate: 5
         });
 

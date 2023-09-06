@@ -15,27 +15,29 @@ contract DeployArbitrum is
     /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
     function setUp() external {
         create3FactoryConfig = Create3FactoryConfig({
-            deployedAddress: 0x2a36F87b2Ec3dE23617907461aa3DA0cC4bc3f1f,
-            deployer: 0xa3C1C91403F0026b9dd086882aDbC8Cdbc3b3cfB
+            deployedAddress: 0xB9504E656866cCB985Aa3f1Af7b8B886f8485Df6,
+            deployer: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd
         });
 
         routerConfig = RouterConfig({
-            deployedAddress: 0xf4dEf6B4389eAb49dF2a7D67890810e5249B5E70,
+            deployedAddress: 0x4E744c3E6973D34ee130B7E668Abc14CD49ca16e,
             wrappedNative: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
-            owner: 0xa3C1C91403F0026b9dd086882aDbC8Cdbc3b3cfB,
-            pauser: 0xa3C1C91403F0026b9dd086882aDbC8Cdbc3b3cfB,
-            feeCollector: 0xa3C1C91403F0026b9dd086882aDbC8Cdbc3b3cfB
+            owner: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
+            pauser: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
+            feeCollector: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
+            signer: 0xffFf5a88840FF1f168E163ACD771DFb292164cFA,
+            feeRate: 20
         });
 
         aaveV3FlashLoanCallbackConfig = AaveV3FlashLoanCallbackConfig({
-            deployedAddress: 0xe1356560B683cA54e7D7e9e81b05319E9140a977,
+            deployedAddress: 0x8f2Ed9cE5DF73210c5Fa21d0cFDFF98bB1027a1F,
             aaveV3Provider: 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb,
             feeRate: 5
         });
 
         balancerV2FlashLoanCallbackConfig = BalancerV2FlashLoanCallbackConfig({
-            deployedAddress: 0x03EdE4da71B8c404f7a2d61b8Ad367edEFc90Af8,
+            deployedAddress: 0x13431cd779FD770D55701B96F2675dFF63BDD756,
             balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8,
             feeRate: 5
         });
