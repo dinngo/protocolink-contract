@@ -57,14 +57,14 @@ contract BalancerV2FlashLoanCallback is IBalancerV2FlashLoanCallback, CallbackFe
         }
 
         // Repay tokens to Vault
-        address feeCollector = IRouter(router).feeCollector();
         for (uint256 i; i < length; ) {
             address token = tokens[i];
             uint256 amount = amounts[i];
 
             if (charge) {
+                bytes32 defaultReferral = IRouter(router).defaultReferral();
                 DataType.Fee memory fee = FeeLibrary.calcFee(token, amount, feeRate, metadata);
-                fee.pay(feeCollector);
+                fee.pay(defaultReferral);
             }
 
             IERC20(token).safeTransfer(balancerV2Vault, amount + feeAmounts[i]);

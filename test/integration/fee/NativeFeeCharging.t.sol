@@ -8,20 +8,20 @@ import {IAgent} from 'src/interfaces/IAgent.sol';
 import {FeeLibrary} from 'src/libraries/FeeLibrary.sol';
 
 contract NativeFeeCalculatorTest is Test {
-    event Charged(address indexed token, uint256 amount, bytes32 metadata);
+    event Charged(address indexed token, uint256 amount, address indexed collector, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     bytes public constant EMPTY_LOGIC_DATA = new bytes(0);
     uint256 public constant BPS_NOT_USED = 0;
-    uint256 public constant SIGNER_REFERRAL = 1;
     uint256 public constant BPS_BASE = 10_000;
     bytes32 public constant META_DATA = bytes32(bytes('native-token'));
 
     address public user;
     address public receiver;
-    address public feeCollector;
+    address public defaultCollector;
+    bytes32 public defaultReferral;
     Router public router;
     IAgent public userAgent;
     address public nativeFeeCalculator;
@@ -33,16 +33,17 @@ contract NativeFeeCalculatorTest is Test {
     function setUp() external {
         user = makeAddr('User');
         receiver = makeAddr('Receiver');
-        feeCollector = makeAddr('FeeCollector');
+        defaultCollector = makeAddr('FeeCollector');
+        defaultReferral = bytes32(bytes20(defaultCollector)) | bytes32(uint256(BPS_BASE));
         address pauser = makeAddr('Pauser');
 
-        router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this), pauser, feeCollector);
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this), pauser, defaultCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
 
         vm.label(address(router), 'Router');
         vm.label(address(userAgent), 'UserAgent');
-        vm.label(feeCollector, 'FeeCollector');
+        vm.label(defaultCollector, 'FeeCollector');
     }
 
     function testChargeNativeFee(uint256 value, uint256 feeRate) external {
@@ -62,22 +63,22 @@ contract NativeFeeCalculatorTest is Test {
 
         // Prepare assert data
         uint256 receiverBalanceBefore = receiver.balance;
-        uint256 feeCollectorBalanceBefore = feeCollector.balance;
+        uint256 feeCollectorBalanceBefore = defaultCollector.balance;
         uint256 expectedFee = FeeLibrary.calcFeeFromAmount(value, feeRate);
 
         // Execute
         if (expectedFee > 0) {
             vm.expectEmit(true, true, true, true, address(userAgent));
-            emit Charged(NATIVE, expectedFee, META_DATA);
+            emit Charged(NATIVE, expectedFee, defaultCollector, META_DATA);
         }
         vm.prank(user);
-        router.execute{value: newValue}(datasEmpty, logics, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute{value: newValue}(datasEmpty, logics, tokensReturnEmpty);
 
         assertEq(address(router).balance, 0);
         assertEq(address(userAgent).balance, 0);
         assertEq(newValue - expectedFee, value);
         assertEq(receiver.balance - receiverBalanceBefore, value);
-        assertEq(feeCollector.balance - feeCollectorBalanceBefore, expectedFee);
+        assertEq(defaultCollector.balance - feeCollectorBalanceBefore, expectedFee);
     }
 
     function _logicSendNative(uint256 amount) internal view returns (DataType.Logic memory) {

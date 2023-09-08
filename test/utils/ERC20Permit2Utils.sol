@@ -11,7 +11,6 @@ import {EIP712} from './permit2/Permit2EIP712.sol';
 contract ERC20Permit2Utils is Test, PermitSignature {
     using SafeERC20 for IERC20;
 
-    uint256 public constant SIGNER_REFERRAL = 1;
     address internal constant permit2Addr = address(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
     address internal _erc20User;

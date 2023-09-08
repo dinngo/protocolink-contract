@@ -91,16 +91,23 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     /// @param logics Array of logics to be executed
     /// @param permit2Datas Array of datas to be processed through permit2 contract
     /// @param fees Array of fees
+    /// @param referrals Array of referral to be applied when charging fees
     /// @param tokensReturn Array of ERC-20 tokens to be returned to the current user
     function executeWithSignerFee(
         bytes[] calldata permit2Datas,
         DataType.Logic[] calldata logics,
         DataType.Fee[] calldata fees,
+        bytes32[] calldata referrals,
         address[] calldata tokensReturn
     ) external payable {
         if (msg.sender != router) revert NotRouter();
         _doPermit2(permit2Datas, false);
-        _charge(fees, false);
+        for (uint256 i; i < referrals.length; ) {
+            _charge(fees, referrals[i], false);
+            unchecked {
+                ++i;
+            }
+        }
         _executeLogics(logics, false);
         _returnTokens(tokensReturn);
     }
@@ -143,7 +150,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                     );
                     DataType.Fee[] memory fees = new DataType.Fee[](1);
                     fees[0] = FeeLibrary.getFee(token, amount, feeRate, _PERMIT_FEE_META_DATA);
-                    _charge(fees, true);
+                    _charge(fees, IRouter(router).defaultReferral(), true);
                 }
             } else if (selector == 0x0d58b1db) {
                 // transferFrom((address,address,uint160,address)[])
@@ -163,7 +170,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                             ++j;
                         }
                     }
-                    _charge(fees, true);
+                    _charge(fees, IRouter(router).defaultReferral(), true);
                 }
             } else if (selector == 0x2b67b570 || selector == 0x2a2d80d1) {
                 // permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)
@@ -286,22 +293,21 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     function _chargeByMsgValue() internal {
         if (msg.value == 0) return;
         uint256 feeRate = IRouter(router).feeRate();
-        address feeCollector = IRouter(router).feeCollector();
+        bytes32 defaultReferral = IRouter(router).defaultReferral();
         DataType.Fee memory fee = FeeLibrary.getFee(_NATIVE, msg.value, feeRate, _NATIVE_FEE_META_DATA);
-        fee.pay(feeCollector);
+        fee.pay(defaultReferral);
     }
 
-    function _charge(DataType.Fee[] memory fees, bool payFromAgent) internal {
+    function _charge(DataType.Fee[] memory fees, bytes32 referral, bool payFromAgent) internal {
         uint256 length = fees.length;
         if (length == 0) return;
 
-        address feeCollector = IRouter(router).feeCollector();
         for (uint256 i; i < length; ) {
             address token = fees[i].token;
             if (token == _NATIVE || payFromAgent) {
-                fees[i].pay(feeCollector);
+                fees[i].pay(referral);
             } else {
-                fees[i].payFrom(IRouter(router).currentUser(), feeCollector, permit2);
+                fees[i].payFrom(IRouter(router).currentUser(), referral, permit2);
             }
             unchecked {
                 ++i;

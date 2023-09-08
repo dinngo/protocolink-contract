@@ -25,7 +25,7 @@ contract DeployArbitrum is
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
             owner: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
             pauser: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
-            feeCollector: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
+            defaultCollector: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
             signer: 0xffFf5a88840FF1f168E163ACD771DFb292164cFA,
             feeRate: 20
         });

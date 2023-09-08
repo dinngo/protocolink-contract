@@ -6,7 +6,7 @@ import {DataType} from 'src/libraries/DataType.sol';
 interface IAgent {
     event AmountReplaced(uint256 i, uint256 j, uint256 amount);
 
-    event Charged(address indexed token, uint256 amount, bytes32 metadata);
+    event Charged(address indexed token, uint256 amount, address indexed collector, bytes32 metadata);
 
     error Initialized();
 
@@ -42,6 +42,7 @@ interface IAgent {
         bytes[] calldata permit2Datas,
         DataType.Logic[] calldata logics,
         DataType.Fee[] calldata fees,
+        bytes32[] calldata referrals,
         address[] calldata tokensReturn
     ) external payable;
 

@@ -15,7 +15,7 @@ abstract contract DeployRouter is DeployBase {
         address permit2;
         address owner;
         address pauser;
-        address feeCollector;
+        address defaultCollector;
         // extra params
         address signer;
         uint256 feeRate;
@@ -33,7 +33,7 @@ abstract contract DeployRouter is DeployBase {
             bytes32 salt = keccak256('protocolink.router.v1');
             bytes memory creationCode = abi.encodePacked(
                 type(Router).creationCode,
-                abi.encode(cfg.wrappedNative, cfg.permit2, cfg.owner, cfg.pauser, cfg.feeCollector)
+                abi.encode(cfg.wrappedNative, cfg.permit2, cfg.owner, cfg.pauser, cfg.defaultCollector)
             );
             deployedAddress = factory.deploy(salt, creationCode);
             console2.log('Router Deployed:', deployedAddress);

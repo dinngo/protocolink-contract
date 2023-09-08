@@ -19,6 +19,7 @@ contract AgentHandler is Test {
     DataType.Fee[] feesEmpty;
     DataType.Input[] inputsEmpty;
     address[] tokensReturnEmpty;
+    bytes32[] referralsEmpty;
 
     mapping(bytes32 => uint256) public numCalls;
 
@@ -44,7 +45,13 @@ contract AgentHandler is Test {
     function executeWithSignerFee() external {
         numCalls['executeWithSignerFee']++;
         vm.prank(router);
-        IMockAgent(agent).executeWithSignerFee(permit2DatasEmpty, _logicsWithCallback(), feesEmpty, tokensReturnEmpty);
+        IMockAgent(agent).executeWithSignerFee(
+            permit2DatasEmpty,
+            _logicsWithCallback(),
+            feesEmpty,
+            referralsEmpty,
+            tokensReturnEmpty
+        );
     }
 
     function executeByCallback() external {

@@ -9,7 +9,6 @@ import {IWrappedNative} from 'src/interfaces/IWrappedNative.sol';
 
 // Test wrapped native
 contract WrappedNativeTest is Test {
-    uint256 public constant SIGNER_REFERRAL = 1;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     IERC20 public constant WRAPPED_NATIVE = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
@@ -55,7 +54,7 @@ contract WrappedNativeTest is Test {
         tokensReturn[0] = tokenIn;
         tokensReturn[1] = address(tokenOut);
         vm.prank(user);
-        router.execute{value: amountIn}(permit2DatasEmpty, logics, tokensReturn, SIGNER_REFERRAL);
+        router.execute{value: amountIn}(permit2DatasEmpty, logics, tokensReturn);
 
         address agent = router.getAgent(user);
         assertEq(address(router).balance, 0);

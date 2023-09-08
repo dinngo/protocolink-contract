@@ -8,8 +8,6 @@ import {DataType} from 'src/interfaces/IRouter.sol';
 import {TypedDataSignature} from '../../utils/TypedDataSignature.sol';
 
 contract RouterHandler is Test, TypedDataSignature {
-    uint256 public constant SIGNER_REFERRAL = 1;
-
     // Setup
     Router public router;
     address public owner;
@@ -32,6 +30,7 @@ contract RouterHandler is Test, TypedDataSignature {
     DataType.Fee[] public feesEmpty;
     DataType.Logic[] public logicsEmpty;
     bytes[] public permit2DatasEmpty;
+    bytes32[] public referralsEmpty;
 
     constructor(Router router_) {
         owner = msg.sender;
@@ -90,7 +89,7 @@ contract RouterHandler is Test, TypedDataSignature {
 
     function execute(uint256 actorSeed) external useActor(actorSeed) recordAgent countCall('execute') {
         vm.prank(currentActor);
-        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty, SIGNER_REFERRAL);
+        router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
     }
 
     function executeWithSignerFee(
@@ -98,16 +97,9 @@ contract RouterHandler is Test, TypedDataSignature {
     ) external useActor(actorSeed) recordAgent countCall('executeWithSignerFee') {
         vm.startPrank(currentActor);
         uint256 deadline = block.timestamp;
-        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, deadline);
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
         bytes memory sigature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
-        router.executeWithSignerFee(
-            permit2DatasEmpty,
-            logicBatch,
-            signer,
-            sigature,
-            tokensReturnEmpty,
-            SIGNER_REFERRAL
-        );
+        router.executeWithSignerFee(permit2DatasEmpty, logicBatch, signer, sigature, tokensReturnEmpty);
         vm.stopPrank();
     }
 
