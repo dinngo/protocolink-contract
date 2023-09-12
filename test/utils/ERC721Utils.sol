@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {IERC721} from 'openzeppelin-contracts/contracts/token/ERC721/ERC721.sol';
+import {IERC721} from 'lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol';
 import {DataType} from 'src/libraries/DataType.sol';
 
 contract ERC721Utils is Test {

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {ERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
-import {IAllowanceTransfer} from 'permit2/interfaces/IAllowanceTransfer.sol';
+import {ERC20, IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
+import {IAllowanceTransfer} from 'lib/permit2/src/interfaces/IAllowanceTransfer.sol';
 import {Agent} from 'src/Agent.sol';
 import {AgentImplementation, IAgent} from 'src/AgentImplementation.sol';
 import {Router, IRouter} from 'src/Router.sol';

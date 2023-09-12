@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import {SafeCast} from 'openzeppelin-contracts/contracts/utils/math/SafeCast.sol';
-import {SafeERC20, IERC20, Address} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {ERC721Holder} from 'openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol';
-import {ERC1155Holder} from 'openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Holder.sol';
-import {IAllowanceTransfer} from 'permit2/interfaces/IAllowanceTransfer.sol';
+import {SafeCast} from 'lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol';
+import {SafeERC20, IERC20, Address} from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {ERC721Holder} from 'lib/openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol';
+import {ERC1155Holder} from 'lib/openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Holder.sol';
+import {IAllowanceTransfer} from 'lib/permit2/src/interfaces/IAllowanceTransfer.sol';
 import {IAgent} from './interfaces/IAgent.sol';
 import {DataType} from './libraries/DataType.sol';
 import {IRouter} from './interfaces/IRouter.sol';

@@ -36,6 +36,12 @@ abstract contract DeployBalancerV2FlashLoanCallback is DeployBase {
                 abi.encode(router, cfg.balancerV2Vault, cfg.feeRate)
             );
             deployedAddress = factory.deploy(salt, creationCode);
+
+            // check deployed parameters
+            BalancerV2FlashLoanCallback callback = BalancerV2FlashLoanCallback(deployedAddress);
+            require(callback.router() == router, 'BalancerV2FlashLoanCallback router is invalid');
+            require(callback.balancerV2Vault() == cfg.balancerV2Vault, 'BalancerV2FlashLoanCallback vault is invalid');
+            require(callback.feeRate() == cfg.feeRate, 'BalancerV2FlashLoanCallback fee rate is invalid');
             console2.log('BalancerV2FlashLoanCallback Deployed:', deployedAddress);
         } else {
             console2.log(

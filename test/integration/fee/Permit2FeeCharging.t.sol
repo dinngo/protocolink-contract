@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
+import {IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import {SafeCast160} from 'lib/permit2/src/libraries/SafeCast160.sol';
 import {Router} from 'src/Router.sol';
 import {DataType} from 'src/libraries/DataType.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
@@ -29,7 +29,6 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
     address public signer;
     uint256 public signerPrivateKey;
     address public defaultCollector;
-    bytes32 public defaultReferral;
     address public referrer;
     Router public router;
     IAgent public userAgent;
@@ -41,17 +40,11 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
         (user, userPrivateKey) = makeAddrAndKey('User');
         (signer, signerPrivateKey) = makeAddrAndKey('Signer');
         defaultCollector = makeAddr('FeeCollector');
-        defaultReferral = bytes32(bytes20(defaultCollector)) | bytes32(uint256(BPS_BASE));
         referrer = makeAddr('Referrer');
 
         // Deploy contracts
-        router = new Router(
-            makeAddr('WrappedNative'),
-            PERMIT2_ADDR,
-            address(this),
-            makeAddr('Pauser'),
-            defaultCollector
-        );
+        router = new Router(makeAddr('WrappedNative'), PERMIT2_ADDR, address(this));
+        router.setFeeCollector(defaultCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
         router.addSigner(signer);

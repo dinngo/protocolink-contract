@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {SafeERC20, IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {DataType} from 'src/libraries/DataType.sol';
@@ -68,13 +68,7 @@ contract AaveV2IntegrationTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
-        router = new Router(
-            makeAddr('WrappedNative'),
-            permit2Addr,
-            address(this),
-            makeAddr('Pauser'),
-            makeAddr('FeeCollector')
-        );
+        router = new Router(makeAddr('WrappedNative'), permit2Addr, address(this));
         vm.prank(user);
         agent = IAgent(router.newAgent());
         flashLoanCallback = new AaveV2FlashLoanCallback(address(router), address(AAVE_V2_PROVIDER), 0);

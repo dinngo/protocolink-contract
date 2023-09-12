@@ -2,14 +2,14 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import {IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {DataType} from 'src/libraries/DataType.sol';
 import {IDSProxy} from 'src/interfaces/maker/IDSProxy.sol';
 import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
 import {MakerCommonUtils, IMakerManager, IMakerVat, IDSProxyRegistry} from 'test/utils/MakerCommonUtils.sol';
-import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
+import {SafeCast160} from 'lib/permit2/src/libraries/SafeCast160.sol';
 
 contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     using SafeCast160 for uint256;
@@ -39,13 +39,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     function setUp() external {
         user = makeAddr('User');
         (user2, user2PrivateKey) = makeAddrAndKey('User2');
-        router = new Router(
-            makeAddr('WrappedNative'),
-            permit2Addr,
-            address(this),
-            makeAddr('Pauser'),
-            makeAddr('FeeCollector')
-        );
+        router = new Router(makeAddr('WrappedNative'), permit2Addr, address(this));
 
         // Empty router the balance
         vm.prank(address(router));

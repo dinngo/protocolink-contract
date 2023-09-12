@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import {Address} from 'openzeppelin-contracts/contracts/utils/Address.sol';
+import {Address} from 'lib/openzeppelin-contracts/contracts/utils/Address.sol';
 
 interface ICallback {
     function callback(bytes calldata data_) external;

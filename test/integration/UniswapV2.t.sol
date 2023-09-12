@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
+import {IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import {SafeCast160} from 'lib/permit2/src/libraries/SafeCast160.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {DataType} from 'src/libraries/DataType.sol';
@@ -70,13 +70,7 @@ contract UniswapV2Test is Test, ERC20Permit2Utils {
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(
-            address(WRAPPED_NATIVE),
-            address(PERMIT2),
-            address(this),
-            makeAddr('Pauser'),
-            makeAddr('FeeCollector')
-        );
+        router = new Router(address(WRAPPED_NATIVE), address(PERMIT2), address(this));
         vm.prank(user);
         agent = IAgent(router.newAgent());
 

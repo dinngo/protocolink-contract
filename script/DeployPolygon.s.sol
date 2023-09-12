@@ -14,20 +14,23 @@ contract DeployPolygon is
     DeployAaveV3FlashLoanCallback,
     DeployBalancerV2FlashLoanCallback
 {
+    address public constant DEPLOYER = 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd;
+
     /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
     function setUp() external {
         create3FactoryConfig = Create3FactoryConfig({
             deployedAddress: 0xB9504E656866cCB985Aa3f1Af7b8B886f8485Df6,
-            deployer: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd
+            deployer: DEPLOYER
         });
 
         routerConfig = RouterConfig({
             deployedAddress: 0x4E744c3E6973D34ee130B7E668Abc14CD49ca16e,
             wrappedNative: 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270,
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
-            owner: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
-            pauser: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
-            defaultCollector: 0xDdbe07CB6D77e81802C55bB381546c0DA51163dd,
+            deployer: DEPLOYER,
+            owner: DEPLOYER,
+            pauser: DEPLOYER,
+            defaultCollector: DEPLOYER,
             signer: 0xffFf5a88840FF1f168E163ACD771DFb292164cFA,
             feeRate: 20
         });

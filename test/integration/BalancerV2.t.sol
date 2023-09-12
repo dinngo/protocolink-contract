@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import {IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {DataType} from 'src/libraries/DataType.sol';
@@ -32,13 +32,7 @@ contract BalancerV2IntegrationTest is Test {
 
     function setUp() external {
         user = makeAddr('User');
-        router = new Router(
-            makeAddr('WrappedNative'),
-            makeAddr('Permit2'),
-            address(this),
-            makeAddr('Pauser'),
-            makeAddr('FeeCollector')
-        );
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this));
         flashLoanCallback = new BalancerV2FlashLoanCallback(address(router), address(balancerV2Vault), 0);
 
         vm.label(address(router), 'Router');

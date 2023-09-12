@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
-import {IAllowanceTransfer} from 'permit2/interfaces/IAllowanceTransfer.sol';
+import {SignatureChecker} from 'lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
+import {IAllowanceTransfer} from 'lib/permit2/src/interfaces/IAllowanceTransfer.sol';
 import {DataType} from 'src/libraries/DataType.sol';
 import {TypedDataSignature} from './utils/TypedDataSignature.sol';
 

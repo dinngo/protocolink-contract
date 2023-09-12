@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
-import {Ownable} from 'openzeppelin-contracts/contracts/access/Ownable.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import {EIP712} from 'openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol';
-import {SignatureChecker} from 'openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
+import {Ownable} from 'lib/openzeppelin-contracts/contracts/access/Ownable.sol';
+import {SafeERC20, IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {EIP712} from 'lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol';
+import {SignatureChecker} from 'lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol';
 import {IAgent, AgentImplementation} from './AgentImplementation.sol';
 import {Agent} from './Agent.sol';
 import {DataType} from './libraries/DataType.sol';
@@ -72,18 +72,10 @@ contract Router is IRouter, Ownable, EIP712 {
     }
 
     /// @dev Create the router with EIP-712 and the agent implementation contracts
-    constructor(
-        address wrappedNative,
-        address permit2,
-        address owner_,
-        address pauser_,
-        address feeCollector_
-    ) EIP712('Protocolink', '1') {
+    constructor(address wrappedNative, address permit2, address deployer) EIP712('Protocolink', '1') {
         currentUser = _INIT_CURRENT_USER;
         agentImplementation = address(new AgentImplementation(wrappedNative, permit2));
-        setPauser(pauser_);
-        setFeeCollector(feeCollector_);
-        transferOwnership(owner_);
+        transferOwnership(deployer);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -131,11 +123,12 @@ contract Router is IRouter, Ownable, EIP712 {
     function setFeeRate(uint256 feeRate_) external onlyOwner {
         if (feeRate_ >= _BPS_BASE) revert InvalidRate();
         feeRate = feeRate_;
+        emit FeeRateSet(feeRate_);
     }
 
     /// @notice Set the fee collector address that collects fees from each user's agent by owner
     /// @param feeCollector_ The fee collector address
-    function setFeeCollector(address feeCollector_) public onlyOwner {
+    function setFeeCollector(address feeCollector_) external onlyOwner {
         if (feeCollector_ == address(0)) revert InvalidFeeCollector();
         defaultReferral = bytes32(bytes20(feeCollector_)) | bytes32(uint256(_BPS_BASE));
         emit FeeCollectorSet(feeCollector_);
@@ -143,7 +136,7 @@ contract Router is IRouter, Ownable, EIP712 {
 
     /// @notice Set the pauser address that can pause `execute` and `executeWithSignerFee` by owner
     /// @param pauser_ The pauser address
-    function setPauser(address pauser_) public onlyOwner {
+    function setPauser(address pauser_) external onlyOwner {
         if (pauser_ == address(0)) revert InvalidNewPauser();
         pauser = pauser_;
         emit PauserSet(pauser_);

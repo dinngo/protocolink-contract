@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import {DataType} from 'src/libraries/DataType.sol';
+import {DataType} from '../libraries/DataType.sol';
 
 interface IAgent {
     event AmountReplaced(uint256 i, uint256 j, uint256 amount);

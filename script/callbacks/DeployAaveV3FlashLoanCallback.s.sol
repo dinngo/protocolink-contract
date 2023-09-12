@@ -36,6 +36,12 @@ abstract contract DeployAaveV3FlashLoanCallback is DeployBase {
                 abi.encode(router, cfg.aaveV3Provider, cfg.feeRate)
             );
             deployedAddress = factory.deploy(salt, creationCode);
+
+            // check deployed parameters
+            AaveV3FlashLoanCallback callback = AaveV3FlashLoanCallback(deployedAddress);
+            require(callback.router() == router, 'AaveV3FlashLoanCallback router is invalid');
+            require(callback.aaveV3Provider() == cfg.aaveV3Provider, 'AaveV3FlashLoanCallback provider is invalid');
+            require(callback.feeRate() == cfg.feeRate, 'AaveV3FlashLoanCallback fee rate is invalid');
             console2.log('AaveV3FlashLoanCallback Deployed:', deployedAddress);
         } else {
             console2.log(

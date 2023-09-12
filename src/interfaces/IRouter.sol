@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IAgent} from './IAgent.sol';
-import {DataType} from 'src/libraries/DataType.sol';
+import {DataType} from '../libraries/DataType.sol';
 
 interface IRouter {
     event SignerAdded(address indexed signer);
@@ -31,6 +31,8 @@ interface IRouter {
     );
 
     event ExecutionNonceInvalidation(address indexed user, uint256 newNonce, uint256 oldNonce);
+
+    event FeeRateSet(uint256 feeRate_);
 
     error NotReady();
 
@@ -93,6 +95,8 @@ interface IRouter {
     function addSigner(address signer) external;
 
     function removeSigner(address signer) external;
+
+    function setFeeRate(uint256 feeRate_) external;
 
     function setFeeCollector(address feeCollector_) external;
 

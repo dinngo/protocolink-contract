@@ -2,14 +2,14 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {MakerUtility, IMakerUtility} from 'src/utilities/MakerUtility.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {DataType} from 'src/libraries/DataType.sol';
 import {ERC20Permit2Utils} from 'test/utils/ERC20Permit2Utils.sol';
 import {MakerCommonUtils, IMakerManager, IMakerVat, IDSProxyRegistry} from 'test/utils/MakerCommonUtils.sol';
-import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
+import {SafeCast160} from 'lib/permit2/src/libraries/SafeCast160.sol';
 
 contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     using SafeCast160 for uint256;
@@ -31,13 +31,7 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
-        router = new Router(
-            makeAddr('WrappedNative'),
-            permit2Addr,
-            address(this),
-            makeAddr('Pauser'),
-            makeAddr('FeeCollector')
-        );
+        router = new Router(makeAddr('WrappedNative'), permit2Addr, address(this));
         makerUtility = new MakerUtility(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);
         makerUtilityDSProxy = IDSProxyRegistry(PROXY_REGISTRY).proxies(address(makerUtility));
 
