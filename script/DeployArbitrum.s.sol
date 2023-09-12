@@ -45,7 +45,7 @@ contract DeployArbitrum is
         });
 
         radiantV2FlashLoanCallbackConfig = RadiantV2FlashLoanCallbackConfig({
-            deployedAddress: UNDEPLOYED,
+            deployedAddress: 0xC1a22F8A12F4D42D6f2C645fc87bB896A4f150c8,
             radiantV2Provider: 0x091d52CacE1edc5527C99cDCFA6937C1635330E4,
             feeRate: 5
         });
