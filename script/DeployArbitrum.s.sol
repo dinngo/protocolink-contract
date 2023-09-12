@@ -5,12 +5,14 @@ import {DeployCREATE3Factory} from './DeployCREATE3Factory.s.sol';
 import {DeployRouter} from './DeployRouter.s.sol';
 import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCallback.s.sol';
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
+import {DeployRadiantV2FlashLoanCallback} from './callbacks/DeployRadiantV2FlashLoanCallback.s.sol';
 
 contract DeployArbitrum is
     DeployCREATE3Factory,
     DeployRouter,
     DeployAaveV3FlashLoanCallback,
-    DeployBalancerV2FlashLoanCallback
+    DeployBalancerV2FlashLoanCallback,
+    DeployRadiantV2FlashLoanCallback
 {
     /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
     function setUp() external {
@@ -41,6 +43,12 @@ contract DeployArbitrum is
             balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8,
             feeRate: 5
         });
+
+        radiantV2FlashLoanCallbackConfig = RadiantV2FlashLoanCallbackConfig({
+            deployedAddress: UNDEPLOYED,
+            radiantV2Provider: 0x091d52CacE1edc5527C99cDCFA6937C1635330E4,
+            feeRate: 5
+        });
     }
 
     function _run() internal override {
@@ -53,5 +61,6 @@ contract DeployArbitrum is
         // callback
         _deployAaveV3FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deployBalancerV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployRadiantV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
     }
 }

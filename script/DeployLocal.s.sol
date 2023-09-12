@@ -6,6 +6,7 @@ import {DeployRouter} from './DeployRouter.s.sol';
 import {DeployAaveV2FlashLoanCallback} from './callbacks/DeployAaveV2FlashLoanCallback.s.sol';
 import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCallback.s.sol';
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
+import {DeployRadiantV2FlashLoanCallback} from './callbacks/DeployRadiantV2FlashLoanCallback.s.sol';
 import {DeployMakerUtility} from './utilities/DeployMakerUtility.s.sol';
 
 contract DeployLocal is
@@ -14,6 +15,7 @@ contract DeployLocal is
     DeployAaveV2FlashLoanCallback,
     DeployAaveV3FlashLoanCallback,
     DeployBalancerV2FlashLoanCallback,
+    DeployRadiantV2FlashLoanCallback,
     DeployMakerUtility
 {
     /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
@@ -52,6 +54,12 @@ contract DeployLocal is
             feeRate: 5
         });
 
+        radiantV2FlashLoanCallbackConfig = RadiantV2FlashLoanCallbackConfig({
+            deployedAddress: UNDEPLOYED,
+            radiantV2Provider: 0x091d52CacE1edc5527C99cDCFA6937C1635330E4,
+            feeRate: 5
+        });
+
         makerUtilityConfig = MakerUtilityConfig({
             deployedAddress: UNDEPLOYED,
             proxyRegistry: 0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4,
@@ -73,6 +81,7 @@ contract DeployLocal is
         _deployAaveV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deployAaveV3FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deployBalancerV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployRadiantV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
 
         // utility
         _deployMakerUtility(deployedCreate3FactoryAddress, deployedRouterAddress);
