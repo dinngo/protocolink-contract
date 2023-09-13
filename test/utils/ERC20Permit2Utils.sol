@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {SafeERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import {SafeERC20, IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 import {DataType} from 'src/libraries/DataType.sol';
-import {IAllowanceTransfer} from 'permit2/interfaces/IAllowanceTransfer.sol';
+import {IAllowanceTransfer} from 'lib/permit2/src/interfaces/IAllowanceTransfer.sol';
 import {PermitSignature} from './permit2/PermitSignature.sol';
 import {EIP712} from './permit2/Permit2EIP712.sol';
 

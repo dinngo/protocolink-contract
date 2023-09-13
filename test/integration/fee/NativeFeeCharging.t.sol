@@ -21,7 +21,6 @@ contract NativeFeeCalculatorTest is Test {
     address public user;
     address public receiver;
     address public defaultCollector;
-    bytes32 public defaultReferral;
     Router public router;
     IAgent public userAgent;
     address public nativeFeeCalculator;
@@ -34,10 +33,9 @@ contract NativeFeeCalculatorTest is Test {
         user = makeAddr('User');
         receiver = makeAddr('Receiver');
         defaultCollector = makeAddr('FeeCollector');
-        defaultReferral = bytes32(bytes20(defaultCollector)) | bytes32(uint256(BPS_BASE));
-        address pauser = makeAddr('Pauser');
 
-        router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this), pauser, defaultCollector);
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this));
+        router.setFeeCollector(defaultCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
 

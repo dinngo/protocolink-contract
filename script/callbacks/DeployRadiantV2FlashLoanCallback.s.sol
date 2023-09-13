@@ -36,6 +36,15 @@ abstract contract DeployRadiantV2FlashLoanCallback is DeployBase {
                 abi.encode(router, cfg.radiantV2Provider, cfg.feeRate)
             );
             deployedAddress = factory.deploy(salt, creationCode);
+
+            // check deployed parameters
+            RadiantV2FlashLoanCallback callback = RadiantV2FlashLoanCallback(deployedAddress);
+            require(callback.router() == router, 'RadiantV2FlashLoanCallback router is invalid');
+            require(
+                callback.radiantV2Provider() == cfg.radiantV2Provider,
+                'RadiantV2FlashLoanCallback provider is invalid'
+            );
+            require(callback.feeRate() == cfg.feeRate, 'RadiantV2FlashLoanCallback fee rate is invalid');
             console2.log('RadiantV2FlashLoanCallback Deployed:', deployedAddress);
         } else {
             console2.log(

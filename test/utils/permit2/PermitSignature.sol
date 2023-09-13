@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {IAllowanceTransfer} from 'permit2/interfaces/IAllowanceTransfer.sol';
-import {ISignatureTransfer} from 'permit2/interfaces/ISignatureTransfer.sol';
+import {IAllowanceTransfer} from 'lib/permit2/src/interfaces/IAllowanceTransfer.sol';
+import {ISignatureTransfer} from 'lib/permit2/src/interfaces/ISignatureTransfer.sol';
 
 contract PermitSignature is Test {
     bytes32 public constant _PERMIT_DETAILS_TYPEHASH =

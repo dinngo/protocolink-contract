@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {ERC20, IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
+import {ERC20, IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {DataType} from 'src/libraries/DataType.sol';
 import {MockFallback} from './mocks/MockFallback.sol';
@@ -19,8 +19,6 @@ contract RouterTest is Test, TypedDataSignature {
     uint256 public userPrivateKey;
     address public delegatee;
     address public pauser;
-    address public defaultCollector;
-    bytes32 public defaultReferral;
     address public signer;
     uint256 public signerPrivateKey;
     IRouter public router;
@@ -52,15 +50,15 @@ contract RouterTest is Test, TypedDataSignature {
         uint128 oldNonce
     );
     event ExecutionNonceInvalidation(address indexed user, uint256 newNonce, uint256 oldNonce);
+    event FeeRateSet(uint256 feeRate_);
 
     function setUp() external {
         (user, userPrivateKey) = makeAddrAndKey('User');
         delegatee = makeAddr('Delegatee');
         pauser = makeAddr('Pauser');
-        defaultCollector = makeAddr('FeeCollector');
-        defaultReferral = bytes32(bytes20(defaultCollector)) | bytes32(uint256(BPS_BASE));
         (signer, signerPrivateKey) = makeAddrAndKey('Signer');
-        router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this), pauser, defaultCollector);
+        router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this));
+        router.setPauser(pauser);
         mockERC20 = new ERC20('mockERC20', 'mock');
         mockTo = address(new MockFallback());
 
@@ -72,7 +70,6 @@ contract RouterTest is Test, TypedDataSignature {
         assertTrue(router.agentImplementation() != address(0));
         assertEq(router.currentUser(), INIT_CURRENT_USER);
         assertEq(router.pauser(), pauser);
-        assertEq(router.defaultCollector(), defaultCollector);
         assertEq(router.owner(), address(this));
     }
 
@@ -202,6 +199,20 @@ contract RouterTest is Test, TypedDataSignature {
         vm.expectRevert('Ownable: caller is not the owner');
         vm.prank(user);
         router.removeSigner(signer);
+    }
+
+    function testSetFeeRate(uint256 feeRate_) external {
+        feeRate_ = bound(feeRate_, 0, BPS_BASE - 1);
+        vm.expectEmit(true, true, true, true, address(router));
+        emit FeeRateSet(feeRate_);
+        router.setFeeRate(feeRate_);
+        assertEq(router.feeRate(), feeRate_);
+    }
+
+    function testCannotSetFeeRateOverBpsBase() external {
+        uint256 feeRate_ = BPS_BASE;
+        vm.expectRevert(IRouter.InvalidRate.selector);
+        router.setFeeRate(feeRate_);
     }
 
     function testExecuteWithSignerFee() external {

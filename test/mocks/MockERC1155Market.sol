@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import {ERC1155Holder} from 'openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Holder.sol';
+import {IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import {ERC1155Holder} from 'lib/openzeppelin-contracts/contracts/token/ERC1155/utils/ERC1155Holder.sol';
 import {MockERC1155} from './MockERC1155.sol';
 
 contract MockERC1155Market is ERC1155Holder {

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {IERC20} from 'openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import {SafeCast160} from 'permit2/libraries/SafeCast160.sol';
+import {IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import {SafeCast160} from 'lib/permit2/src/libraries/SafeCast160.sol';
 import {Router} from 'src/Router.sol';
 import {IAaveV2FlashLoanCallback} from 'src/callbacks/AaveV2FlashLoanCallback.sol';
 import {RadiantV2FlashLoanCallback} from 'src/callbacks/RadiantV2FlashLoanCallback.sol';
@@ -40,7 +40,6 @@ contract RadiantFlashLoanFeeCalculatorTest is Test {
     address public user;
     address public user2;
     address public defaultCollector;
-    bytes32 public defaultReferral;
     Router public router;
     IAgent public userAgent;
     IAaveV2FlashLoanCallback public flashLoanCallback;
@@ -53,11 +52,10 @@ contract RadiantFlashLoanFeeCalculatorTest is Test {
     function setUp() external {
         user = makeAddr('User');
         defaultCollector = makeAddr('FeeCollector');
-        defaultReferral = bytes32(bytes20(defaultCollector)) | bytes32(uint256(BPS_BASE));
-        address pauser = makeAddr('Pauser');
 
         // Deploy contracts
-        router = new Router(makeAddr('WrappedNative'), PERMIT2_ADDRESS, address(this), pauser, defaultCollector);
+        router = new Router(makeAddr('WrappedNative'), PERMIT2_ADDRESS, address(this));
+        router.setFeeCollector(defaultCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
         flashLoanCallback = new RadiantV2FlashLoanCallback(address(router), RADIANT_V2_PROVIDER, FEE_RATE);
