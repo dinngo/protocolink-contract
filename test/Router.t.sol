@@ -138,7 +138,6 @@ contract RouterTest is Test, TypedDataSignature {
     function testExecuteBySig() external {
         vm.prank(user);
         router.newAgent();
-        // Ensure correct EIP-712 encodeData
         uint256 deadline = block.timestamp + 3600;
         uint256 nonce = 0;
         DataType.ExecutionDetails memory details = DataType.ExecutionDetails(
@@ -159,7 +158,6 @@ contract RouterTest is Test, TypedDataSignature {
     function testCannotExecuteBySigWithIncorrectSignature() external {
         vm.prank(user);
         router.newAgent();
-        // Ensure correct EIP-712 encodeData
         uint256 deadline = block.timestamp + 3600;
         uint256 nonce = 0;
         DataType.ExecutionDetails memory details = DataType.ExecutionDetails(
@@ -306,7 +304,6 @@ contract RouterTest is Test, TypedDataSignature {
         uint256 deadline = block.timestamp;
         DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
         bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
-        // Ensure correct EIP-712 encodeData
         deadline = block.timestamp + 3600;
         uint256 nonce = 0;
         DataType.ExecutionBatchDetails memory details = DataType.ExecutionBatchDetails(
@@ -330,7 +327,6 @@ contract RouterTest is Test, TypedDataSignature {
         uint256 deadline = block.timestamp;
         DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
         bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
-        // Ensure correct EIP-712 encodeData
         deadline = block.timestamp + 3600;
         uint256 nonce = 0;
         DataType.ExecutionBatchDetails memory details = DataType.ExecutionBatchDetails(
