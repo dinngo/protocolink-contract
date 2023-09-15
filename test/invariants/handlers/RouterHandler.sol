@@ -17,7 +17,7 @@ contract RouterHandler is Test, TypedDataSignature {
     // Actors
     address public currentActor;
     address[] public actors;
-    mapping(address actor => bool exist) actorsExist;
+    mapping(address actor => uint256 privateKey) actorPrivateKeys;
 
     // Ghost variables
     address[] public ghostAgents;
@@ -41,13 +41,16 @@ contract RouterHandler is Test, TypedDataSignature {
         router.addSigner(signer);
     }
 
-    modifier useActor(uint256 actorSeed) {
+    modifier useActor(string calldata name) {
+        (address user, uint256 userPrivateKey) = makeAddrAndKey(name);
+        uint256 actorSeed = uint160(user);
+
         if (actors.length == 0 || actorSeed % 10 < 9) {
-            // 90% probability of creating an new actor
-            currentActor = msg.sender;
-            if (!actorsExist[currentActor]) {
-                actorsExist[currentActor] = true;
+            // 90% probability of creating a new actor
+            currentActor = user;
+            if (actorPrivateKeys[currentActor] == 0) {
                 actors.push(currentActor);
+                actorPrivateKeys[currentActor] = userPrivateKey;
                 calls['actorsNum']++;
             }
         } else {
@@ -82,33 +85,110 @@ contract RouterHandler is Test, TypedDataSignature {
         console2.log('\nCall Summary\n');
         console2.log('execute', calls['execute']);
         console2.log('executeWithSignerFee', calls['executeWithSignerFee']);
+        console2.log('executeBySig', calls['executeBySig']);
+        console2.log('executeBySigWithSignerFee', calls['executeBySigWithSignerFee']);
+        console2.log('executeFor', calls['executeFor']);
+        console2.log('executeForWithSignerFee', calls['executeForWithSignerFee']);
         console2.log('newAgent', calls['newAgent']);
         console2.log('newAgentFor', calls['newAgentFor']);
         console2.log('actorsNum', calls['actorsNum']);
     }
 
-    function execute(uint256 actorSeed) external useActor(actorSeed) recordAgent countCall('execute') {
+    function execute(string calldata name) external useActor(name) recordAgent countCall('execute') {
         vm.prank(currentActor);
         router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
     }
 
     function executeWithSignerFee(
-        uint256 actorSeed
-    ) external useActor(actorSeed) recordAgent countCall('executeWithSignerFee') {
-        vm.startPrank(currentActor);
+        string calldata name
+    ) external useActor(name) recordAgent countCall('executeWithSignerFee') {
         uint256 deadline = block.timestamp;
         DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
-        bytes memory sigature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
-        router.executeWithSignerFee(permit2DatasEmpty, logicBatch, signer, sigature, tokensReturnEmpty);
-        vm.stopPrank();
+        bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        vm.prank(currentActor);
+        router.executeWithSignerFee(permit2DatasEmpty, logicBatch, signer, signerSignature, tokensReturnEmpty);
     }
 
-    function newAgent(uint256 actorSeed) external useActor(actorSeed) recordAgent countCall('newAgent') {
+    function executeBySig(string calldata name) external useActor(name) recordAgent countCall('executeBySig') {
+        uint256 deadline = block.timestamp + 1 days;
+        uint256 nonce = router.executionNonces(currentActor);
+        DataType.ExecutionDetails memory details = DataType.ExecutionDetails(
+            permit2DatasEmpty,
+            logicsEmpty,
+            tokensReturnEmpty,
+            nonce,
+            deadline
+        );
+        bytes memory currentActorSignature = getTypedDataSignature(
+            details,
+            router.domainSeparator(),
+            actorPrivateKeys[currentActor]
+        );
+        vm.prank(msg.sender);
+        router.executeBySig(details, currentActor, currentActorSignature);
+    }
+
+    function executeBySigWithSignerFee(
+        string calldata name
+    ) external useActor(name) recordAgent countCall('executeBySigWithSignerFee') {
+        uint256 deadline = block.timestamp;
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
+        bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        deadline = block.timestamp + 1 days;
+        uint256 nonce = router.executionNonces(currentActor);
+        DataType.ExecutionBatchDetails memory details = DataType.ExecutionBatchDetails(
+            permit2DatasEmpty,
+            logicBatch,
+            tokensReturnEmpty,
+            nonce,
+            deadline
+        );
+        bytes memory currentActorSignature = getTypedDataSignature(
+            details,
+            router.domainSeparator(),
+            actorPrivateKeys[currentActor]
+        );
+        vm.prank(msg.sender);
+        router.executeBySigWithSignerFee(details, currentActor, currentActorSignature, signer, signerSignature);
+    }
+
+    function executeFor(string calldata name) external useActor(name) recordAgent countCall('executeFor') {
+        uint128 expiry = uint128(block.timestamp) + 1 days;
+        address delegatee = msg.sender;
+        vm.prank(currentActor);
+        router.allow(delegatee, expiry);
+        vm.prank(delegatee);
+        router.executeFor(currentActor, permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
+    }
+
+    function executeForWithSignerFee(
+        string calldata name
+    ) external useActor(name) recordAgent countCall('executeForWithSignerFee') {
+        uint128 expiry = uint128(block.timestamp) + 1 days;
+        address delegatee = msg.sender;
+        vm.prank(currentActor);
+        router.allow(delegatee, expiry);
+        uint256 deadline = block.timestamp;
+        DataType.LogicBatch memory logicBatch = DataType.LogicBatch(logicsEmpty, feesEmpty, referralsEmpty, deadline);
+        bytes memory signerSignature = getTypedDataSignature(logicBatch, router.domainSeparator(), signerPrivateKey);
+        vm.prank(delegatee);
+        router.executeForWithSignerFee(
+            currentActor,
+            permit2DatasEmpty,
+            logicBatch,
+            signer,
+            signerSignature,
+            tokensReturnEmpty
+        );
+    }
+
+    function newAgent(string calldata name) external useActor(name) recordAgent countCall('newAgent') {
         vm.prank(currentActor);
         router.newAgent();
     }
 
-    function newAgentFor(uint256 actorSeed) external useActor(actorSeed) recordAgent countCall('newAgentFor') {
+    function newAgentFor(string calldata name) external useActor(name) recordAgent countCall('newAgentFor') {
+        vm.prank(msg.sender);
         router.newAgent(currentActor);
     }
 }

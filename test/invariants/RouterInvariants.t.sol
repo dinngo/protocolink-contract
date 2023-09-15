@@ -15,11 +15,15 @@ contract RouterInvariantsTest is Test {
         router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this));
         handler = new RouterHandler(router);
 
-        bytes4[] memory selectors = new bytes4[](4);
+        bytes4[] memory selectors = new bytes4[](8);
         selectors[0] = RouterHandler.execute.selector;
         selectors[1] = RouterHandler.executeWithSignerFee.selector;
-        selectors[2] = RouterHandler.newAgent.selector;
-        selectors[3] = RouterHandler.newAgentFor.selector;
+        selectors[2] = RouterHandler.executeBySig.selector;
+        selectors[3] = RouterHandler.executeBySigWithSignerFee.selector;
+        selectors[4] = RouterHandler.executeFor.selector;
+        selectors[5] = RouterHandler.executeForWithSignerFee.selector;
+        selectors[6] = RouterHandler.newAgent.selector;
+        selectors[7] = RouterHandler.newAgentFor.selector;
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
         targetContract(address(handler));
 
