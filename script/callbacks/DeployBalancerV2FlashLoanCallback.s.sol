@@ -30,7 +30,7 @@ abstract contract DeployBalancerV2FlashLoanCallback is DeployBase {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('protocolink.balancer.v2.flash.loan.callback.v1');
+            bytes32 salt = keccak256('protocolink.balancer.v2.flash.loan.callback.v2');
             bytes memory creationCode = abi.encodePacked(
                 type(BalancerV2FlashLoanCallback).creationCode,
                 abi.encode(router, cfg.balancerV2Vault, cfg.feeRate)
