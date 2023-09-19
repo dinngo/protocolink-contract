@@ -6,23 +6,35 @@
 
 ## Overview
 
-Protocolink is a router system proficient in processing ERC20, NFT, and lending positions, providing users and developers greater flexibility when creating transactions across different protocols.
+- Protocolink is a router system which consolidates protocol interactions within a secure Router/Agent architecture in a single transaction.
+- Protocolink is proficient in processing ERC-20, ERC-721, ERC-1155 and lending positions.
+- Protocolink is protocol-agnostic. All protocol-related code is defined in the [protocolink-logics](https://github.com/dinngo/protocolink-logics)) repository instead of in the contracts. Protocolink also offers an [API](https://docs.protocolink.com/integrate-api/overview) and a [SDK](https://docs.protocolink.com/integrate-js-sdk/overview) for developers to create transactions.
 
-The flexibility of Protocolink comes from its protocol-agnostic nature, with all protocol-related code defined in the below repos and outside of contracts:
-
-- https://github.com/dinngo/protocolink-logics
-- https://github.com/dinngo/protocolink-js-sdk
+More details can be found at [Protocolink Overview](https://docs.protocolink.com/).
 
 ## Contract
 
-Protocolink contracts consist of the following components:
+When a user tries to execute a transaction:
 
-- `Router`: The single entry point for users to interact with when executing transactions. `Router` forwards user transactions to respective `Agents`.
-- `Agent`: The execution unit of user transactions. The token approvals are securely held since one `Agent` is exclusive to one user only.
-- `Callback`: One-time address is used for reentering `Agent`. Can only be set during contract execution.
-- `Utility`: Can be called by `Agent` to perform additional actions.
+1. ERC-20 tokens are transferred through the [Permit2](https://github.com/Uniswap/permit2).
+1. The data is passed to an exclusive Agent through the Router.
+1. The Agent transfers tokens from the user and executes the data.
+1. After the data is executed, the Agent returns tokens back to the user.
 
-## Usage
+Protocolink contracts consist of:
+
+- `Router`: The single entry point for users to interact with. The Router forwards the data to an Agent when executing a transaction.
+- `Agent`: The execution unit of user transactions. The Agent executes the data like token transfer, liquidity provision, and yield farming.
+- `Callback`: The entry point for protocol callbacks to re-enter the Agent in a transaction.
+- `Utility`: The extensions for the Agent to perform extra actions like interacting with specific protocols, calculating token prices, and managing users data.
+
+The details of each component can be found at [Smart Contract Overview](https://docs.protocolink.com/smart-contract/overview).
+
+## Developer Guide
+
+### Prerequisites
+
+The code in this repository is built using the Foundry framework. You can follow [these](https://book.getfoundry.sh/getting-started/installation) setup instructions if you have not set it up yet.
 
 ### Build
 
@@ -30,11 +42,15 @@ Protocolink contracts consist of the following components:
 
 ### Test
 
-`forge test --fork-url https://cloudflare-eth.com -vvv`
+`forge test –fork-url ${FOUNDRY_ETH_RPC_URL} --no-match-path 'test/invariants/*' --no-match-contract Radiant -vvv`
+
+### Invariant Test
+
+`forge test --match-path 'test/invariants/*' -vvv`
 
 ### Coverage
 
-`forge coverage --rpc-url https://rpc.ankr.com/eth --report summary`
+`forge coverage --rpc-url ${FOUNDRY_ETH_RPC_URL} --report summary`
 
 ### Deploy Contract(s)
 
