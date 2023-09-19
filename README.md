@@ -7,14 +7,15 @@
 ## Overview
 
 - Protocolink is a router system which consolidates protocol interactions within a secure Router/Agent architecture in a single transaction.
-- Protocolink is proficient in processing ERC20, ERC721, ERC1155 and lending positions.
-- Protocolink is protocol-agnostic. All protocol-related code (eg., the [Protocolink Logic](https://github.com/dinngo/protocolink-logics)) is defined outside of the contracts. Protocolink also offers an [API](https://app.gitbook.com/o/-MJ0tv29EsBtmEHq0z5Q/s/HuiitAfgh7HXRqRn5di2/integrate-api/overview) and a [SDK](https://app.gitbook.com/o/-MJ0tv29EsBtmEHq0z5Q/s/HuiitAfgh7HXRqRn5di2/integrate-js-sdk/overview) for developers to create transactions.
+- Protocolink is proficient in processing ERC-20, ERC-721, ERC-1155 and lending positions.
+- Protocolink is protocol-agnostic. All protocol-related code is defined in the [protocolink-logics](https://github.com/dinngo/protocolink-logics)) repository instead of in the contracts. Protocolink also offers an [API](https://docs.protocolink.com/integrate-api/overview) and a [SDK](https://docs.protocolink.com/integrate-js-sdk/overview) for developers to create transactions.
 
 More details can be found at [Protocolink Overview](https://docs.protocolink.com/).
 
 ## Contract
 
 When a user tries to execute a transaction:
+
 1. ERC-20 tokens are transferred through the [Permit2](https://github.com/Uniswap/permit2).
 1. The data is passed to an exclusive Agent through the Router.
 1. The Agent transfers tokens from the user and executes the data.
@@ -32,6 +33,7 @@ The details of each component can be found at [Smart Contract Overview](https://
 ## Developer Guide
 
 ### Prerequisites
+
 The code in this repository is built using the Foundry framework. You can follow [these](https://book.getfoundry.sh/getting-started/installation) setup instructions if you have not set it up yet.
 
 ### Build
@@ -43,6 +45,7 @@ The code in this repository is built using the Foundry framework. You can follow
 `forge test –fork-url ${FOUNDRY_ETH_RPC_URL} --no-match-path 'test/invariants/*' --no-match-contract Radiant -vvv`
 
 ### Invariant Test
+
 `forge test --match-path 'test/invariants/*' -vvv`
 
 ### Coverage
