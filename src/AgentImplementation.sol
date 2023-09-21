@@ -65,7 +65,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
     /// @notice Initialize user's agent and can only be called once.
     function initialize() external {
         if (_callbackWithCharge.isInitialized()) revert Initialized();
-        _callbackWithCharge = CallbackLibrary._INIT_CALLBACK_WITH_CHARGE;
+        _callbackWithCharge = CallbackLibrary.INIT_CALLBACK_WITH_CHARGE;
     }
 
     /// @notice Execute arbitrary logics and is only callable by the router. Charge fee during the execution of
@@ -124,7 +124,7 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         // Reset immediately to prevent reentrancy
         // If reentrancy is not blocked, an attacker could manipulate the callback contract to compel agent to execute
         // malicious logic, such as transferring funds from agents and users.
-        _callbackWithCharge = CallbackLibrary._INIT_CALLBACK_WITH_CHARGE;
+        _callbackWithCharge = CallbackLibrary.INIT_CALLBACK_WITH_CHARGE;
 
         // Execute logics with the charge fee flag
         _executeLogics(logics, callbackWithCharge.isCharging());
