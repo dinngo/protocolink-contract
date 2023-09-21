@@ -42,11 +42,7 @@ The code in this repository is built using the Foundry framework. You can follow
 
 ### Test
 
-`forge test –fork-url ${FOUNDRY_ETH_RPC_URL} --no-match-path 'test/invariants/*' --no-match-contract Radiant -vvv`
-
-### Invariant Test
-
-`forge test --match-path 'test/invariants/*' -vvv`
+`forge test -vvv`
 
 ### Coverage
 

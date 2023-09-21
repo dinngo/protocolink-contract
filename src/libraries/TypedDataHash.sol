@@ -34,7 +34,7 @@ library TypedDataHash {
     bytes32 internal constant DELEGATION_DETAILS_TYPEHASH =
         keccak256('DelegationDetails(address delegatee,uint128 expiry,uint128 nonce,uint256 deadline)');
 
-    function hash(DataType.Input calldata input) internal pure returns (bytes32) {
+    function hash(DataType.Input memory input) internal pure returns (bytes32) {
         return keccak256(abi.encode(INPUT_TYPEHASH, input));
     }
 

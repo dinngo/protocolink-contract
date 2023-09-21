@@ -30,6 +30,8 @@ contract MakerUtilityTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('ethereum'));
+
         (user, userPrivateKey) = makeAddrAndKey('User');
         router = new Router(makeAddr('WrappedNative'), permit2Addr, address(this));
         makerUtility = new MakerUtility(address(router), PROXY_REGISTRY, CDP_MANAGER, PROXY_ACTIONS, DAI_TOKEN, JUG);

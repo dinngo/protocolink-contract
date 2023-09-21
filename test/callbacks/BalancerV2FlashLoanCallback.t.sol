@@ -23,6 +23,8 @@ contract BalancerV2FlashLoanCallbackTest is Test {
     DataType.Input[] public inputsEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('ethereum'));
+
         user = makeAddr('User');
         defaultCollector = makeAddr('defaultCollector');
         defaultReferral = bytes32(bytes20(defaultCollector)) | bytes32(uint256(BPS_BASE));

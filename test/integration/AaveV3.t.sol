@@ -60,7 +60,7 @@ contract AaveV3IntegrationTest is Test {
     IRouter public router;
     IAgent public agent;
     IAaveV3FlashLoanCallback public flashLoanCallback;
-    IAaveV3Pool pool = IAaveV3Pool(IAaveV3Provider(AAVE_V3_PROVIDER).getPool());
+    IAaveV3Pool public pool;
 
     // Empty arrays
     address[] public tokensReturnEmpty;
@@ -68,11 +68,14 @@ contract AaveV3IntegrationTest is Test {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('ethereum'));
+
         user = makeAddr('User');
         router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this));
         vm.prank(user);
         agent = IAgent(router.newAgent());
         flashLoanCallback = new AaveV3FlashLoanCallback(address(router), address(AAVE_V3_PROVIDER), 0);
+        pool = IAaveV3Pool(IAaveV3Provider(AAVE_V3_PROVIDER).getPool());
 
         // User approved agent aave v3 delegation
         vm.startPrank(user);

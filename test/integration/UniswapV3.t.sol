@@ -118,6 +118,8 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('ethereum'));
+
         (user, userPrivateKey) = makeAddrAndKey('User');
         router = new Router(makeAddr('WrappedNative'), permit2Addr, address(this));
         vm.prank(user);
