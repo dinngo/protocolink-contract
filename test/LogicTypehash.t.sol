@@ -31,7 +31,7 @@ contract LogicTypehash is Test, TypedDataSignature {
 
     function testLogicBatchTypehash() external {
         // Signed a logicBatch using metamask to obtain an external sig
-        // https://github.com/dinngo/test-dapp/tree/for-protocolink-contract
+        // https://stackblitz.com/edit/github-n5du9g-vs99sw?file=index.tsx
         bytes32 r = 0x17596488ceb1bc0451bd9484dcb56783e4ef7007324c933a664b1f4f3a080ac7;
         bytes32 s = 0x45b94050499753507fb2efe92ad0a2df0378b2c03bd50e65a350968d51c40884;
         uint8 v = 0x1c;
