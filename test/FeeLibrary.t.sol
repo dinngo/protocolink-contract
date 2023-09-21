@@ -7,7 +7,6 @@ import {ERC20, IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/ER
 import {DataType} from 'src/libraries/DataType.sol';
 import {FeeLibrary} from 'src/libraries/FeeLibrary.sol';
 import {MockFeeLibrary} from './mocks/MockFeeLibrary.sol';
-import 'forge-std/console.sol';
 
 contract FeeLibraryTest is Test {
     using FeeLibrary for DataType.Fee;
