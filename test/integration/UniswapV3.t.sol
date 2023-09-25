@@ -92,6 +92,9 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
     using SafeERC20 for IERC20;
     using SafeCast160 for uint256;
 
+    event IncreaseLiquidity(uint256 indexed tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+    event DecreaseLiquidity(uint256 indexed tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     IERC20 public constant USDT = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
@@ -143,7 +146,7 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         tokenIn0 = USDC;
         tokenIn1 = USDT;
         amountIn0 = bound(amountIn0, 1e6, 1e10);
-        amountIn1 = bound(amountIn0, 1e6, 1e10);
+        amountIn1 = bound(amountIn1, 1e6, 1e10);
         deal(address(tokenIn0), user, amountIn0);
         deal(address(tokenIn1), user, amountIn1);
 
@@ -229,9 +232,23 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         vm.startPrank(user);
         tokenIn0.safeApprove(address(NON_FUNGIBLE_POSITION_MANAGER), type(uint256).max);
         tokenIn1.safeApprove(address(NON_FUNGIBLE_POSITION_MANAGER), type(uint256).max);
-        (tokenId, , , ) = NON_FUNGIBLE_POSITION_MANAGER.mint(mintParams);
-        (, , , , , , , liquidity, , , , ) = NON_FUNGIBLE_POSITION_MANAGER.positions(tokenId);
         vm.stopPrank();
+        (, bytes memory returnData) = _callStatic(
+            user,
+            address(NON_FUNGIBLE_POSITION_MANAGER),
+            abi.encodeWithSelector(NON_FUNGIBLE_POSITION_MANAGER.mint.selector, mintParams)
+        );
+        uint256 estimatedAmount0;
+        uint256 estimatedAmount1;
+        (tokenId, liquidity, estimatedAmount0, estimatedAmount1) = abi.decode(
+            returnData,
+            (uint256, uint128, uint256, uint256)
+        );
+
+        vm.prank(user);
+        vm.expectEmit(true, true, true, true, address(NON_FUNGIBLE_POSITION_MANAGER));
+        emit IncreaseLiquidity(tokenId, liquidity, estimatedAmount0, estimatedAmount1);
+        NON_FUNGIBLE_POSITION_MANAGER.mint(mintParams);
 
         // Get estimate value
         INonfungiblePositionManager.IncreaseLiquidityParams memory increaseParams = INonfungiblePositionManager
@@ -243,12 +260,13 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
                 amount1Min: 0,
                 deadline: block.timestamp
             });
-        (, bytes memory returnData) = _callStatic(
+        (, returnData) = _callStatic(
             user,
             address(NON_FUNGIBLE_POSITION_MANAGER),
             abi.encodeWithSelector(NON_FUNGIBLE_POSITION_MANAGER.increaseLiquidity.selector, increaseParams)
         );
-        (uint128 increasedLiquidity, , ) = abi.decode(returnData, (uint128, uint256, uint256));
+        uint128 increasedLiquidity;
+        (increasedLiquidity, estimatedAmount0, estimatedAmount1) = abi.decode(returnData, (uint128, uint256, uint256));
 
         // Encode permit2Datas
         bytes[] memory datas = new bytes[](2);
@@ -265,15 +283,15 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
 
         // Execute
         vm.prank(user);
+        vm.expectEmit(true, true, true, true, address(NON_FUNGIBLE_POSITION_MANAGER));
+        emit IncreaseLiquidity(tokenId, increasedLiquidity, estimatedAmount0, estimatedAmount1);
         router.execute(datas, logics, tokensReturn);
 
         // Verify
-        (, , , , , , , uint128 newLiquidity, , , , ) = NON_FUNGIBLE_POSITION_MANAGER.positions(tokenId);
         assertEq(tokenIn0.balanceOf(address(router)), 0);
         assertEq(tokenIn0.balanceOf(address(agent)), 0);
         assertEq(tokenIn1.balanceOf(address(router)), 0);
         assertEq(tokenIn1.balanceOf(address(agent)), 0);
-        assertEq(newLiquidity, increasedLiquidity + liquidity);
     }
 
     function testExecuteUniswapV3RemoveLiquidityAndCollect(uint256 amountIn0, uint256 amountIn1) external {
@@ -303,16 +321,29 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         vm.startPrank(user);
         tokenIn0.safeApprove(address(NON_FUNGIBLE_POSITION_MANAGER), type(uint256).max);
         tokenIn1.safeApprove(address(NON_FUNGIBLE_POSITION_MANAGER), type(uint256).max);
-
-        (tokenId, liquidity, , ) = NON_FUNGIBLE_POSITION_MANAGER.mint(mintParams);
         vm.stopPrank();
+        (, bytes memory returnData) = _callStatic(
+            user,
+            address(NON_FUNGIBLE_POSITION_MANAGER),
+            abi.encodeWithSelector(NON_FUNGIBLE_POSITION_MANAGER.mint.selector, mintParams)
+        );
+        uint256 estimatedAmount0;
+        uint256 estimatedAmount1;
+        (tokenId, liquidity, estimatedAmount0, estimatedAmount1) = abi.decode(
+            returnData,
+            (uint256, uint128, uint256, uint256)
+        );
+        vm.prank(user);
+        vm.expectEmit(true, true, true, true, address(NON_FUNGIBLE_POSITION_MANAGER));
+        emit IncreaseLiquidity(tokenId, liquidity, estimatedAmount0, estimatedAmount1);
+        NON_FUNGIBLE_POSITION_MANAGER.mint(mintParams);
 
         // Prepare decreased action parameter
         uint128 decreasedLiquidity = liquidity / 2;
         INonfungiblePositionManager.DecreaseLiquidityParams memory decreaseParams = INonfungiblePositionManager
             .DecreaseLiquidityParams({
                 tokenId: tokenId,
-                liquidity: liquidity / 2,
+                liquidity: decreasedLiquidity,
                 amount0Min: 0,
                 amount1Min: 0,
                 deadline: block.timestamp
@@ -327,40 +358,25 @@ contract UniswapV3Test is Test, ERC20Permit2Utils, ERC721Utils {
         logics[0] = _logicUniswapV3DecreaseLiquidity(decreaseParams);
 
         // Get Estimate result
-        (, bytes memory returnData) = _callStatic(
+        (, returnData) = _callStatic(
             user,
             address(NON_FUNGIBLE_POSITION_MANAGER),
             abi.encodeWithSelector(NON_FUNGIBLE_POSITION_MANAGER.decreaseLiquidity.selector, decreaseParams)
         );
-        (uint256 estimatedAmount0, uint256 estimatedAmount1) = abi.decode(returnData, (uint256, uint256));
+        (estimatedAmount0, estimatedAmount1) = abi.decode(returnData, (uint256, uint256));
 
         // Execute remove liquidity action
         vm.prank(user);
+        vm.expectEmit(true, true, true, true, address(NON_FUNGIBLE_POSITION_MANAGER));
+        emit DecreaseLiquidity(tokenId, decreasedLiquidity, estimatedAmount0, estimatedAmount1);
         router.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
 
-        // Verify remove liquidity
-        (
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            uint128 newLiquidity,
-            ,
-            ,
-            uint256 tokensOwed0,
-            uint256 tokensOwed1
-        ) = NON_FUNGIBLE_POSITION_MANAGER.positions(tokenId);
+        // Verify
         assertEq(tokenIn0.balanceOf(address(router)), 0);
         assertEq(tokenIn0.balanceOf(address(agent)), 0);
         assertEq(tokenIn1.balanceOf(address(router)), 0);
         assertEq(tokenIn1.balanceOf(address(agent)), 0);
-        assertEq(newLiquidity, liquidity - decreasedLiquidity);
         assertEq(NON_FUNGIBLE_POSITION_MANAGER.ownerOf(tokenId), user);
-        assertEq(tokensOwed0, estimatedAmount0);
-        assertEq(tokensOwed1, estimatedAmount1);
 
         // Get estimated collect amount
         INonfungiblePositionManager.CollectParams memory collectParams = INonfungiblePositionManager.CollectParams({
