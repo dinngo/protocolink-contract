@@ -148,7 +148,7 @@ contract Router is IRouter, Ownable, EIP712 {
         return _domainSeparatorV4();
     }
 
-    /// @notice Get the fee collector address that collects fees from each user's agent by owner
+    /// @notice Get the fee collector address that collects fees from each user's agent
     /// @return The fee collector address
     function defaultCollector() external view returns (address) {
         return address(bytes20(defaultReferral));
