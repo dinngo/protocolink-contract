@@ -43,8 +43,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
     bytes32 public constant V2_FLASHLOAN_META_DATA = bytes32(bytes('aave-v2:flash-loan'));
     bytes32 public constant V3_FLASHLOAN_META_DATA = bytes32(bytes('aave-v3:flash-loan'));
 
-    address v2Pool = IAaveV2Provider(AAVE_V2_PROVIDER).getLendingPool();
-    address v3Pool = IAaveV3Provider(AAVE_V3_PROVIDER).getPool();
+    address public v2Pool;
+    address public v3Pool;
 
     address public user;
     address public user2;
@@ -60,6 +60,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
     bytes[] public datasEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('ethereum'));
+
         user = makeAddr('User');
         defaultCollector = makeAddr('FeeCollector');
 
@@ -68,6 +70,8 @@ contract AaveFlashLoanFeeCalculatorTest is Test {
         router.setFeeCollector(defaultCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
+        v2Pool = IAaveV2Provider(AAVE_V2_PROVIDER).getLendingPool();
+        v3Pool = IAaveV3Provider(AAVE_V3_PROVIDER).getPool();
         flashLoanCallbackV2 = new AaveV2FlashLoanCallback(address(router), AAVE_V2_PROVIDER, FEE_RATE);
         flashLoanCallbackV3 = new AaveV3FlashLoanCallback(address(router), AAVE_V3_PROVIDER, FEE_RATE);
 

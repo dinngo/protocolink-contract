@@ -23,8 +23,6 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
     address public constant ANY_TO_ADDRESS = address(0);
     bytes4 public constant BALANCER_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],bytes)')));
-    bytes4 public constant PERMIT2_TRANSFER_FROM_SELECTOR =
-        bytes4(keccak256(bytes('transferFrom(address,address,uint160,address)')));
     bytes4 public constant NATIVE_FEE_SELECTOR = 0xeeeeeeee;
     uint256 public constant BPS_NOT_USED = 0;
     uint256 public constant BPS_BASE = 10_000;
@@ -47,6 +45,8 @@ contract BalancerFlashLoanFeeCalculatorTest is Test {
     bytes[] public datasEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('ethereum'));
+
         user = makeAddr('User');
         user2 = makeAddr('User2');
         defaultCollector = makeAddr('FeeCollector');

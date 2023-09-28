@@ -119,20 +119,13 @@ contract RouterTest is Test, TypedDataSignature {
         vm.stopPrank();
     }
 
-    function testGetAgentWithUserExecuting() external {
-        vm.prank(user);
-        router.newAgent();
-        address agent = router.getAgent(user);
+    function testGetAgentWithUserAfterExecute() external {
         vm.prank(user);
         router.execute(permit2DatasEmpty, logicsEmpty, tokensReturnEmpty);
-        (, agent) = router.getCurrentUserAgent();
+        (address currentUser, address agent) = router.getCurrentUserAgent();
         // The executing agent should be reset to 0
         assertEq(agent, address(0));
-    }
-
-    function checkExecutingAgent(address agent) external view {
-        (, address executingAgent) = router.getCurrentUserAgent();
-        if (agent != executingAgent) revert();
+        assertEq(currentUser, INIT_CURRENT_USER);
     }
 
     function testExecuteBySig() external {
@@ -530,7 +523,7 @@ contract RouterTest is Test, TypedDataSignature {
         assertFalse(router.getAgent(user) == address(0));
     }
 
-    function testExecuteForAfterExpiry() external {
+    function testCannotExecuteForAfterExpiry() external {
         uint128 expiry = uint128(block.timestamp) + 3600;
         vm.prank(user);
         router.allow(delegatee, expiry);
@@ -556,7 +549,7 @@ contract RouterTest is Test, TypedDataSignature {
         router.executeForWithSignerFee(user, permit2DatasEmpty, logicBatch, signer, signature, tokensReturnEmpty);
     }
 
-    function testExecuteForWithSignerFeeAfterExpiry() external {
+    function testCannotExecuteForWithSignerFeeAfterExpiry() external {
         uint128 expiry = uint128(block.timestamp) + 3600;
         vm.prank(user);
         router.allow(delegatee, expiry);

@@ -59,7 +59,7 @@ contract AaveV2IntegrationTest is Test {
     IRouter public router;
     IAgent public agent;
     IAaveV2FlashLoanCallback public flashLoanCallback;
-    IAaveV2Pool pool = IAaveV2Pool(IAaveV2Provider(AAVE_V2_PROVIDER).getLendingPool());
+    IAaveV2Pool public pool;
 
     // Empty arrays
     address[] public tokensReturnEmpty;
@@ -67,11 +67,14 @@ contract AaveV2IntegrationTest is Test {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('ethereum'));
+
         user = makeAddr('User');
         router = new Router(makeAddr('WrappedNative'), permit2Addr, address(this));
         vm.prank(user);
         agent = IAgent(router.newAgent());
         flashLoanCallback = new AaveV2FlashLoanCallback(address(router), address(AAVE_V2_PROVIDER), 0);
+        pool = IAaveV2Pool(IAaveV2Provider(AAVE_V2_PROVIDER).getLendingPool());
 
         // User approved agent aave v2 delegation
         vm.startPrank(user);

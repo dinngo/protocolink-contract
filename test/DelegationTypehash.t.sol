@@ -31,7 +31,7 @@ contract DelegationTypehash is Test, TypedDataSignature {
 
     function testDelegationTypehash() external {
         // Sign a delegation using metamask to obtain an external sig
-        // https://github.com/dinngo/test-dapp/tree/for-protocolink-contract
+        // https://stackblitz.com/edit/github-n5du9g-zu5mon?file=index.tsx
         bytes32 r = 0x0a72526ee624f791e6ba9422605b948d6ef83269b3564f999bddec171c01fb90;
         bytes32 s = 0x3dbd916144c08cfff38009fe2b932db41ec31b6bffc1c6ebca772274b37f600e;
         uint8 v = 0x1c;

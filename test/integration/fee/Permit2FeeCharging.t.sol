@@ -16,8 +16,6 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
 
     event Charged(address indexed token, uint256 amount, address indexed collector, bytes32 metadata);
 
-    bytes4 public constant PERMIT2_TRANSFER_FROM_SELECTOR =
-        bytes4(keccak256(bytes('transferFrom(address,address,uint160,address)')));
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant PERMIT2_ADDR = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     uint256 public constant BPS_BASE = 10_000;
@@ -37,6 +35,9 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
     bytes32[] public referralsEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('ethereum'));
+        TypedDataSignature.initialize();
+
         (user, userPrivateKey) = makeAddrAndKey('User');
         (signer, signerPrivateKey) = makeAddrAndKey('Signer');
         defaultCollector = makeAddr('FeeCollector');

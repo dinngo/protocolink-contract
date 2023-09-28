@@ -9,6 +9,11 @@ contract TypedDataSignature is Test {
     MockTypedDataHash mockTypedDataHash;
 
     constructor() {
+        initialize();
+    }
+
+    // For createSelectFork
+    function initialize() internal {
         mockTypedDataHash = new MockTypedDataHash();
     }
 

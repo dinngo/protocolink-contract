@@ -40,7 +40,7 @@ contract RadiantV2IntegrationTest is Test {
     IRouter public router;
     IAgent public agent;
     IAaveV2FlashLoanCallback public flashLoanCallback;
-    IRadiantV2Pool pool = IRadiantV2Pool(IAaveV2Provider(RADIANT_V2_PROVIDER).getLendingPool());
+    IRadiantV2Pool public pool;
 
     // Empty arrays
     address[] public tokensReturnEmpty;
@@ -48,11 +48,14 @@ contract RadiantV2IntegrationTest is Test {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('arbitrum'));
+
         user = makeAddr('User');
         router = new Router(makeAddr('WrappedNative'), permit2Addr, address(this));
         vm.prank(user);
         agent = IAgent(router.newAgent());
         flashLoanCallback = new RadiantV2FlashLoanCallback(address(router), address(RADIANT_V2_PROVIDER), 0);
+        pool = IRadiantV2Pool(IAaveV2Provider(RADIANT_V2_PROVIDER).getLendingPool());
 
         vm.label(address(router), 'Router');
         vm.label(address(agent), 'Agent');

@@ -30,6 +30,8 @@ contract ERC1155MarketTest is Test, ERC20Permit2Utils, ERC1155Utils {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('ethereum'));
+
         (user, userPrivateKey) = makeAddrAndKey('User');
         router = new Router(makeAddr('WrappedNative'), permit2Addr, address(this));
         vm.prank(user);

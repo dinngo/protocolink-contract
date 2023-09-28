@@ -35,7 +35,7 @@ contract RadiantFlashLoanFeeCalculatorTest is Test {
     uint256 public constant FEE_RATE = 5;
     bytes32 public constant V2_FLASHLOAN_META_DATA = bytes32(bytes('radiant-v2:flash-loan'));
 
-    address v2Pool = IAaveV2Provider(RADIANT_V2_PROVIDER).getLendingPool();
+    address public v2Pool;
 
     address public user;
     address public user2;
@@ -50,6 +50,8 @@ contract RadiantFlashLoanFeeCalculatorTest is Test {
     bytes[] public datasEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('arbitrum'));
+
         user = makeAddr('User');
         defaultCollector = makeAddr('FeeCollector');
 
@@ -58,6 +60,7 @@ contract RadiantFlashLoanFeeCalculatorTest is Test {
         router.setFeeCollector(defaultCollector);
         vm.prank(user);
         userAgent = IAgent(router.newAgent());
+        v2Pool = IAaveV2Provider(RADIANT_V2_PROVIDER).getLendingPool();
         flashLoanCallback = new RadiantV2FlashLoanCallback(address(router), RADIANT_V2_PROVIDER, FEE_RATE);
 
         vm.label(address(router), 'Router');

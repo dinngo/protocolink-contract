@@ -32,7 +32,7 @@ contract ExecutionTypehash is Test, TypedDataSignature {
 
     function testExecutionTypehash() external {
         // Sign an execution using metamask to obtain an external sig
-        // https://github.com/dinngo/test-dapp/tree/for-protocolink-contract
+        // https://stackblitz.com/edit/github-n5du9g-n8cdi5?file=index.tsx
         bytes32 r = 0x9d7af15d25008b86af31294cb197594644a063b6ab5a003a5fa44c30cec9dfce;
         bytes32 s = 0x64337b3c36cda2928a07832a555679dfd5da27f7de20b320dfca14b05d5d039b;
         uint8 v = 0x1c;
@@ -85,7 +85,7 @@ contract ExecutionTypehash is Test, TypedDataSignature {
 
     function testExecutionBatchTypehash() external {
         // Sign an execution using metamask to obtain an external sig
-        // https://github.com/dinngo/test-dapp/tree/for-protocolink-contract
+        // https://stackblitz.com/edit/github-n5du9g-6cfxmy?file=index.tsx
         bytes32 r = 0x56c3c9b76519abeac06310197c7b71e377a0885e24302161b0e85d488c28cea7;
         bytes32 s = 0x0ac88a739c8a7f7f685fb63ee1d8c56e570e8625b89879891d61341a9718935a;
         uint8 v = 0x1c;

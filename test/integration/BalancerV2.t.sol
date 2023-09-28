@@ -31,6 +31,8 @@ contract BalancerV2IntegrationTest is Test {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
+        vm.createSelectFork(vm.rpcUrl('ethereum'));
+
         user = makeAddr('User');
         router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this));
         flashLoanCallback = new BalancerV2FlashLoanCallback(address(router), address(balancerV2Vault), 0);
