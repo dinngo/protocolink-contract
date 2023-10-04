@@ -5,9 +5,9 @@ import {console2} from 'forge-std/console2.sol';
 import {ICREATE3Factory} from 'create3-factory/ICREATE3Factory.sol';
 
 import {AaveV3FlashLoanCallback} from 'src/callbacks/AaveV3FlashLoanCallback.sol';
-import {DeployBase} from 'script/DeployBase.s.sol';
+import {DeployBaseScript} from 'script/DeployBaseScript.s.sol';
 
-abstract contract DeployAaveV3FlashLoanCallback is DeployBase {
+abstract contract DeployAaveV3FlashLoanCallback is DeployBaseScript {
     struct AaveV3FlashLoanCallbackConfig {
         address deployedAddress;
         // constructor params
