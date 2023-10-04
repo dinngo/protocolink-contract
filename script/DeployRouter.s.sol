@@ -5,9 +5,9 @@ import {console2} from 'forge-std/console2.sol';
 import {ICREATE3Factory} from 'create3-factory/ICREATE3Factory.sol';
 
 import {Router} from 'src/Router.sol';
-import {DeployBase} from './DeployBase.s.sol';
+import {DeployBaseScript} from './DeployBaseScript.s.sol';
 
-abstract contract DeployRouter is DeployBase {
+abstract contract DeployRouter is DeployBaseScript {
     struct RouterConfig {
         address deployedAddress;
         // constructor params

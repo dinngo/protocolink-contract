@@ -5,9 +5,9 @@ import {console2} from 'forge-std/console2.sol';
 import {ICREATE3Factory} from 'create3-factory/ICREATE3Factory.sol';
 
 import {BalancerV2FlashLoanCallback} from 'src/callbacks/BalancerV2FlashLoanCallback.sol';
-import {DeployBase} from 'script/DeployBase.s.sol';
+import {DeployBaseScript} from 'script/DeployBaseScript.s.sol';
 
-abstract contract DeployBalancerV2FlashLoanCallback is DeployBase {
+abstract contract DeployBalancerV2FlashLoanCallback is DeployBaseScript {
     struct BalancerV2FlashLoanCallbackConfig {
         address deployedAddress;
         // constructor params

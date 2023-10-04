@@ -5,9 +5,9 @@ import {console2} from 'forge-std/console2.sol';
 import {ICREATE3Factory} from 'create3-factory/ICREATE3Factory.sol';
 
 import {MakerUtility} from 'src/utilities/MakerUtility.sol';
-import {DeployBase} from 'script/DeployBase.s.sol';
+import {DeployBaseScript} from 'script/DeployBaseScript.s.sol';
 
-abstract contract DeployMakerUtility is DeployBase {
+abstract contract DeployMakerUtility is DeployBaseScript {
     struct MakerUtilityConfig {
         address deployedAddress;
         // constructor params

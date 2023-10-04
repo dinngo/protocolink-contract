@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import {console2} from 'forge-std/console2.sol';
 import {CREATE3Factory} from 'create3-factory/CREATE3Factory.sol';
-import {DeployBase} from './DeployBase.s.sol';
+import {DeployBaseScript} from './DeployBaseScript.s.sol';
 
-abstract contract DeployCREATE3Factory is DeployBase {
+abstract contract DeployCREATE3Factory is DeployBaseScript {
     struct Create3FactoryConfig {
         address deployedAddress;
         // constructor params
