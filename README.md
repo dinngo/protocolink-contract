@@ -48,33 +48,21 @@ The code in this repository is built using the Foundry framework. You can follow
 
 `forge coverage --rpc-url ${FOUNDRY_ETH_RPC_URL} --report summary`
 
-### Deploy Contract(s)
+### Deploy Contract(s) and Verify
 
-Fill out parameters in `script/Deploy<network>.s.sol`
-
-- This script deploys all contracts whose `deployedAddress` equals `UNDEPLOYED`.
-
-```console
-forge script --broadcast \
---rpc-url <RPC-URL> \
---private-key <PRIVATE-KEY> \
---sig 'run()' \
-script/Deploy<network>.s.sol:Deploy<network> \
---slow
-```
-
-### Deploy and Verify
-
-Fill out parameters in `script/Deploy<network>.s.sol`
+- Fill out parameters in `script/Deploy<NETWORK>.s.sol`. This script deploys all contracts whose `deployedAddress` equals `UNDEPLOYED`.
+- When deploying with `forge`, the default priority gas is set at 3 gwei. This is considered a high priority gas fee on both Ethereum and most L2s. The workaround is to check the appropriate total gas at the time of deployment and use `--legacy` (pre EIP-1559 - Type 1 Transaction) for deployment.
 
 ```console
 forge script --broadcast \
 --rpc-url <RPC-URL> \
 --private-key <PRIVATE-KEY> \
 --sig 'run()' \
-script/Deploy<network>.s.sol:Deploy<network> \
+script/Deploy<NETWORK>.s.sol:Deploy<NETWORK> \
 --chain-id <CHAIN-ID> \
 --etherscan-api-key <ETHERSCAN-API-KEY> \
 --verify \
---slow
+--slow \
+--legacy \
+--with-gas-price <GAS-IN-WEI>
 ```
