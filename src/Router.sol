@@ -130,7 +130,7 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @param feeCollector_ The fee collector address
     function setFeeCollector(address feeCollector_) external onlyOwner {
         if (feeCollector_ == address(0)) revert InvalidFeeCollector();
-        defaultReferral = bytes32(bytes20(feeCollector_)) | bytes32(uint256(_BPS_BASE));
+        defaultReferral = bytes32(bytes20(feeCollector_)) | bytes32(_BPS_BASE);
         emit FeeCollectorSet(feeCollector_);
     }
 
@@ -241,7 +241,7 @@ contract Router is IRouter, Ownable, EIP712 {
         _execute(msg.sender, permit2Datas, logics, tokensReturn);
     }
 
-    /// @notice Execute arbitrary logics through the given user's agent. Creates an agent for user if not created.
+    /// @notice Execute arbitrary logics through the given user's agent after the delegation. Creates an agent for user if not created.
     ///         Fees are charged in the user's agent during the execution of msg.value, permit2 and flash loans.
     /// @param user The user address
     /// @param permit2Datas Array of datas to be processed through permit2 contract
@@ -268,7 +268,9 @@ contract Router is IRouter, Ownable, EIP712 {
         bytes calldata signature
     ) external payable whenReady(user) {
         _validateExecutionDetails(details, user, signature);
-        ++executionNonces[user];
+        unchecked {
+            ++executionNonces[user];
+        }
         _execute(user, details.permit2Datas, details.logics, details.tokensReturn);
     }
 
@@ -333,7 +335,9 @@ contract Router is IRouter, Ownable, EIP712 {
         _validateExecutionBatchDetails(details, user, userSignature);
         DataType.LogicBatch calldata logicBatch = details.logicBatch;
         _validateLogicBatch(logicBatch, signer, signerSignature);
-        ++executionNonces[user];
+        unchecked {
+            ++executionNonces[user];
+        }
         _executeWithSignerFee(user, details.permit2Datas, logicBatch, details.tokensReturn);
     }
 
@@ -385,10 +389,9 @@ contract Router is IRouter, Ownable, EIP712 {
         bytes calldata signature
     ) internal view {
         uint256 deadline = details.deadline;
-        uint256 nonce = details.nonce;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
         if (!signer.isValidSignatureNow(_hashTypedDataV4(details.hash()), signature)) revert InvalidSignature();
-        if (executionNonces[signer] != nonce) revert InvalidNonce();
+        if (executionNonces[signer] != details.nonce) revert InvalidNonce();
     }
 
     function _validateExecutionBatchDetails(
@@ -397,10 +400,9 @@ contract Router is IRouter, Ownable, EIP712 {
         bytes calldata signature
     ) internal view {
         uint256 deadline = details.deadline;
-        uint256 nonce = details.nonce;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
         if (!signer.isValidSignatureNow(_hashTypedDataV4(details.hash()), signature)) revert InvalidSignature();
-        if (executionNonces[signer] != nonce) revert InvalidNonce();
+        if (executionNonces[signer] != details.nonce) revert InvalidNonce();
     }
 
     function _validateLogicBatch(
