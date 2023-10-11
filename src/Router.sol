@@ -267,15 +267,8 @@ contract Router is IRouter, Ownable, EIP712 {
         address user,
         bytes calldata signature
     ) external payable whenReady(user) {
-        {
-            uint256 deadline = details.deadline;
-            uint256 nonce = details.nonce;
-            // Verify deadline, signature and nonce
-            if (block.timestamp > deadline) revert SignatureExpired(deadline);
-            if (!user.isValidSignatureNow(_hashTypedDataV4(details.hash()), signature)) revert InvalidSignature();
-            if (executionNonces[user] != nonce) revert InvalidNonce();
-            ++executionNonces[user];
-        }
+        _validateExecutionDetails(details, user, signature);
+        ++executionNonces[user];
         _execute(user, details.permit2Datas, details.logics, details.tokensReturn);
     }
 
@@ -295,7 +288,7 @@ contract Router is IRouter, Ownable, EIP712 {
         bytes calldata signature,
         address[] calldata tokensReturn
     ) external payable whenReady(msg.sender) {
-        _verifySignerFee(logicBatch, signer, signature);
+        _validateLogicBatch(logicBatch, signer, signature);
         _executeWithSignerFee(msg.sender, permit2Datas, logicBatch, tokensReturn);
     }
 
@@ -318,7 +311,7 @@ contract Router is IRouter, Ownable, EIP712 {
         address[] calldata tokensReturn
     ) external payable whenReady(user) {
         if (!_isValidDelegateeFor(user)) revert InvalidDelegatee();
-        _verifySignerFee(logicBatch, signer, signature);
+        _validateLogicBatch(logicBatch, signer, signature);
         _executeWithSignerFee(user, permit2Datas, logicBatch, tokensReturn);
     }
 
@@ -337,17 +330,10 @@ contract Router is IRouter, Ownable, EIP712 {
         address signer,
         bytes calldata signerSignature
     ) external payable whenReady(user) {
+        _validateExecutionBatchDetails(details, user, userSignature);
         DataType.LogicBatch calldata logicBatch = details.logicBatch;
-        {
-            uint256 deadline = details.deadline;
-            uint256 nonce = details.nonce;
-            // Verify deadline, signature and nonce
-            if (block.timestamp > deadline) revert SignatureExpired(deadline);
-            if (!user.isValidSignatureNow(_hashTypedDataV4(details.hash()), userSignature)) revert InvalidSignature();
-            if (executionNonces[user] != nonce) revert InvalidNonce();
-            ++executionNonces[user];
-        }
-        _verifySignerFee(logicBatch, signer, signerSignature);
+        _validateLogicBatch(logicBatch, signer, signerSignature);
+        ++executionNonces[user];
         _executeWithSignerFee(user, details.permit2Datas, logicBatch, details.tokensReturn);
     }
 
@@ -393,12 +379,35 @@ contract Router is IRouter, Ownable, EIP712 {
         return block.timestamp <= uint256(delegations[user][msg.sender].expiry);
     }
 
-    function _verifySignerFee(
+    function _validateExecutionDetails(
+        DataType.ExecutionDetails calldata details,
+        address signer,
+        bytes calldata signature
+    ) internal view {
+        uint256 deadline = details.deadline;
+        uint256 nonce = details.nonce;
+        if (block.timestamp > deadline) revert SignatureExpired(deadline);
+        if (!signer.isValidSignatureNow(_hashTypedDataV4(details.hash()), signature)) revert InvalidSignature();
+        if (executionNonces[signer] != nonce) revert InvalidNonce();
+    }
+
+    function _validateExecutionBatchDetails(
+        DataType.ExecutionBatchDetails calldata details,
+        address signer,
+        bytes calldata signature
+    ) internal view {
+        uint256 deadline = details.deadline;
+        uint256 nonce = details.nonce;
+        if (block.timestamp > deadline) revert SignatureExpired(deadline);
+        if (!signer.isValidSignatureNow(_hashTypedDataV4(details.hash()), signature)) revert InvalidSignature();
+        if (executionNonces[signer] != nonce) revert InvalidNonce();
+    }
+
+    function _validateLogicBatch(
         DataType.LogicBatch calldata logicBatch,
         address signer,
         bytes calldata signature
     ) internal view {
-        // Verify deadline, signer and signature
         uint256 deadline = logicBatch.deadline;
         if (block.timestamp > deadline) revert SignatureExpired(deadline);
         if (!signers[signer]) revert InvalidSigner(signer);
@@ -426,16 +435,10 @@ contract Router is IRouter, Ownable, EIP712 {
         address delegator,
         bytes calldata signature
     ) external {
+        _validateDelegationDetails(details, delegator, signature);
         address delegatee = details.delegatee;
         uint128 expiry = details.expiry;
-        uint128 nonce = details.nonce;
-        uint256 deadline = details.deadline;
-        // Verify deadline, signature and nonce
-        if (block.timestamp > deadline) revert SignatureExpired(deadline);
-        if (!delegator.isValidSignatureNow(_hashTypedDataV4(details.hash()), signature)) revert InvalidSignature();
-        DataType.PackedDelegation storage delegation = delegations[delegator][delegatee];
-        if (delegation.nonce != nonce) revert InvalidNonce();
-        delegation.updateAll(expiry, nonce);
+        delegations[delegator][delegatee].updateAll(expiry, details.nonce);
         emit Delegated(delegator, delegatee, expiry);
     }
 
@@ -443,6 +446,18 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @param delegatee The address to be disallowed
     function disallow(address delegatee) external {
         allow(delegatee, 0);
+    }
+
+    function _validateDelegationDetails(
+        DataType.DelegationDetails calldata details,
+        address signer,
+        bytes calldata signature
+    ) internal view {
+        uint256 deadline = details.deadline;
+        uint128 nonce = details.nonce;
+        if (block.timestamp > deadline) revert SignatureExpired(deadline);
+        if (!signer.isValidSignatureNow(_hashTypedDataV4(details.hash()), signature)) revert InvalidSignature();
+        if (delegations[signer][details.delegatee].nonce != nonce) revert InvalidNonce();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////
