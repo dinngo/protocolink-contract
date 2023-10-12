@@ -17,7 +17,7 @@ contract DeployMetis is DeployCREATE3Factory, DeployRouter, DeployAaveV3FlashLoa
 
         routerConfig = RouterConfig({
             deployedAddress: 0x3fa3B62F0c9c13733245A778DE4157E47Cf5bA21,
-            wrappedNative: 0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000,
+            wrappedNative: 0x75cb093E4D61d2A2e65D8e0BBb01DE8d89b53481,
             permit2: 0x2EE5407017B878774b58c34A8c09CAcC94aDd69B,
             deployer: DEPLOYER,
             owner: DEPLOYER,
