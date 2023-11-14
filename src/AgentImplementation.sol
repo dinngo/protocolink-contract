@@ -191,9 +191,6 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
         uint256 logicsLength = logics.length;
         for (uint256 i; i < logicsLength; ) {
             address to = logics[i].to;
-            if (to == permit2) {
-                revert InvalidPermitCall();
-            }
             bytes memory data = logics[i].data;
             DataType.Input[] calldata inputs = logics[i].inputs;
             DataType.WrapMode wrapMode = logics[i].wrapMode;
@@ -232,8 +229,9 @@ contract AgentImplementation is IAgent, ERC721Holder, ERC1155Holder {
                     // `msg.value` to pass the native amount, use `_OFFSET_NOT_USED` to indicate no replacement.
                     uint256 offset = inputs[j].amountOrOffset;
                     if (offset != _OFFSET_NOT_USED) {
+                        if (offset + 0x24 > data.length) revert InvalidOffset(); // 0x24 = 0x4(selector) + 0x20(amount)
                         assembly {
-                            let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(sig)
+                            let loc := add(add(data, 0x24), offset) // 0x24 = 0x20(data_length) + 0x4(selector)
                             mstore(loc, amount)
                         }
                     }

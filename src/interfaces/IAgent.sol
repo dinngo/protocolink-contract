@@ -16,11 +16,11 @@ interface IAgent {
 
     error InvalidBps();
 
+    error InvalidOffset();
+
     error UnresetCallbackWithCharge();
 
     error InvalidPermit2Data(bytes4 selector);
-
-    error InvalidPermitCall();
 
     function isCharging() external view returns (bool);
 
