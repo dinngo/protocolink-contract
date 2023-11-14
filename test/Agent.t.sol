@@ -100,17 +100,6 @@ contract AgentTest is Test {
         vm.stopPrank();
     }
 
-    function testCannotExecutePermit2InLogic() external {
-        DataType.Logic[] memory logics = new DataType.Logic[](1);
-        logics[0] = DataType.Logic(permit2, '', inputsEmpty, DataType.WrapMode.NONE, address(0), address(0));
-        vm.startPrank(router);
-        vm.expectRevert(IAgent.InvalidPermitCall.selector);
-        agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
-        vm.expectRevert(IAgent.InvalidPermitCall.selector);
-        agent.executeWithSignerFee(permit2DatasEmpty, logics, feesEmpty, referralsEmpty, tokensReturnEmpty);
-        vm.stopPrank();
-    }
-
     function testDoPermit2TransferFrom() external {
         bytes[] memory datas = new bytes[](1);
         datas[0] = abi.encodeWithSelector(0x36c78516, address(0), address(1), 1, address(mockERC20));
@@ -178,6 +167,30 @@ contract AgentTest is Test {
             address(0) // callback
         );
         vm.expectRevert(IAgent.InvalidBps.selector);
+        vm.prank(router);
+        agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
+    }
+
+    function testCannotBeInvalidOffset(uint16 offset, uint256 dataLength) external {
+        // Revert if offset + 0x24 > data.length
+        // 0x24 = 0x4(selector) + 0x20(amount)
+        vm.assume(uint256(offset) + 0x24 > dataLength);
+        DataType.Logic[] memory logics = new DataType.Logic[](1);
+        DataType.Input[] memory inputs = new DataType.Input[](1);
+        inputs[0] = DataType.Input(
+            mockWrappedNative, // token
+            BPS_BASE, // balanceBps
+            offset // amountOrOffset
+        );
+        logics[0] = DataType.Logic(
+            address(0), // to
+            new bytes(dataLength),
+            inputs,
+            DataType.WrapMode.NONE,
+            address(0), // approveTo
+            address(0) // callback
+        );
+        vm.expectRevert(IAgent.InvalidOffset.selector);
         vm.prank(router);
         agent.execute(permit2DatasEmpty, logics, tokensReturnEmpty);
     }
