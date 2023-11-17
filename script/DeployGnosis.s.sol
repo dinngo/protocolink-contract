@@ -7,7 +7,7 @@ import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCa
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
 import {DeploySparkFlashLoanCallback} from './callbacks/DeploySparkFlashLoanCallback.s.sol';
 
-contract DeployEthereum is
+contract DeployGnosis is
     DeployCREATE3Factory,
     DeployRouter,
     DeployAaveV3FlashLoanCallback,
