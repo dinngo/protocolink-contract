@@ -3,15 +3,13 @@ pragma solidity ^0.8.0;
 
 import {DeployCREATE3Factory} from './DeployCREATE3Factory.s.sol';
 import {DeployRouter} from './DeployRouter.s.sol';
-import {DeployAaveV2FlashLoanCallback} from './callbacks/DeployAaveV2FlashLoanCallback.s.sol';
 import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCallback.s.sol';
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
 import {DeploySparkFlashLoanCallback} from './callbacks/DeploySparkFlashLoanCallback.s.sol';
 
-contract DeployEthereum is
+contract DeployGnosis is
     DeployCREATE3Factory,
     DeployRouter,
-    DeployAaveV2FlashLoanCallback,
     DeployAaveV3FlashLoanCallback,
     DeployBalancerV2FlashLoanCallback,
     DeploySparkFlashLoanCallback
@@ -26,8 +24,8 @@ contract DeployEthereum is
         });
 
         routerConfig = RouterConfig({
-            deployedAddress: 0x3fa3B62F0c9c13733245A778DE4157E47Cf5bA21,
-            wrappedNative: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
+            deployedAddress: UNDEPLOYED,
+            wrappedNative: 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d,
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
             deployer: DEPLOYER,
             owner: DEPLOYER,
@@ -37,27 +35,21 @@ contract DeployEthereum is
             feeRate: 20
         });
 
-        aaveV2FlashLoanCallbackConfig = AaveV2FlashLoanCallbackConfig({
-            deployedAddress: 0x27BfAC5fb25C3853C2F48cF0e5B2F89Ea03C0104,
-            aaveV2Provider: 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5,
-            feeRate: 5
-        });
-
         aaveV3FlashLoanCallbackConfig = AaveV3FlashLoanCallbackConfig({
-            deployedAddress: 0x6ea614B4C520c8abC9B0F50803Bef964D4DA81EB,
-            aaveV3Provider: 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e,
+            deployedAddress: UNDEPLOYED,
+            aaveV3Provider: 0x36616cf17557639614c1cdDb356b1B83fc0B2132,
             feeRate: 5
         });
 
         balancerV2FlashLoanCallbackConfig = BalancerV2FlashLoanCallbackConfig({
-            deployedAddress: 0x08b3d2c773C08CF21746Cf16268d2E092881c208,
+            deployedAddress: UNDEPLOYED,
             balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8,
             feeRate: 5
         });
 
         sparkFlashLoanCallbackConfig = SparkFlashLoanCallbackConfig({
             deployedAddress: UNDEPLOYED,
-            sparkProvider: 0x02C3eA4e34C0cBd694D2adFa2c690EECbC1793eE,
+            sparkProvider: 0xA98DaCB3fC964A6A0d2ce3B77294241585EAbA6d,
             feeRate: 5
         });
     }
@@ -70,7 +62,6 @@ contract DeployEthereum is
         address deployedRouterAddress = _deployRouter(deployedCreate3FactoryAddress);
 
         // callback
-        _deployAaveV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deployAaveV3FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deployBalancerV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deploySparkFlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
