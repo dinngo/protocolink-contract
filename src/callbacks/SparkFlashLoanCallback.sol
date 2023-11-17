@@ -60,7 +60,7 @@ contract SparkFlashLoanCallback is IAaveV3FlashLoanCallback, CallbackFeeBase {
 
             agent.functionCall(
                 abi.encodePacked(IAgent.executeByCallback.selector, params),
-                'ERROR_SPARK_V3_FLASH_LOAN_CALLBACK'
+                'ERROR_SPARK_FLASH_LOAN_CALLBACK'
             );
         }
 
