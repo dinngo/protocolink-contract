@@ -2,8 +2,6 @@
 
 [![test](https://github.com/dinngo/protocolink-contract/actions/workflows/test.yml/badge.svg)](https://github.com/dinngo/protocolink-contract/actions/workflows/test.yml)
 
-> This contract is still in the testing phase and has not been audited. Please do not use it in production.
-
 ## Overview
 
 - Protocolink is a router system which consolidates protocol interactions within a secure Router/Agent architecture in a single transaction.
@@ -11,6 +9,10 @@
 - Protocolink is protocol-agnostic. All protocol-related code is defined in the [protocolink-logics](https://github.com/dinngo/protocolink-logics)) repository instead of in the contracts. Protocolink also offers an [API](https://docs.protocolink.com/integrate-api/overview) and an [SDK](https://docs.protocolink.com/integrate-js-sdk/overview) for developers to create transactions.
 
 More details can be found at [Protocolink Overview](https://docs.protocolink.com/).
+
+## Audit
+
+- [PeckShield](./audits/PeckShield-Audit-Report-Protocolink-v1.0.pdf) - November 2023
 
 ## Contract
 
