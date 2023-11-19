@@ -1,6 +1,6 @@
 .DS_Store
 .env
-broadcast/DeployLocal.s.sol/
+broadcast/
 cache/
 node_modules/
 out/

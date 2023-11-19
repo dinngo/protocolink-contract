@@ -31,7 +31,7 @@ abstract contract DeployRouter is DeployBaseScript {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('protocolink.router.v2');
+            bytes32 salt = keccak256('protocolink.router.v1');
             bytes memory creationCode = abi.encodePacked(
                 type(Router).creationCode,
                 abi.encode(cfg.wrappedNative, cfg.permit2, cfg.deployer)

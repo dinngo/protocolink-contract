@@ -21,6 +21,9 @@ contract DeployLocal is
     DeployMakerUtility
 {
     address public constant DEPLOYER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    address public constant OWNER = 0xffFf5a88840FF1f168E163ACD771DFb292164cFA; // Use other address instead of DEPLOYER to verify the ownership
+    address public constant PAUSER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    address public constant DEFAULT_COLLECTOR = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
     /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
     function setUp() external {
@@ -31,9 +34,9 @@ contract DeployLocal is
             wrappedNative: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
             permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
             deployer: DEPLOYER,
-            owner: 0xffFf5a88840FF1f168E163ACD771DFb292164cFA, // Use other address instead of DEPLOYER to verify the ownership
-            pauser: DEPLOYER,
-            defaultCollector: DEPLOYER,
+            owner: OWNER,
+            pauser: PAUSER,
+            defaultCollector: DEFAULT_COLLECTOR,
             signer: 0xffFf5a88840FF1f168E163ACD771DFb292164cFA,
             feeRate: 20
         });
