@@ -30,7 +30,7 @@ abstract contract DeployRadiantV2FlashLoanCallback is DeployBaseScript {
         deployedAddress = cfg.deployedAddress;
         if (deployedAddress == UNDEPLOYED) {
             ICREATE3Factory factory = ICREATE3Factory(create3Factory);
-            bytes32 salt = keccak256('protocolink.radiant.v2.flash.loan.callback.v2');
+            bytes32 salt = keccak256('protocolink.radiant.v2.flash.loan.callback.v1');
             bytes memory creationCode = abi.encodePacked(
                 type(RadiantV2FlashLoanCallback).creationCode,
                 abi.encode(router, cfg.radiantV2Provider, cfg.feeRate)
