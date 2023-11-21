@@ -32,6 +32,8 @@ contract Router is IRouter, Ownable, EIP712 {
 
     /// @notice Immutable implementation contract for all users' agents
     address public immutable agentImplementation;
+    bytes32 public immutable agentBytecodeHash;
+    bytes32 public immutable constructorInputHash;
 
     /// @notice Mapping for recording exclusive agent contract to each user
     mapping(address user => IAgent agent) public agents;
@@ -72,9 +74,16 @@ contract Router is IRouter, Ownable, EIP712 {
     }
 
     /// @dev Create the router with EIP-712 and the agent implementation contracts
-    constructor(address wrappedNative, address permit2, address deployer) EIP712('Protocolink', '1') {
+    constructor(
+        address wrappedNative,
+        address permit2,
+        address deployer,
+        bytes32 agentBytecodeHash_
+    ) EIP712('Protocolink', '1') {
         currentUser = _INIT_CURRENT_USER;
         agentImplementation = address(new AgentImplementation(wrappedNative, permit2));
+        agentBytecodeHash = agentBytecodeHash_;
+        constructorInputHash = keccak256(abi.encode(agentImplementation));
         transferOwnership(deployer);
     }
 
@@ -207,21 +216,18 @@ contract Router is IRouter, Ownable, EIP712 {
     /// @param user The user address
     /// @return The calculated agent address for the user
     function calcAgent(address user) external view returns (address) {
-        address result = address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            bytes1(0xff),
-                            address(this),
-                            bytes32(bytes20(user)),
-                            keccak256(abi.encodePacked(type(Agent).creationCode, abi.encode(agentImplementation)))
-                        )
-                    )
-                )
+        // https://github.com/matter-labs/v2-testnet-contracts/blob/main/l2/contracts/L2ContractHelper.sol
+        bytes32 hash = keccak256(
+            bytes.concat(
+                keccak256('zksyncCreate2'),
+                bytes32(uint256(uint160(address(this)))),
+                bytes32(bytes20(user)),
+                agentBytecodeHash,
+                constructorInputHash
             )
         );
-        return result;
+
+        return address(uint160(uint256(hash)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////

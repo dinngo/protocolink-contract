@@ -1,2 +1,0 @@
-forge-std/=lib/forge-std/src/
-create3-factory/=lib/create3-factory/src/

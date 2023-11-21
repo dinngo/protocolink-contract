@@ -1,6 +1,17 @@
-.DS_Store
-.env
-broadcast/DeployLocal.s.sol/
+# hardhat artifacts
+artifacts/
 cache/
+
+# zksync artifacts
+artifacts-zk/
+cache-zk/
+
+# Dependency directories
 node_modules/
 out/
+
+# dotenv environment variables file
+.env
+
+# Mac OS
+.DS_Store

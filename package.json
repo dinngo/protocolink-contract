@@ -12,6 +12,30 @@
   },
   "devDependencies": {
     "prettier": "2.8.4",
-    "prettier-plugin-solidity": "1.1.3"
+    "prettier-plugin-solidity": "1.1.3",
+    "@matterlabs/hardhat-zksync-deploy": "^0.6.3",
+    "@matterlabs/hardhat-zksync-solc": "^0.3.17",
+    "@matterlabs/hardhat-zksync-verify": "^0.1.8",
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
+    "@openzeppelin/test-helpers": "^0.5.16",
+    "@types/chai": "^4.3.4",
+    "@types/mocha": "^10.0.1",
+    "chai": "^4.3.7",
+    "dotenv": "^16.0.3",
+    "ethers": "^5.7.2",
+    "hardhat": "2.14.0",
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.4",
+    "zksync-web3": "^0.14.3",
+    "web3": "^1.5.2"
+  },
+  "scripts": {
+    "compile": "yarn hardhat compile",
+    "test": "hardhat test",
+    "deploy": "yarn hardhat deploy-zksync --script deploy-router.ts",
+    "deploy-testnet": "yarn hardhat deploy-zksync --script deploy-router.ts --network zkSyncTestnet",
+    "deploy-mainnet": "yarn hardhat deploy-zksync --script deploy-router.ts --network zkSyncMainnet",
+    "verify-mainnet": "yarn hardhat verify --network zkSyncMainnet ${DEPLOYED_ADDRESS} --contructor-args ${ARGUMENTS_FILE_PATH}"
   }
 }

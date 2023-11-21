@@ -1,4 +1,4 @@
-# Protocolink Contract
+# Protocolink Contract on zkSync
 
 [![test](https://github.com/dinngo/protocolink-contract/actions/workflows/test.yml/badge.svg)](https://github.com/dinngo/protocolink-contract/actions/workflows/test.yml)
 
@@ -11,6 +11,13 @@
 - Protocolink is protocol-agnostic. All protocol-related code is defined in the [protocolink-logics](https://github.com/dinngo/protocolink-logics)) repository instead of in the contracts. Protocolink also offers an [API](https://docs.protocolink.com/integrate-api/overview) and an [SDK](https://docs.protocolink.com/integrate-js-sdk/overview) for developers to create transactions.
 
 More details can be found at [Protocolink Overview](https://docs.protocolink.com/).
+
+## Project structure
+
+- `/src`: smart contracts.
+- `/deploy`: deployment and contract interaction scripts.
+- `/test`: test files
+- `hardhat.config.ts`: configuration file.
 
 ## Contract
 
@@ -36,33 +43,46 @@ The details of each component can be found at [Smart Contract Overview](https://
 
 The code in this repository is built using the Foundry framework. You can follow [these](https://book.getfoundry.sh/getting-started/installation) setup instructions if you have not set it up yet.
 
+### Init
+
+`git submodule update --init --recursive` updates all the submodules in lib but the paths and the solidity version in lib needs to be changed per file due to hardhat framework.
+
+`yarn install`
+
 ### Build
 
-`forge build`
+`yarn compile`
 
 ### Test
 
-`forge test -vvv`
+`yarn test`
 
-### Coverage
+### Deploy
 
-`forge coverage --rpc-url ${FOUNDRY_ETH_RPC_URL} --report summary`
+Fill out parameters in `/deploy/deploy-router.ts`
 
-### Deploy Contract(s) and Verify
+`yarn run deploy` will execute the deployment script `/deploy/deploy-router.ts`. Requires [environment variable setup](#environment-variables).
 
-- Fill out parameters in `script/Deploy<NETWORK>.s.sol`. This script deploys all contracts whose `deployedAddress` equals `UNDEPLOYED`.
-- When deploying with `forge`, the default priority gas is set at 3 gwei. This is considered a high priority gas fee on both Ethereum and most L2s. The workaround is to check the appropriate total gas at the time of deployment and use `--legacy` (pre EIP-1559 - Type 1 Transaction) for deployment.
+### Environment variables
 
-```console
-forge script --broadcast \
---rpc-url <RPC-URL> \
---private-key <PRIVATE-KEY> \
---sig 'run()' \
-script/Deploy<NETWORK>.s.sol:Deploy<NETWORK> \
---chain-id <CHAIN-ID> \
---etherscan-api-key <ETHERSCAN-API-KEY> \
---verify \
---slow \
---legacy \
---with-gas-price <GAS-IN-WEI>
+In order to prevent users to leak private keys, this project includes the `dotenv` package which is used to load environment variables. It's used to load the wallet private key, required to run the deploy script.
+
+To use it, rename `.env.example` to `.env` and enter your private key.
+
 ```
+WALLET_PRIVATE_KEY=123cde574ccff....
+```
+
+### Local testing
+
+In order to run test, you need to start the zkSync local environment. Please check [this section of the docs](https://v2-docs.zksync.io/api/hardhat/testing.html#prerequisites) which contains all the details.
+
+If you do not start the zkSync local environment, the tests will fail with error `Error: could not detect network (event="noNetwork", code=NETWORK_ERROR, version=providers/5.7.2)`
+
+## Official Links
+
+- [Website](https://zksync.io/)
+- [Documentation](https://v2-docs.zksync.io/dev/)
+- [GitHub](https://github.com/matter-labs)
+- [Twitter](https://twitter.com/zksync)
+- [Discord](https://discord.gg/nMaPGrDDwk)
