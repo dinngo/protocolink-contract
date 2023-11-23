@@ -6,6 +6,7 @@ import {DeployRouter} from './DeployRouter.s.sol';
 import {DeployAaveV2FlashLoanCallback} from './callbacks/DeployAaveV2FlashLoanCallback.s.sol';
 import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCallback.s.sol';
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
+import {DeployRadiantV2FlashLoanCallback} from './callbacks/DeployRadiantV2FlashLoanCallback.s.sol';
 import {DeploySparkFlashLoanCallback} from './callbacks/DeploySparkFlashLoanCallback.s.sol';
 
 contract DeployEthereum is
@@ -14,6 +15,7 @@ contract DeployEthereum is
     DeployAaveV2FlashLoanCallback,
     DeployAaveV3FlashLoanCallback,
     DeployBalancerV2FlashLoanCallback,
+    DeployRadiantV2FlashLoanCallback,
     DeploySparkFlashLoanCallback
 {
     address public constant DEPLOYER = 0xBcb909975715DC8fDe643EE44b89e3FD6A35A259;
@@ -58,6 +60,12 @@ contract DeployEthereum is
             feeRate: 5
         });
 
+        radiantV2FlashLoanCallbackConfig = RadiantV2FlashLoanCallbackConfig({
+            deployedAddress: 0x6bfCE075A1c4F0fD4067A401dA8f159354e1a916,
+            radiantV2Provider: 0x70e507f1d20AeC229F435cd1EcaC6A7200119B9F,
+            feeRate: 5
+        });
+
         sparkFlashLoanCallbackConfig = SparkFlashLoanCallbackConfig({
             deployedAddress: 0x9174a45468d055Cc2Fa18e708E8CeACD46050359,
             sparkProvider: 0x02C3eA4e34C0cBd694D2adFa2c690EECbC1793eE,
@@ -76,6 +84,7 @@ contract DeployEthereum is
         _deployAaveV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deployAaveV3FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deployBalancerV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployRadiantV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deploySparkFlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
     }
 }
