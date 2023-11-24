@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {DeployCREATE3Factory} from './DeployCREATE3Factory.s.sol';
 import {DeployRouter} from './DeployRouter.s.sol';
 import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCallback.s.sol';
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
 import {DeploySparkFlashLoanCallback} from './callbacks/DeploySparkFlashLoanCallback.s.sol';
 
 contract DeployGnosis is
-    DeployCREATE3Factory,
     DeployRouter,
     DeployAaveV3FlashLoanCallback,
     DeployBalancerV2FlashLoanCallback,
@@ -18,14 +16,10 @@ contract DeployGnosis is
     address public constant OWNER = 0x13D09F09EF1f201D18d6b2fD4578D8feBf1c774d;
     address public constant PAUSER = 0x23535221bC116F3b8a17b768806C5d7Cd36b020D;
     address public constant DEFAULT_COLLECTOR = 0x4207b828b673EDC01d7f0020E8e8A99D8b454136;
+    address public constant CREATE3_FACTORY = 0xFa3e9a110E6975ec868E9ed72ac6034eE4255B64;
 
     /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
     function setUp() external {
-        create3FactoryConfig = Create3FactoryConfig({
-            deployedAddress: 0xFa3e9a110E6975ec868E9ed72ac6034eE4255B64,
-            deployer: DEPLOYER
-        });
-
         routerConfig = RouterConfig({
             deployedAddress: 0xDec80E988F4baF43be69c13711453013c212feA8,
             wrappedNative: 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d,
@@ -58,15 +52,12 @@ contract DeployGnosis is
     }
 
     function _run() internal override {
-        // create3 factory
-        address deployedCreate3FactoryAddress = _deployCreate3Factory();
-
         // router
-        address deployedRouterAddress = _deployRouter(deployedCreate3FactoryAddress);
+        address deployedRouterAddress = _deployRouter(CREATE3_FACTORY);
 
         // callback
-        _deployAaveV3FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
-        _deployBalancerV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
-        _deploySparkFlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployAaveV3FlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
+        _deployBalancerV2FlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
+        _deploySparkFlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
     }
 }
