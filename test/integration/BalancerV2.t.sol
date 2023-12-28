@@ -31,7 +31,7 @@ contract BalancerV2IntegrationTest is Test {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('ethereum'));
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 18860000);
 
         user = makeAddr('User');
         router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this));

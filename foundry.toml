@@ -7,6 +7,5 @@ optimizer_runs = 10_000
 
 [rpc_endpoints]
 ethereum = "https://cloudflare-eth.com"
-arbitrum = "https://arb1.arbitrum.io/rpc"
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

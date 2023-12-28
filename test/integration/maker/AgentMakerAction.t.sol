@@ -37,7 +37,7 @@ contract AgentMakerActionTest is Test, MakerCommonUtils, ERC20Permit2Utils {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('ethereum'));
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 18860000);
 
         user = makeAddr('User');
         (user2, user2PrivateKey) = makeAddrAndKey('User2');

@@ -31,9 +31,9 @@ contract RadiantV2IntegrationTest is Test {
         VARIABLE
     }
 
-    IAaveV2Provider public constant RADIANT_V2_PROVIDER = IAaveV2Provider(0x091d52CacE1edc5527C99cDCFA6937C1635330E4);
-    IERC20 public constant USDC = IERC20(0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8);
-    address public constant RUSDC_V2 = 0x48a29E756CC1C097388f3B2f3b570ED270423b3d;
+    IAaveV2Provider public constant RADIANT_V2_PROVIDER = IAaveV2Provider(0x70e507f1d20AeC229F435cd1EcaC6A7200119B9F);
+    IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    address public constant RUSDC_V2 = 0x9E85DF2B42b2aE5e666D7263ED81a744a534BF1f;
     address internal constant permit2Addr = address(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
     address public user;
@@ -48,7 +48,7 @@ contract RadiantV2IntegrationTest is Test {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('arbitrum'));
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 18860000);
 
         user = makeAddr('User');
         router = new Router(makeAddr('WrappedNative'), permit2Addr, address(this));
