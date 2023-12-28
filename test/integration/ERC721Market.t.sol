@@ -30,7 +30,7 @@ contract ERC721MarketTest is Test, ERC20Permit2Utils, ERC721Utils {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('ethereum'));
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 18860000);
 
         (user, userPrivateKey) = makeAddrAndKey('User');
         router = new Router(makeAddr('WrappedNative'), permit2Addr, address(this));

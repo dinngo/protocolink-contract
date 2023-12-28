@@ -30,7 +30,7 @@ contract NativeFeeCalculatorTest is Test {
     bytes[] public datasEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('ethereum'));
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 18860000);
 
         user = makeAddr('User');
         receiver = makeAddr('Receiver');

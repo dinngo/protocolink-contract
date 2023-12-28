@@ -24,9 +24,9 @@ contract RadiantFlashLoanFeeCalculatorTest is Test {
     event Charged(address indexed token, uint256 amount, address indexed collector, bytes32 metadata);
 
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address public constant RADIANT_V2_PROVIDER = 0x091d52CacE1edc5527C99cDCFA6937C1635330E4;
-    address public constant USDC = 0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8;
-    address public constant RUSDC_V2 = 0x48a29E756CC1C097388f3B2f3b570ED270423b3d;
+    address public constant RADIANT_V2_PROVIDER = 0x70e507f1d20AeC229F435cd1EcaC6A7200119B9F;
+    address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public constant RUSDC_V2 = 0x9E85DF2B42b2aE5e666D7263ED81a744a534BF1f;
     address public constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     bytes4 public constant RADIANT_FLASHLOAN_SELECTOR =
         bytes4(keccak256(bytes('flashLoan(address,address[],uint256[],uint256[],address,bytes,uint16)')));
@@ -50,7 +50,7 @@ contract RadiantFlashLoanFeeCalculatorTest is Test {
     bytes[] public datasEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('arbitrum'));
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 18860000);
 
         user = makeAddr('User');
         defaultCollector = makeAddr('FeeCollector');

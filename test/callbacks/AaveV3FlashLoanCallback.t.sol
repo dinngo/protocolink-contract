@@ -23,7 +23,7 @@ contract AaveV3FlashLoanCallbackTest is Test {
     DataType.Input[] public inputsEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('ethereum'));
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 18860000);
 
         user = makeAddr('User');
         defaultCollector = makeAddr('defaultCollector');

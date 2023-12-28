@@ -35,7 +35,7 @@ contract Permit2FeeCalculatorTest is Test, ERC20Permit2Utils, TypedDataSignature
     bytes32[] public referralsEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('ethereum'));
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 18860000);
         TypedDataSignature.initialize();
 
         (user, userPrivateKey) = makeAddrAndKey('User');

@@ -21,7 +21,7 @@ contract WrappedNativeTest is Test {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('ethereum'));
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 18860000);
 
         user = makeAddr('User');
         router = new Router(address(WRAPPED_NATIVE), address(PERMIT2), address(this));

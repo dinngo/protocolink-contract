@@ -9,7 +9,7 @@ import {IAaveV2FlashLoanCallback, IAaveV2Provider} from 'src/callbacks/RadiantV2
 import {RadiantV2FlashLoanCallback} from 'src/callbacks/RadiantV2FlashLoanCallback.sol';
 
 contract RadiantV2FlashLoanCallbackTest is Test {
-    IAaveV2Provider public constant radiantV2Provider = IAaveV2Provider(0x091d52CacE1edc5527C99cDCFA6937C1635330E4);
+    IAaveV2Provider public constant radiantV2Provider = IAaveV2Provider(0x70e507f1d20AeC229F435cd1EcaC6A7200119B9F);
     uint256 public constant BPS_BASE = 10_000;
 
     address public user;
@@ -24,7 +24,7 @@ contract RadiantV2FlashLoanCallbackTest is Test {
     DataType.Input[] public inputsEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('arbitrum'));
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 18860000);
 
         user = makeAddr('User');
         defaultCollector = makeAddr('defaultCollector');
