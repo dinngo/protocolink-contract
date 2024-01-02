@@ -7,5 +7,6 @@ optimizer_runs = 10_000
 
 [rpc_endpoints]
 ethereum = "https://cloudflare-eth.com"
+goerli = "https://rpc.ankr.com/eth_goerli"
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
