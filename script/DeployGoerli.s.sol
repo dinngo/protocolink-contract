@@ -26,7 +26,7 @@ contract DeployGoerli is DeployRouter, DeployMorphoFlashLoanCallback {
         });
 
         morphoFlashLoanCallbackConfig = MorphoFlashLoanCallbackConfig({
-            deployedAddress: UNDEPLOYED,
+            deployedAddress: 0x24D5b6b712D1f0D0B628E21E39dBaDde3f28C56e,
             morpho: 0x64c7044050Ba0431252df24fEd4d9635a275CB41,
             feeRate: 5
         });
