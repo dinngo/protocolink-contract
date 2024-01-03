@@ -6,7 +6,6 @@ import {ERC20, IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/ER
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {DataType} from 'src/libraries/DataType.sol';
 import {MorphoFlashLoanCallback, IMorphoFlashLoanCallback} from 'src/callbacks/MorphoFlashLoanCallback.sol';
-import {console2} from 'forge-std/console2.sol';
 
 contract MorphoFlashLoanCallbackTest is Test {
     address public constant MORPHO = 0x64c7044050Ba0431252df24fEd4d9635a275CB41;

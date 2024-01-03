@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {DeployRouter} from './DeployRouter.s.sol';
+import {DeployMorphoFlashLoanCallback} from './callbacks/DeployMorphoFlashLoanCallback.s.sol';
 
-contract DeployGoerli is DeployRouter {
+contract DeployGoerli is DeployRouter, DeployMorphoFlashLoanCallback {
     address public constant DEPLOYER = 0xBcb909975715DC8fDe643EE44b89e3FD6A35A259;
     address public constant OWNER = 0xBcb909975715DC8fDe643EE44b89e3FD6A35A259;
     address public constant PAUSER = 0xBcb909975715DC8fDe643EE44b89e3FD6A35A259;
@@ -23,10 +24,19 @@ contract DeployGoerli is DeployRouter {
             signer: 0xffFf5a88840FF1f168E163ACD771DFb292164cFA,
             feeRate: 20
         });
+
+        morphoFlashLoanCallbackConfig = MorphoFlashLoanCallbackConfig({
+            deployedAddress: UNDEPLOYED,
+            morpho: 0x64c7044050Ba0431252df24fEd4d9635a275CB41,
+            feeRate: 5
+        });
     }
 
     function _run() internal override {
         // router
-        _deployRouter(CREATE3_FACTORY);
+        address deployedRouterAddress = _deployRouter(CREATE3_FACTORY);
+
+        // callback
+        _deployMorphoFlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
     }
 }

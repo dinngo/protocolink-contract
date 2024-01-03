@@ -1,27 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {Router, IRouter} from 'src/Router.sol';
 import {IAgent} from 'src/interfaces/IAgent.sol';
 import {DataType} from 'src/libraries/DataType.sol';
-import {Test} from 'forge-std/Test.sol';
-import {MorphoFlashLoanCallback} from 'src/callbacks/MorphoFlashLoanCallback.sol';
-
-interface IMorphoFlashLoanCallback {
-    function flashLoan(address token, uint256 assets, bytes calldata data) external;
-}
+import {MorphoFlashLoanCallback, IMorphoFlashLoanCallback, IMorpho} from 'src/callbacks/MorphoFlashLoanCallback.sol';
 
 contract MorphoIntegrationTest is Test {
-    // using SafeERC20 for IERC20;
-
     address public constant MORPHO = 0x64c7044050Ba0431252df24fEd4d9635a275CB41;
     IERC20 public constant USDC = IERC20(0x62bD2A599664D421132d7C54AB4DbE3233f4f0Ae);
 
     address public user;
     IRouter public router;
     IAgent public agent;
-    MorphoFlashLoanCallback public flashLoanCallback;
+    IMorphoFlashLoanCallback public flashLoanCallback;
 
     // Empty arrays
     address[] public tokensReturnEmpty;
@@ -46,8 +40,7 @@ contract MorphoIntegrationTest is Test {
 
     function testExecuteMorphoFlashLoan(uint256 amount) external {
         IERC20 borrowedToken = USDC;
-        address flashloanPool = MORPHO;
-        amount = bound(amount, 1e6, borrowedToken.balanceOf(flashloanPool));
+        amount = bound(amount, 1e6, borrowedToken.balanceOf(MORPHO));
         address token = address(borrowedToken);
         vm.label(token, 'Borrowed Token');
 
@@ -72,7 +65,7 @@ contract MorphoIntegrationTest is Test {
         return
             DataType.Logic(
                 address(flashLoanCallback), // to
-                abi.encodeWithSelector(MorphoFlashLoanCallback.flashLoan.selector, token, amount, params),
+                abi.encodeWithSelector(IMorpho.flashLoan.selector, token, amount, params),
                 inputsEmpty,
                 DataType.WrapMode.NONE,
                 address(0), // approveTo
