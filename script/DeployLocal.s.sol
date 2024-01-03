@@ -8,6 +8,7 @@ import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCa
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
 import {DeployRadiantV2FlashLoanCallback} from './callbacks/DeployRadiantV2FlashLoanCallback.s.sol';
 import {DeploySparkFlashLoanCallback} from './callbacks/DeploySparkFlashLoanCallback.s.sol';
+import {DeployMorphoFlashLoanCallback} from './callbacks/DeployMorphoFlashLoanCallback.s.sol';
 import {DeployMakerUtility} from './utilities/DeployMakerUtility.s.sol';
 
 contract DeployLocal is
@@ -18,6 +19,7 @@ contract DeployLocal is
     DeployBalancerV2FlashLoanCallback,
     DeployRadiantV2FlashLoanCallback,
     DeploySparkFlashLoanCallback,
+    DeployMorphoFlashLoanCallback,
     DeployMakerUtility
 {
     address public constant DEPLOYER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -71,6 +73,12 @@ contract DeployLocal is
             feeRate: 5
         });
 
+        morphoFlashLoanCallbackConfig = MorphoFlashLoanCallbackConfig({
+            deployedAddress: UNDEPLOYED,
+            morpho: 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb,
+            feeRate: 5
+        });
+
         makerUtilityConfig = MakerUtilityConfig({
             deployedAddress: UNDEPLOYED,
             proxyRegistry: 0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4,
@@ -94,6 +102,7 @@ contract DeployLocal is
         _deployBalancerV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deployRadiantV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deploySparkFlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployMorphoFlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
 
         // utility
         _deployMakerUtility(deployedCreate3FactoryAddress, deployedRouterAddress);
