@@ -6,9 +6,9 @@ import {DeployRouter} from './DeployRouter.s.sol';
 import {DeployAaveV2FlashLoanCallback} from './callbacks/DeployAaveV2FlashLoanCallback.s.sol';
 import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCallback.s.sol';
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
+import {DeployMorphoFlashLoanCallback} from './callbacks/DeployMorphoFlashLoanCallback.s.sol';
 import {DeployRadiantV2FlashLoanCallback} from './callbacks/DeployRadiantV2FlashLoanCallback.s.sol';
 import {DeploySparkFlashLoanCallback} from './callbacks/DeploySparkFlashLoanCallback.s.sol';
-import {DeployMorphoFlashLoanCallback} from './callbacks/DeployMorphoFlashLoanCallback.s.sol';
 import {DeployMakerUtility} from './utilities/DeployMakerUtility.s.sol';
 
 contract DeployLocal is
@@ -61,6 +61,12 @@ contract DeployLocal is
             feeRate: 5
         });
 
+        morphoFlashLoanCallbackConfig = MorphoFlashLoanCallbackConfig({
+            deployedAddress: UNDEPLOYED,
+            morpho: 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb,
+            feeRate: 5
+        });
+
         radiantV2FlashLoanCallbackConfig = RadiantV2FlashLoanCallbackConfig({
             deployedAddress: UNDEPLOYED,
             radiantV2Provider: 0x091d52CacE1edc5527C99cDCFA6937C1635330E4,
@@ -70,12 +76,6 @@ contract DeployLocal is
         sparkFlashLoanCallbackConfig = SparkFlashLoanCallbackConfig({
             deployedAddress: UNDEPLOYED,
             sparkProvider: 0x02C3eA4e34C0cBd694D2adFa2c690EECbC1793eE,
-            feeRate: 5
-        });
-
-        morphoFlashLoanCallbackConfig = MorphoFlashLoanCallbackConfig({
-            deployedAddress: UNDEPLOYED,
-            morpho: 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb,
             feeRate: 5
         });
 
@@ -100,9 +100,9 @@ contract DeployLocal is
         _deployAaveV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deployAaveV3FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deployBalancerV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
+        _deployMorphoFlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deployRadiantV2FlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
         _deploySparkFlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
-        _deployMorphoFlashLoanCallback(deployedCreate3FactoryAddress, deployedRouterAddress);
 
         // utility
         _deployMakerUtility(deployedCreate3FactoryAddress, deployedRouterAddress);
