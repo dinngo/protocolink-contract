@@ -5,6 +5,7 @@ import {DeployRouter} from './DeployRouter.s.sol';
 import {DeployAaveV2FlashLoanCallback} from './callbacks/DeployAaveV2FlashLoanCallback.s.sol';
 import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCallback.s.sol';
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
+import {DeployMorphoFlashLoanCallback} from './callbacks/DeployMorphoFlashLoanCallback.s.sol';
 import {DeployRadiantV2FlashLoanCallback} from './callbacks/DeployRadiantV2FlashLoanCallback.s.sol';
 import {DeploySparkFlashLoanCallback} from './callbacks/DeploySparkFlashLoanCallback.s.sol';
 
@@ -13,6 +14,7 @@ contract DeployEthereum is
     DeployAaveV2FlashLoanCallback,
     DeployAaveV3FlashLoanCallback,
     DeployBalancerV2FlashLoanCallback,
+    DeployMorphoFlashLoanCallback,
     DeployRadiantV2FlashLoanCallback,
     DeploySparkFlashLoanCallback
 {
@@ -54,6 +56,12 @@ contract DeployEthereum is
             feeRate: 5
         });
 
+        morphoFlashLoanCallbackConfig = MorphoFlashLoanCallbackConfig({
+            deployedAddress: 0x24D5b6b712D1f0D0B628E21E39dBaDde3f28C56e,
+            morpho: 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb,
+            feeRate: 5
+        });
+
         radiantV2FlashLoanCallbackConfig = RadiantV2FlashLoanCallbackConfig({
             deployedAddress: 0x6bfCE075A1c4F0fD4067A401dA8f159354e1a916,
             radiantV2Provider: 0x70e507f1d20AeC229F435cd1EcaC6A7200119B9F,
@@ -75,6 +83,7 @@ contract DeployEthereum is
         _deployAaveV2FlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
         _deployAaveV3FlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
         _deployBalancerV2FlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
+        _deployMorphoFlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
         _deployRadiantV2FlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
         _deploySparkFlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
     }
