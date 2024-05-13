@@ -23,7 +23,7 @@ contract MorphoFlashLoanCallbackTest is Test {
     DataType.Input[] public inputsEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('goerli'), 10310460);
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 19850000);
 
         user = makeAddr('User');
         defaultCollector = makeAddr('defaultCollector');

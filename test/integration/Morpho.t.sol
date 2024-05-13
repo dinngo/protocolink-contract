@@ -9,8 +9,8 @@ import {DataType} from 'src/libraries/DataType.sol';
 import {MorphoFlashLoanCallback, IMorphoFlashLoanCallback, IMorpho} from 'src/callbacks/MorphoFlashLoanCallback.sol';
 
 contract MorphoIntegrationTest is Test {
-    address public constant MORPHO = 0x64c7044050Ba0431252df24fEd4d9635a275CB41;
-    IERC20 public constant USDC = IERC20(0x62bD2A599664D421132d7C54AB4DbE3233f4f0Ae);
+    address public constant MORPHO = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
+    IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
     address public user;
     IRouter public router;
@@ -23,7 +23,7 @@ contract MorphoIntegrationTest is Test {
     bytes[] public permit2DatasEmpty;
 
     function setUp() external {
-        vm.createSelectFork(vm.rpcUrl('goerli'), 10310460);
+        vm.createSelectFork(vm.rpcUrl('ethereum'), 19850000);
 
         user = makeAddr('User');
         router = new Router(makeAddr('WrappedNative'), makeAddr('Permit2'), address(this));
