@@ -9,7 +9,7 @@ contract DeployOptimism is DeployRouter, DeployAaveV3FlashLoanCallback, DeployBa
     address public constant DEPLOYER = 0xBcb909975715DC8fDe643EE44b89e3FD6A35A259;
     address public constant OWNER = 0xBb91D028cAD3D67e3AFBAC2De9159DBE98467a9e;
     address public constant PAUSER = 0xFC8c51c35F69FD85F745dFB49b1dC8a448AD8694;
-    address public constant DEFAULT_COLLECTOR = 0x168608B226ef4E59Db5E61359509656a51BAe090;
+    address public constant DEFAULT_COLLECTOR = 0xFB20753f85f89be6F42D228667D70e62D1Ba5f75;
     address public constant CREATE3_FACTORY = 0xFa3e9a110E6975ec868E9ed72ac6034eE4255B64;
 
     /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.

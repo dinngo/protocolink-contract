@@ -21,7 +21,7 @@ contract DeployEthereum is
     address public constant DEPLOYER = 0xBcb909975715DC8fDe643EE44b89e3FD6A35A259;
     address public constant OWNER = 0xA7248F4B85FB6261c314d08e7938285d1d86cd61;
     address public constant PAUSER = 0x4d2D634Bf4b271f74bBf3A30f50497EC3D90024e;
-    address public constant DEFAULT_COLLECTOR = 0x6304EB1B1eC2135a64a90bA901B12Cf769657579;
+    address public constant DEFAULT_COLLECTOR = 0xFB20753f85f89be6F42D228667D70e62D1Ba5f75;
     address public constant CREATE3_FACTORY = 0xFa3e9a110E6975ec868E9ed72ac6034eE4255B64;
 
     /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
