@@ -15,7 +15,7 @@ contract DeployArbitrum is
     address public constant DEPLOYER = 0xBcb909975715DC8fDe643EE44b89e3FD6A35A259;
     address public constant OWNER = 0x64585922a9703d9EdE7d353a6522eb2970f75066;
     address public constant PAUSER = 0x660Cc6D82925Cc804aC4EBD1d5870Fa32C9aBDb8;
-    address public constant DEFAULT_COLLECTOR = 0x3EBe4dfaF95cd320BF34633B3BDf773FbE732E63;
+    address public constant DEFAULT_COLLECTOR = 0xFB20753f85f89be6F42D228667D70e62D1Ba5f75;
     address public constant CREATE3_FACTORY = 0xFa3e9a110E6975ec868E9ed72ac6034eE4255B64;
 
     /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.

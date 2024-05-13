@@ -15,7 +15,7 @@ contract DeployGnosis is
     address public constant DEPLOYER = 0xBcb909975715DC8fDe643EE44b89e3FD6A35A259;
     address public constant OWNER = 0x13D09F09EF1f201D18d6b2fD4578D8feBf1c774d;
     address public constant PAUSER = 0x23535221bC116F3b8a17b768806C5d7Cd36b020D;
-    address public constant DEFAULT_COLLECTOR = 0x4207b828b673EDC01d7f0020E8e8A99D8b454136;
+    address public constant DEFAULT_COLLECTOR = 0xFB20753f85f89be6F42D228667D70e62D1Ba5f75;
     address public constant CREATE3_FACTORY = 0xFa3e9a110E6975ec868E9ed72ac6034eE4255B64;
 
     /// @notice Set up deploy parameters and deploy contracts whose `deployedAddress` equals `UNDEPLOYED`.
