@@ -4,8 +4,14 @@ pragma solidity ^0.8.0;
 import {DeployRouter} from './DeployRouter.s.sol';
 import {DeployAaveV3FlashLoanCallback} from './callbacks/DeployAaveV3FlashLoanCallback.s.sol';
 import {DeployBalancerV2FlashLoanCallback} from './callbacks/DeployBalancerV2FlashLoanCallback.s.sol';
+import {DeployRadiantV2FlashLoanCallback} from './callbacks/DeployRadiantV2FlashLoanCallback.s.sol';
 
-contract DeployBase is DeployRouter, DeployAaveV3FlashLoanCallback, DeployBalancerV2FlashLoanCallback {
+contract DeployBase is
+    DeployRouter,
+    DeployAaveV3FlashLoanCallback,
+    DeployBalancerV2FlashLoanCallback,
+    DeployRadiantV2FlashLoanCallback
+{
     address public constant DEPLOYER = 0xBcb909975715DC8fDe643EE44b89e3FD6A35A259;
     address public constant OWNER = 0x19Bb1986F0d57D0315CF9c42F7fa1d4Ba9C0798F;
     address public constant PAUSER = 0xFC0351FAC21f4828086F2f4298103A37AD07EA8E;
@@ -37,6 +43,12 @@ contract DeployBase is DeployRouter, DeployAaveV3FlashLoanCallback, DeployBalanc
             balancerV2Vault: 0xBA12222222228d8Ba445958a75a0704d566BF2C8,
             feeRate: 5
         });
+
+        radiantV2FlashLoanCallbackConfig = RadiantV2FlashLoanCallbackConfig({
+            deployedAddress: 0x6bfCE075A1c4F0fD4067A401dA8f159354e1a916,
+            radiantV2Provider: 0xe7f252D19AB96254144Fbb0D94ebC0ff7EA0C541,
+            feeRate: 5
+        });
     }
 
     function _run() internal override {
@@ -46,5 +58,6 @@ contract DeployBase is DeployRouter, DeployAaveV3FlashLoanCallback, DeployBalanc
         // callback
         _deployAaveV3FlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
         _deployBalancerV2FlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
+        _deployRadiantV2FlashLoanCallback(CREATE3_FACTORY, deployedRouterAddress);
     }
 }
