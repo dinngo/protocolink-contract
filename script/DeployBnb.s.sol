@@ -26,8 +26,8 @@ contract DeployBnb is DeployRouter, DeployRadiantV2FlashLoanCallback {
         });
 
         radiantV2FlashLoanCallbackConfig = RadiantV2FlashLoanCallbackConfig({
-            deployedAddress: 0x6bfCE075A1c4F0fD4067A401dA8f159354e1a916,
-            radiantV2Provider: 0x63764769dA006395515c3f8afF9c91A809eF6607,
+            deployedAddress: 0x544921763C3D2C9345BA3862eFa72368a12bBd1f,
+            radiantV2Provider: 0x64A59e3a3A2D15D03E868618261aF12c3deee27c,
             feeRate: 5
         });
     }
