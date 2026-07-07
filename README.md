@@ -68,3 +68,53 @@ script/Deploy<NETWORK>.s.sol:Deploy<NETWORK> \
 --legacy \
 --with-gas-price <GAS-IN-WEI>
 ```
+
+#### DeFi Oracle Meta Mainnet (Chain 138)
+
+Chain 138 uses `script/DeployChain138.s.sol:DeployChain138` for Router deployment. The script intentionally deploys only the Router; protocol callback deployments should be added only after the corresponding protocol providers are officially available on Chain 138.
+
+Before broadcasting, confirm the canonical CREATE3Factory and Permit2 contracts exist on Chain 138:
+
+```console
+RPC_URL=<CHAIN-138-RPC> ./scripts/check-chain138-prerequisites.sh
+```
+
+Permit2 is deployed on Chain 138 at `0x000000000022D473030F116dDEE9F6B43aC78BA3`. Canonical Router deployment remains blocked until the canonical CREATE3Factory is deployed at `0xFa3e9a110E6975ec868E9ed72ac6034eE4255B64`.
+
+```console
+forge script --broadcast \
+--rpc-url chain138 \
+--private-key <PRIVATE-KEY> \
+--sig 'run()' \
+script/DeployChain138.s.sol:DeployChain138 \
+--chain-id 138 \
+--slow \
+--legacy \
+--with-gas-price <GAS-IN-WEI>
+```
+
+For Chain 138 integration testing before the canonical CREATE3Factory is available, `script/DeployChain138Fallback.s.sol:DeployChain138Fallback` records the live Router deployed through a Chain 138-specific fallback factory. This path is non-canonical and does not produce the cross-chain Router address.
+
+- Fallback CREATE3Factory: `0x486B2E145F486eFA0190a60259B5BB464BD6b22b`
+- Fallback Router: `0xE7f51632381d0791eC5c05F5585e7b1bFf1de5F5`
+- Router owner: `0xcE245455a34a57548F7c1F427233DFC1E84Ce1b3`
+
+The fallback script sets `deployedAddress` to the live fallback Router so reruns skip deployment. Set it back to `UNDEPLOYED` only when deploying a fresh fallback environment.
+
+To accept the fallback path in an explicit readiness check:
+
+```console
+CHAIN138_ALLOW_FALLBACK=1 RPC_URL=<CHAIN-138-RPC> ./scripts/check-chain138-prerequisites.sh
+```
+
+```console
+forge script --broadcast \
+--rpc-url chain138 \
+--private-key <PRIVATE-KEY> \
+--sig 'run()' \
+script/DeployChain138Fallback.s.sol:DeployChain138Fallback \
+--chain-id 138 \
+--slow \
+--legacy \
+--with-gas-price <GAS-IN-WEI>
+```
